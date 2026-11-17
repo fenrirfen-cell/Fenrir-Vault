@@ -216,6 +216,8 @@ dependencies {
     implementation(project(":composeApp"))
     // Read mode: Tsundoku, from the ./tsundoku included build (see settings.gradle.kts).
     implementation("app.tsundoku:embedded")
+    // Tsundoku brings some Coil 3 modules at an older version; keep every Coil module on Nuvio's.
+    implementation(platform("io.coil-kt.coil3:coil-bom:${libs.versions.coil.get()}"))
     implementation(libs.androidx.appcompat)
     implementation(libs.compose.runtime)
     coreLibraryDesugaring(libs.desugar.jdk.libs)

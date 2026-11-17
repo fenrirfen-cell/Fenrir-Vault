@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Labels of the Watch / Read switch at the top of the home screens -->
+    <string name="read_mode_watch">Watch</string>
+    <string name="read_mode_read">Read</string>
+</resources>

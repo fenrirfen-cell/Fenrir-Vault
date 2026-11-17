@@ -2,7 +2,8 @@
 androidx-benchmark = "1.5.0"
 androidx-uiautomator = "2.3.0"
 androidx-testRunner = "1.7.0"
-agp = "9.2.0"
+# Must match the AGP version used by the Tsundoku included build (tsundoku/gradle/libs.versions.toml).
+agp = "9.3.1"
 android-compileSdk = "37"
 android-compileSdkMinor = "1"
 android-minSdk = "24"

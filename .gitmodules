@@ -2,3 +2,7 @@
 	path = MPVKit
 	url = https://github.com/NuvioMedia/MPVKit.git
 	branch = Nuvio
+[submodule "tsundoku"]
+	path = tsundoku
+	url = https://github.com/fenrirfen-cell/tsundoku1.0.0
+	branch = nuvio-embed

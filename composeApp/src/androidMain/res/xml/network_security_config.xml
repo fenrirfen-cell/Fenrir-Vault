@@ -5,6 +5,8 @@
             <certificates src="system" />
             <certificates src="@raw/isrg_root_x1" />
             <certificates src="@raw/isrg_root_x2" />
+            <!-- User-added CAs: needed by some Read mode (Tsundoku) sources and proxies. -->
+            <certificates src="user" />
         </trust-anchors>
     </base-config>
 </network-security-config>

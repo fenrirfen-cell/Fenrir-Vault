@@ -72,12 +72,21 @@ import com.nuvio.app.features.watchprogress.ContinueWatchingEnrichmentStorage
 import com.nuvio.app.features.watchprogress.ContinueWatchingPreferencesStorage
 import com.nuvio.app.features.watchprogress.ResumePromptStorage
 import com.nuvio.app.features.watchprogress.WatchProgressStorage
+import com.nuvio.app.readmode.MainActivityLaunchRedirect
 
 open class MainActivity : AppCompatActivity() {
     private var pipRemoteActionReceiver: PipRemoteActionReceiver? = null
+    private var redirectedToReadMode = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+        // Read mode: a fresh launch may go straight to the Read screen instead.
+        if (savedInstanceState == null && MainActivityLaunchRedirect.handler?.invoke(this) == true) {
+            redirectedToReadMode = true
+            super.onCreate(savedInstanceState)
+            finish()
+            return
+        }
         enableEdgeToEdge(
             navigationBarStyle = SystemBarStyle.dark(
                 scrim = 0xFF020404.toInt(),
@@ -175,6 +184,10 @@ open class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        if (redirectedToReadMode) {
+            super.onDestroy()
+            return
+        }
         EpisodeReleaseNotificationPlatform.unbindActivity(this)
         val receiver = pipRemoteActionReceiver
         if (receiver != null) {

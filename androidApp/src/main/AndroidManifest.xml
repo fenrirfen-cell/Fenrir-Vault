@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -9,7 +10,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
-        android:name="com.nuvio.app.NuvioApplication"
+        android:name="com.nuvio.app.readmode.NuvioReadApplication"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="false"
         android:icon="@mipmap/ic_launcher"
@@ -20,7 +21,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:localeConfig="@xml/locale_config"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Nuvio">
+        android:theme="@style/Theme.Nuvio"
+        android:requestLegacyExternalStorage="true"
+        android:preserveLegacyExternalStorage="true"
+        tools:ignore="UnusedAttribute">
         <meta-data
             android:name="io.sentry.auto-init"
             android:value="false" />
@@ -203,6 +207,16 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- Read mode: both appcompat and Tsundoku declare this service; keep Tsundoku's setting. -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false"
+            tools:node="replace">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
     </application>
 
 </manifest>

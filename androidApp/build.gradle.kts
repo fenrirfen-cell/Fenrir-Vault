@@ -68,7 +68,8 @@ android {
 
     defaultConfig {
         applicationId = "com.nuvio.app"
-        minSdk = libs.versions.android.minSdk.get().toInt()
+        // Read mode (Tsundoku) needs Android 8.0+.
+        minSdk = maxOf(libs.versions.android.minSdk.get().toInt(), 26)
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = releaseAppVersionCode
         versionName = releaseAppVersionName
@@ -96,6 +97,16 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // From Tsundoku's packaging rules (Read mode).
+            excludes += setOf(
+                "kotlin-tooling-metadata.json",
+                "LICENSE.txt",
+                "META-INF/**/LICENSE.txt",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/NOTICE",
+                "META-INF/README.md",
+            )
         }
         jniLibs {
             useLegacyPackaging = true
@@ -150,8 +161,9 @@ android {
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        // 17 to match Tsundoku (Read mode), which is compiled for Java 17.
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
@@ -202,6 +214,8 @@ sentry {
 
 dependencies {
     implementation(project(":composeApp"))
+    // Read mode: Tsundoku, from the ./tsundoku included build (see settings.gradle.kts).
+    implementation("app.tsundoku:embedded")
     implementation(libs.androidx.appcompat)
     implementation(libs.compose.runtime)
     coreLibraryDesugaring(libs.desugar.jdk.libs)

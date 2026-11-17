@@ -212,6 +212,16 @@ sentry {
     }
 }
 
+// Read mode: the "full" build already packages Nuvio's own quickjs-kt
+// (composeApp/libs/quickjs-kt-android-1.0.5-nuvio.aar), so drop the copy Tsundoku brings.
+// Only one can be in the app; Tsundoku uses Nuvio's at runtime.
+configurations.configureEach {
+    if (name.startsWith("full")) {
+        exclude(group = "io.github.dokar3", module = "quickjs-kt")
+        exclude(group = "io.github.dokar3", module = "quickjs-kt-android")
+    }
+}
+
 dependencies {
     implementation(project(":composeApp"))
     // Read mode: Tsundoku, from the ./tsundoku included build (see settings.gradle.kts).

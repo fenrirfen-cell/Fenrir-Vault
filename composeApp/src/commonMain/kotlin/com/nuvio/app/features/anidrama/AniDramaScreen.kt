@@ -197,9 +197,11 @@ private fun AnimeContent(
     when (chip) {
         AnimeChip.Airing -> if (airingExpanded) {
             AnimeGrid(
-                query = AniListClient.MediaQuery(sort = "POPULARITY_DESC", status = "RELEASING"),
+                query = AniListClient.MediaQuery(sort = "LATEST_EPISODE", status = "RELEASING"),
                 audio = audio,
-                title = "Airing now",
+                grouping = AniDramaGrouping.Week,
+                loader = { page -> if (page == 1) AnimeRepository.airingLatest() else AniDramaPage(emptyList(), false) },
+                title = "Airing now · latest episode first",
                 onBack = { onExpandAiring(false) },
                 onItemClick = onItemClick,
                 onItemLongClick = onItemLongClick,
@@ -216,9 +218,13 @@ private fun AnimeContent(
             )
         }
         AnimeChip.Trending -> AnimeGrid(AniListClient.MediaQuery(sort = "TRENDING_DESC"), audio, onItemClick = onItemClick, onItemLongClick = onItemLongClick)
-        AnimeChip.Popular -> AnimeGrid(AniListClient.MediaQuery(sort = "POPULARITY_DESC"), audio, onItemClick = onItemClick, onItemLongClick = onItemLongClick)
-        AnimeChip.Top100 -> AnimeGrid(AniListClient.MediaQuery(sort = "SCORE_DESC"), audio, maxItems = 100, onItemClick = onItemClick, onItemLongClick = onItemLongClick)
-        AnimeChip.Upcoming -> AnimeGrid(AniListClient.MediaQuery(sort = "POPULARITY_DESC", status = "NOT_YET_RELEASED"), audio, onItemClick = onItemClick, onItemLongClick = onItemLongClick)
+        AnimeChip.Popular -> AnimeGrid(AniListClient.MediaQuery(sort = "POPULARITY_DESC", ranked = true), audio, onItemClick = onItemClick, onItemLongClick = onItemLongClick)
+        AnimeChip.Top100 -> AnimeGrid(AniListClient.MediaQuery(sort = "SCORE_DESC", ranked = true), audio, maxItems = 100, onItemClick = onItemClick, onItemLongClick = onItemLongClick)
+        AnimeChip.Upcoming -> AnimeGrid(
+            AniListClient.MediaQuery(sort = "START_DATE", status = "NOT_YET_RELEASED", startGreater = AnimeRepository.fuzzyToday()),
+            audio,
+            grouping = AniDramaGrouping.MonthSoonest,
+            onItemClick = onItemClick, onItemLongClick = onItemLongClick)
         AnimeChip.Seasons -> AnimeSeasons(audio, onItemClick, onItemLongClick)
         AnimeChip.Genres -> AnimeGenres(audio, onItemClick, onItemLongClick)
         AnimeChip.Calendar -> AniDramaCalendarView(
@@ -291,18 +297,23 @@ private fun AnimeGrid(
     query: AniListClient.MediaQuery,
     audio: AnimeAudioFilter,
     maxItems: Int = 600,
+    grouping: AniDramaGrouping = AniDramaGrouping.None,
+    loader: (suspend (Int) -> AniDramaPage?)? = null,
     title: String? = null,
     onBack: (() -> Unit)? = null,
     header: (@Composable () -> Unit)? = null,
     onItemClick: (AniDramaItem) -> Unit,
     onItemLongClick: (AniDramaItem) -> Unit,
 ) {
-    val list = rememberAniDramaPagedList(key = query, maxItems = maxItems) { page -> AnimeRepository.page(query, page) }
+    val list = rememberAniDramaPagedList(key = query, maxItems = maxItems) { page ->
+        loader?.invoke(page) ?: AnimeRepository.page(query, page)
+    }
     val visible = AnimeRepository.applyAudioFilter(list.items, audio)
     AniDramaGrid(
         items = visible,
         list = list,
         stateKey = query,
+        grouping = grouping,
         showDubBadge = true,
         title = title,
         onBack = onBack,
@@ -357,14 +368,22 @@ private fun AnimeGenres(
     onItemLongClick: (AniDramaItem) -> Unit,
 ) {
     var genre by rememberSaveable { mutableStateOf(AniListClient.genres.first()) }
+    var newest by rememberSaveable { mutableStateOf(true) }
     AnimeGrid(
-        query = AniListClient.MediaQuery(sort = "POPULARITY_DESC", genre = genre),
+        query = if (newest) {
+            AniListClient.MediaQuery(sort = "START_DATE_DESC", genre = genre, startLesser = AnimeRepository.fuzzyToday(1))
+        } else {
+            AniListClient.MediaQuery(sort = "POPULARITY_DESC", genre = genre)
+        },
         audio = audio,
+        grouping = if (newest) AniDramaGrouping.MonthNewest else AniDramaGrouping.None,
         header = {
-            ScrollingChips(
+            BrowseHeader(
                 labels = AniListClient.genres,
                 selected = genre,
                 onSelect = { genre = it },
+                newest = newest,
+                onNewestChange = { newest = it },
             )
         },
         onItemClick = onItemClick,
@@ -391,7 +410,8 @@ private fun DramaContent(
             DramaGrid(
                 region = region,
                 filter = DramaRepository.Filter(DramaChip.AiringNow),
-                title = "Airing now",
+                grouping = AniDramaGrouping.Week,
+                title = "Airing now · latest episode first",
                 onBack = { onExpandAiring(false) },
                 onItemClick = onItemClick,
                 onItemLongClick = onItemLongClick,
@@ -402,6 +422,11 @@ private fun DramaContent(
         DramaChip.New, DramaChip.Upcoming, DramaChip.Popular, DramaChip.TopRated -> DramaGrid(
             region = region,
             filter = DramaRepository.Filter(chip),
+            grouping = when (chip) {
+                DramaChip.New -> AniDramaGrouping.MonthNewest
+                DramaChip.Upcoming -> AniDramaGrouping.MonthSoonest
+                else -> AniDramaGrouping.None
+            },
             onItemClick = onItemClick,
             onItemLongClick = onItemLongClick,
         )
@@ -521,6 +546,7 @@ private fun DramaOverview(
 private fun DramaGrid(
     region: AniDramaRegion,
     filter: DramaRepository.Filter,
+    grouping: AniDramaGrouping = AniDramaGrouping.None,
     title: String? = null,
     onBack: (() -> Unit)? = null,
     header: (@Composable () -> Unit)? = null,
@@ -528,11 +554,18 @@ private fun DramaGrid(
     onItemLongClick: (AniDramaItem) -> Unit,
 ) {
     val key = "$region|$filter"
-    val list = rememberAniDramaPagedList(key = key) { page -> DramaRepository.page(region, filter, page) }
+    val list = rememberAniDramaPagedList(key = "$key|$grouping") { page ->
+        if (filter.chip == DramaChip.AiringNow && grouping == AniDramaGrouping.Week) {
+            if (page == 1) DramaRepository.airingLatest(region) else AniDramaPage(emptyList(), false)
+        } else {
+            DramaRepository.page(region, filter, page)
+        }
+    }
     AniDramaGrid(
         items = list.items,
         list = list,
-        stateKey = key,
+        stateKey = "$key|$grouping",
+        grouping = grouping,
         showDubBadge = false,
         title = title,
         onBack = onBack,
@@ -550,6 +583,7 @@ private fun DramaGenres(
 ) {
     val (genres, retry) = rememberAniDramaLoad("drama-genres-$region") { DramaRepository.genres(region).takeIf { it.isNotEmpty() } }
     var selectedName by rememberSaveable(region) { mutableStateOf<String?>(null) }
+    var newest by rememberSaveable(region) { mutableStateOf(true) }
     val options = genres.value.orEmpty()
     val selected = options.firstOrNull { it.name == selectedName } ?: options.firstOrNull()
     when {
@@ -559,8 +593,12 @@ private fun DramaGenres(
                 chip = DramaChip.Genres,
                 genreId = selected.id.takeIf { it > 0 },
                 keywordId = (-selected.id).takeIf { it > 0 },
+                newest = newest,
             ),
-            header = { ScrollingChips(options.map { it.name }, selected.name) { selectedName = it } },
+            grouping = if (newest) AniDramaGrouping.MonthNewest else AniDramaGrouping.None,
+            header = {
+                BrowseHeader(options.map { it.name }, selected.name, { selectedName = it }, newest, { newest = it })
+            },
             onItemClick = onItemClick,
             onItemLongClick = onItemLongClick,
         )
@@ -577,13 +615,17 @@ private fun DramaNetworks(
 ) {
     val (networks, retry) = rememberAniDramaLoad("drama-networks-$region") { DramaRepository.networks(region).takeIf { it.isNotEmpty() } }
     var selectedName by rememberSaveable(region) { mutableStateOf<String?>(null) }
+    var newest by rememberSaveable(region) { mutableStateOf(true) }
     val options = networks.value.orEmpty()
     val selected = options.firstOrNull { it.name == selectedName } ?: options.firstOrNull()
     when {
         selected != null -> DramaGrid(
             region = region,
-            filter = DramaRepository.Filter(chip = DramaChip.Networks, networkId = selected.id),
-            header = { ScrollingChips(options.map { it.name }, selected.name) { selectedName = it } },
+            filter = DramaRepository.Filter(chip = DramaChip.Networks, networkId = selected.id, newest = newest),
+            grouping = if (newest) AniDramaGrouping.MonthNewest else AniDramaGrouping.None,
+            header = {
+                BrowseHeader(options.map { it.name }, selected.name, { selectedName = it }, newest, { newest = it })
+            },
             onItemClick = onItemClick,
             onItemLongClick = onItemLongClick,
         )
@@ -667,6 +709,7 @@ private fun AniDramaGrid(
     items: List<AniDramaItem>,
     list: AniDramaPagedList,
     stateKey: Any,
+    grouping: AniDramaGrouping = AniDramaGrouping.None,
     showDubBadge: Boolean,
     title: String?,
     onBack: (() -> Unit)?,
@@ -719,7 +762,16 @@ private fun AniDramaGrid(
         if (header != null) {
             item(key = "header", span = { GridItemSpan(maxLineSpan) }) { header() }
         }
-        gridItems(items, showDubBadge, onItemClick, onItemLongClick)
+        if (grouping == AniDramaGrouping.None) {
+            gridItems(items, showDubBadge, onItemClick, onItemLongClick)
+        } else {
+            AniDramaSections.build(items, grouping).forEach { section ->
+                item(key = "section-${section.key}", span = { GridItemSpan(maxLineSpan) }) {
+                    SectionHeader(section.title, section.note)
+                }
+                gridItems(section.items, showDubBadge, onItemClick, onItemLongClick)
+            }
+        }
         item(key = "footer", span = { GridItemSpan(maxLineSpan) }) {
             when {
                 list.loading -> AniDramaLoading(Modifier.fillMaxWidth().height(80.dp))
@@ -877,6 +929,60 @@ private fun ScheduleRow(
                     .clip(RoundedCornerShape(4.dp))
                     .background(MaterialTheme.colorScheme.primary)
                     .padding(horizontal = 5.dp, vertical = 1.dp),
+            )
+        }
+    }
+}
+
+/** A month / week header inside a grid: "November 2026 ........ 9 shows". */
+@Composable
+private fun SectionHeader(title: String, note: String?) {
+    Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            if (note != null) {
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** Genre / network chips with a Newest | Popular switch under them. */
+@Composable
+private fun BrowseHeader(
+    labels: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    newest: Boolean,
+    onNewestChange: (Boolean) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ScrollingChips(labels = labels, selected = selected, onSelect = onSelect)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            AniDramaSegmented(
+                options = listOf("Newest", "Popular"),
+                selectedIndex = if (newest) 0 else 1,
+                onSelect = { onNewestChange(it == 0) },
+                compact = true,
             )
         }
     }

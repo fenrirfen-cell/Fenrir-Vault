@@ -54,12 +54,64 @@ internal object AnimeRepository {
     suspend fun page(query: AniListClient.MediaQuery, page: Int): AniDramaPage? {
         val cacheKey = "$query#$page"
         pageCache[cacheKey]?.let { (items, more) -> return AniDramaPage(items, more) }
-        val (media, hasMore) = AniListClient.page(query, page) ?: return null
+        val (media, hasMore) = AniListClient.page(query, page, PER_PAGE) ?: return null
         val dubbed = dubbedIds()
         mapIds(media.map { it.id })
-        val items = media.map { it.toItem(dubbed, captionFor(it, query)) }
+        val byDate = query.sort.startsWith("START_DATE")
+        val items = media.mapIndexed { index, it ->
+            val date = it.startDate?.isoOrNull()
+            val caption = when {
+                byDate -> date?.let(AniDramaSections::dateCaption) ?: captionFor(it, query)
+                query.ranked -> listOfNotNull((it.seasonYear ?: it.startDate?.year)?.toString(), it.format?.toFormatLabel())
+                    .joinToString(" · ")
+                else -> captionFor(it, query)
+            }
+            it.toItem(dubbed, caption).copy(
+                groupDate = if (byDate) date else null,
+                rank = if (query.ranked) (page - 1) * PER_PAGE + index + 1 else null,
+            )
+        }
         pageCache[cacheKey] = items to hasMore
         return AniDramaPage(items, hasMore)
+    }
+
+    private const val PER_PAGE = 30
+
+    /** "2027-01-05", "2027-01" or "2027", depending on how much of the date AniList knows. */
+    private fun AniListDate.isoOrNull(): String? {
+        val y = year ?: return null
+        val m = month ?: return "$y"
+        val mm = m.toString().padStart(2, '0')
+        val d = day ?: return "$y-$mm"
+        return "$y-$mm-${d.toString().padStart(2, '0')}"
+    }
+
+    /** Today as AniList's yyyyMMdd number, moved by [days]. */
+    fun fuzzyToday(days: Int = 0): Int = AniDramaTime.addDays(AniDramaTime.todayIso(), days).replace("-", "").toInt()
+
+    private var latestCache: Pair<String, AniDramaPage>? = null
+
+    /**
+     * Shows with an episode out in the last three weeks, newest episode first, each with that
+     * episode's number and local date (for This week / Last week / Earlier).
+     */
+    suspend fun airingLatest(): AniDramaPage? {
+        val today = AniDramaTime.todayIso()
+        latestCache?.takeIf { it.first == today }?.let { return it.second }
+        val now = AniDramaTime.nowEpochMs() / 1000
+        val airings = AniListClient.schedule(now - 21L * 24 * 3600, now + 1, maxPages = 20, newestFirst = true)
+        if (airings.isEmpty()) return null
+        val dubbed = dubbedIds()
+        val latest = airings.filter { it.media != null }.groupBy { it.media!!.id }.values.map { list -> list.maxBy { it.airingAt } }
+        mapIds(latest.map { it.media!!.id })
+        val items = latest.sortedByDescending { it.airingAt }.map { airing ->
+            val date = AniDramaTime.localDayIsoOf(airing.airingAt * 1000)
+            airing.media!!.toItem(dubbed, caption = "EP ${airing.episode} · ${AniDramaTime.shortDayLabel(date)}")
+                .copy(groupDate = date)
+        }.sortedByDescending { it.groupDate }
+        val result = AniDramaPage(items, hasMore = false)
+        latestCache = today to result
+        return result
     }
 
     /** This week's episodes, Monday to Sunday in the phone's time zone. */

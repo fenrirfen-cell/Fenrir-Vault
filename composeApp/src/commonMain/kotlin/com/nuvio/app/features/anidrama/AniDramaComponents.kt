@@ -78,6 +78,21 @@ internal fun AniDramaPosterTile(
             item.badge?.let { badge ->
                 PosterBadge(text = badge, modifier = Modifier.align(Alignment.TopStart).padding(5.dp))
             }
+            item.rank?.let { rank ->
+                Text(
+                    text = "#$rank",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(5.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black.copy(alpha = 0.7f))
+                        .padding(horizontal = 6.dp, vertical = 1.dp),
+                )
+            }
             if (showDubBadge && item.hasEnglishDub) {
                 PosterBadge(
                     text = "DUB",

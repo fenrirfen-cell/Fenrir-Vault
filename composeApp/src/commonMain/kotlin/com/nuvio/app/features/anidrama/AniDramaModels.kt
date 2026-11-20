@@ -80,7 +80,22 @@ data class AniDramaItem(
     val hasEnglishDub: Boolean = false,
     /** IDs this show may have in your Library (tt..., tmdb:..., kitsu:...), for "My shows". */
     val matchIds: Set<String> = emptySet(),
+    /** Date used for month / week sections (yyyy-MM-dd, or yyyy-MM / yyyy when that's all that's known). */
+    val groupDate: String? = null,
+    /** Place in a ranked list (Popular, Top rated), shown as #1, #2... */
+    val rank: Int? = null,
 )
+
+/** How a poster grid is split into sections. */
+enum class AniDramaGrouping {
+    None,
+    /** Month headers, newest month first (New, Newest in Genres / Networks). */
+    MonthNewest,
+    /** Month headers, soonest first; this month reads "Later this month" (Upcoming). */
+    MonthSoonest,
+    /** This week / Last week / Earlier, by latest episode (Airing now). */
+    Week,
+}
 
 /** One episode in the calendar. */
 data class AniDramaScheduleEntry(

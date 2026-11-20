@@ -35,11 +35,13 @@ internal object AniListClient {
 
     private const val PAGE_QUERY = """
         query (${'$'}page: Int, ${'$'}perPage: Int, ${'$'}sort: [MediaSort], ${'$'}status: MediaStatus,
-               ${'$'}season: MediaSeason, ${'$'}seasonYear: Int, ${'$'}genre: String, ${'$'}country: CountryCode) {
+               ${'$'}season: MediaSeason, ${'$'}seasonYear: Int, ${'$'}genre: String, ${'$'}country: CountryCode,
+               ${'$'}startGreater: FuzzyDateInt, ${'$'}startLesser: FuzzyDateInt) {
           Page(page: ${'$'}page, perPage: ${'$'}perPage) {
             pageInfo { hasNextPage }
             media(type: ANIME, isAdult: false, sort: ${'$'}sort, status: ${'$'}status, season: ${'$'}season,
-                  seasonYear: ${'$'}seasonYear, genre: ${'$'}genre, countryOfOrigin: ${'$'}country) {
+                  seasonYear: ${'$'}seasonYear, genre: ${'$'}genre, countryOfOrigin: ${'$'}country,
+                  startDate_greater: ${'$'}startGreater, startDate_lesser: ${'$'}startLesser) {
               $MEDIA_FIELDS
             }
           }
@@ -47,10 +49,10 @@ internal object AniListClient {
     """
 
     private const val SCHEDULE_QUERY = """
-        query (${'$'}page: Int, ${'$'}from: Int, ${'$'}to: Int) {
+        query (${'$'}page: Int, ${'$'}from: Int, ${'$'}to: Int, ${'$'}sort: [AiringSort]) {
           Page(page: ${'$'}page, perPage: 50) {
             pageInfo { hasNextPage }
-            airingSchedules(airingAt_greater: ${'$'}from, airingAt_lesser: ${'$'}to, sort: TIME) {
+            airingSchedules(airingAt_greater: ${'$'}from, airingAt_lesser: ${'$'}to, sort: ${'$'}sort) {
               episode airingAt
               media { isAdult countryOfOrigin $MEDIA_FIELDS }
             }
@@ -64,6 +66,11 @@ internal object AniListClient {
         val season: AnimeSeason? = null,
         val seasonYear: Int? = null,
         val genre: String? = null,
+        /** Only shows starting after / before this date (yyyyMMdd). */
+        val startGreater: Int? = null,
+        val startLesser: Int? = null,
+        /** Show #1, #2... on the posters. */
+        val ranked: Boolean = false,
     )
 
     suspend fun page(query: MediaQuery, page: Int, perPage: Int = 30): Pair<List<AniListMedia>, Boolean>? {
@@ -75,6 +82,8 @@ internal object AniListClient {
             query.season?.let { put("season", it.aniListName) }
             query.seasonYear?.let { put("seasonYear", it) }
             query.genre?.let { put("genre", it) }
+            query.startGreater?.let { put("startGreater", it) }
+            query.startLesser?.let { put("startLesser", it) }
             put("country", "JP")
         }
         val response = post<PageEnvelope>(PAGE_QUERY, variables) ?: return null
@@ -93,13 +102,19 @@ internal object AniListClient {
     }
 
     /** Episodes airing between two moments (epoch seconds), Japanese TV only, oldest first. */
-    suspend fun schedule(fromEpochSeconds: Long, toEpochSeconds: Long, maxPages: Int = 6): List<AniListAiring> {
+    suspend fun schedule(
+        fromEpochSeconds: Long,
+        toEpochSeconds: Long,
+        maxPages: Int = 6,
+        newestFirst: Boolean = false,
+    ): List<AniListAiring> {
         val all = mutableListOf<AniListAiring>()
         for (page in 1..maxPages) {
             val variables = buildJsonObject {
                 put("page", page)
                 put("from", fromEpochSeconds.toInt())
                 put("to", toEpochSeconds.toInt())
+                put("sort", kotlinx.serialization.json.JsonArray(listOf(JsonPrimitive(if (newestFirst) "TIME_DESC" else "TIME"))))
             }
             val response = post<ScheduleEnvelope>(SCHEDULE_QUERY, variables) ?: break
             val data = response.data?.page ?: break

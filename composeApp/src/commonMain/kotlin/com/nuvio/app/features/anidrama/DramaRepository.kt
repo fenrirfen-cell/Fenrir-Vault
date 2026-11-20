@@ -39,6 +39,8 @@ internal object DramaRepository {
         val genreId: Int? = null,
         val keywordId: Int? = null,
         val networkId: Int? = null,
+        /** Genres / Networks: newest premiere first instead of most popular. */
+        val newest: Boolean = false,
     )
 
     private val AniDramaRegion.country: String
@@ -92,14 +94,15 @@ internal object DramaRepository {
                 query["air_date.lte"] = AniDramaTime.addDays(today, 7)
             }
             DramaChip.New -> {
-                // Newest premiere first, so the order matches the dates on the posters.
-                query["first_air_date.gte"] = AniDramaTime.addDays(today, -60)
+                // Since the 1st of last month, newest premiere first.
+                query["first_air_date.gte"] = startOfMonthOffset(today, -1)
                 query["first_air_date.lte"] = today
                 query["sort_by"] = "first_air_date.desc"
             }
             DramaChip.Upcoming -> {
-                // Soonest first.
+                // From tomorrow to the end of the third month ahead, soonest first.
                 query["first_air_date.gte"] = AniDramaTime.addDays(today, 1)
+                query["first_air_date.lte"] = AniDramaTime.addDays(startOfMonthOffset(today, 4), -1)
                 query["sort_by"] = "first_air_date.asc"
             }
             DramaChip.Popular -> Unit
@@ -113,24 +116,81 @@ internal object DramaRepository {
             }
             DramaChip.Networks -> filter.networkId?.let { query["with_networks"] = it.toString() }
         }
+        val newestBrowse = filter.newest && (filter.chip == DramaChip.Genres || filter.chip == DramaChip.Networks)
+        if (newestBrowse) {
+            query["sort_by"] = "first_air_date.desc"
+            query["first_air_date.lte"] = today
+        }
         val response = fetch<DiscoverResponse>("discover/tv", query) ?: return null
         val names = genreNames(region)
-        val dateSorted = filter.chip == DramaChip.New || filter.chip == DramaChip.Upcoming
+        val dateSorted = filter.chip == DramaChip.New || filter.chip == DramaChip.Upcoming || newestBrowse
+        val ranked = filter.chip == DramaChip.Popular || filter.chip == DramaChip.TopRated
         // Sorting by date alone pulls in tiny listings; skip ones without a poster.
         val results = if (dateSorted) response.results.filter { it.posterPath != null } else response.results
-        val items = results.map { show ->
+        val items = response.results.mapIndexedNotNull { index, show ->
+            if (show !in results) return@mapIndexedNotNull null
+            val date = show.firstAirDate?.takeIf { it.length >= 10 }
             show.toItem(
-                caption = when (filter.chip) {
-                    DramaChip.Upcoming -> show.firstAirDate?.let { "Starts ${AniDramaTime.shortDayLabel(it)}" }
-                    DramaChip.New -> show.firstAirDate?.let { "Started ${AniDramaTime.shortDayLabel(it)}" }
-                    else -> show.firstAirDate?.take(4)
-                },
+                caption = if (dateSorted) date?.let(AniDramaSections::dateCaption) else show.firstAirDate?.take(4),
                 genreNames = show.genreIds.mapNotNull { names[it] },
+            ).copy(
+                groupDate = if (dateSorted) date else null,
+                rank = if (ranked) (page - 1) * 20 + index + 1 else null,
             )
         }
         val result = AniDramaPage(items, hasMore = response.page < response.totalPages)
         pageCache[cacheKey] = result
         return result
+    }
+
+    /** The 1st of the month [months] months from [iso]'s month (negative = back), yyyy-MM-dd. */
+    private fun startOfMonthOffset(iso: String, months: Int): String {
+        val year = iso.take(4).toInt()
+        val month = iso.substring(5, 7).toInt() - 1 + months
+        val y = year + month.floorDiv(12)
+        val m = month.mod(12) + 1
+        return AniDramaTime.firstOfMonth(y, m)
+    }
+
+    private val latestMutex = Mutex()
+    private val latestCache = HashMap<String, AniDramaPage>()
+
+    /**
+     * Shows that aired an episode in the last three weeks, newest episode first, each with its
+     * latest episode number and date (for This week / Last week / Earlier).
+     */
+    suspend fun airingLatest(region: AniDramaRegion): AniDramaPage? = latestMutex.withLock {
+        val today = AniDramaTime.todayIso()
+        val cacheKey = "$region|$today|${language()}"
+        latestCache[cacheKey]?.let { return@withLock it }
+        val query = linkedMapOf(
+            "language" to language(),
+            "include_adult" to "false",
+            "with_origin_country" to region.country,
+            "with_original_language" to region.languageCode,
+            "without_genres" to EXCLUDED_GENRES,
+            "sort_by" to "popularity.desc",
+            "air_date.gte" to AniDramaTime.addDays(today, -21),
+            "air_date.lte" to today,
+        )
+        val pages = (1..3).map { number -> fetch<DiscoverResponse>("discover/tv", query + ("page" to "$number")) }
+        if (pages.all { it == null }) return@withLock null
+        val ids = pages.flatMap { it?.results.orEmpty() }.map { it.id }.distinct()
+        val permits = Semaphore(6)
+        val shows = coroutineScope {
+            ids.map { id -> async { permits.withPermit { details(id) } } }.awaitAll()
+        }.filterNotNull()
+        val items = shows.mapNotNull { show ->
+            val last = show.lastEpisode ?: return@mapNotNull null
+            val date = last.airDate?.takeIf { it.length >= 10 && it <= today } ?: return@mapNotNull null
+            show.toItem(
+                badge = show.networks.firstOrNull()?.name,
+                caption = "EP ${last.episodeNumber} · ${AniDramaTime.shortDayLabel(date)}",
+            ).copy(groupDate = date)
+        }.sortedByDescending { it.groupDate }
+        val result = AniDramaPage(items, hasMore = false)
+        if (items.isNotEmpty()) latestCache[cacheKey] = result
+        result
     }
 
     /** TMDB TV genres (minus excluded ones) plus keyword-based ones like Romance. Keyword ids are negative. */

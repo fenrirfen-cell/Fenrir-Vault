@@ -1,6 +1,9 @@
 package com.nuvio.app.readmode
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -45,12 +48,17 @@ object ReadModeBridge {
  * here (Tsundoku draws its own copy with Read selected).
  */
 @Composable
-fun ReadModeSwitch(modifier: Modifier = Modifier) {
+fun ReadModeSwitch(modifier: Modifier = Modifier, hazeState: HazeState? = null) {
     val openRead = ReadModeBridge.openRead ?: return
     Row(
         modifier = modifier
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.55f))
+            .then(
+                // Same frosted glass as the bottom navigation bar.
+                if (hazeState != null) Modifier.hazeEffect(state = hazeState) { blurRadius = 24.dp } else Modifier,
+            )
+            .background(Color(0xFF1C1C1E).copy(alpha = if (hazeState != null) 0.55f else 0.82f))
+            .border(0.5.dp, Color.White.copy(alpha = 0.14f), CircleShape)
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {

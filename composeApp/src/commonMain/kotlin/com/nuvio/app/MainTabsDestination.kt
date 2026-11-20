@@ -37,6 +37,11 @@ import com.nuvio.app.features.settings.NavBarStyle
 import com.nuvio.app.features.settings.ThemeSettingsRepository
 import com.nuvio.app.readmode.ReadModeBridge
 import com.nuvio.app.readmode.ReadModeSwitch
+import com.nuvio.app.readmode.ModeBarBackground
+import com.nuvio.app.readmode.ModeBarScroll
+import com.nuvio.app.readmode.modeBarHeight
+import com.nuvio.app.readmode.modeBarHiddenFraction
+import com.nuvio.app.readmode.modeBarHideable
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.background
@@ -175,27 +180,40 @@ internal fun MainTabsDestination(
                         actions = tabActions,
                         modifier = Modifier
                             .fillMaxSize()
-                            .then(if (isTabletLayout || navBarStyleSetting != NavBarStyle.CLASSIC) Modifier.hazeSource(state = navBarHazeState) else Modifier)
+                            .then(if (isTabletLayout || navBarStyleSetting != NavBarStyle.CLASSIC || (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable)) Modifier.hazeSource(state = navBarHazeState) else Modifier)
                             .then(if (navBarStyleSetting == NavBarStyle.ADAPTIVE) Modifier.nestedScroll(navBarScrollState.nestedScrollConnection) else Modifier)
                             .padding(innerPadding)
-                            .padding(top = if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) readModeBarHeight else 0.dp),
+                            .then(if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) Modifier.nestedScroll(ModeBarScroll.connection) else Modifier),
                     )
                 }
 
                 // Watch / Read switch (Android app with Read mode only), floating over the Home hero.
                 if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(readModeBarHeight)
-                            .background(androidx.compose.material3.MaterialTheme.colorScheme.background),
-                    )
+                    androidx.compose.runtime.LaunchedEffect(Unit) { ModeBarScroll.reset() }
+                    // Soft fade behind the switch; Home content scrolls underneath it.
+                    ModeBarBackground()
                     ReadModeSwitch(
+                        hazeState = navBarHazeState,
                         modifier = Modifier
                             .align(if (isTabletLayout) Alignment.TopStart else Alignment.TopCenter)
+                            .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
                             .padding(
                                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 10.dp,
                                 start = if (isTabletLayout) 16.dp else 0.dp,
+                            ),
+                    )
+                }
+
+                // Fenrir assistant button, top right of Home.
+                if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) {
+                    com.nuvio.app.assistant.AssistantLauncherButton(
+                        hazeState = navBarHazeState,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
+                            .padding(
+                                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 14.dp,
+                                end = 10.dp,
                             ),
                     )
                 }
@@ -230,6 +248,9 @@ internal fun MainTabsDestination(
                         glowEnabled = navBarGlowEnabled,
                     )
                 }
+
+                // Fenrir assistant panel (drawn above everything else).
+                com.nuvio.app.assistant.AssistantSheetHost()
             }
         }
     }

@@ -101,13 +101,18 @@ object StreamsRepository {
         val playerSettings = PlayerSettingsRepository.uiState.value
         val debridSettings = DebridSettingsRepository.snapshot()
         val streamBadgeRules = StreamBadgeSettingsRepository.snapshot()
-        val autoPlayMode = playerSettings.streamAutoPlayMode
+        // Fenrir assistant: requests it started auto-play using its own ranking.
+        val assistantRequest = if (manualSelection) null else {
+            com.nuvio.app.assistant.AssistantPlayback.claim(videoId, parentMetaId, season, episode)
+        }
+        val autoPlayMode = if (assistantRequest != null) StreamAutoPlayMode.FIRST_STREAM else playerSettings.streamAutoPlayMode
         val isAutoPlayEnabled = !manualSelection && autoPlayMode != StreamAutoPlayMode.MANUAL &&
             !(autoPlayMode == StreamAutoPlayMode.REGEX_MATCH &&
                 !StreamAutoPlayPolicy.isRegexSelectionConfigured(playerSettings.streamAutoPlayRegex))
 
         // Look up persisted binge group when both settings are enabled
         val persistedBingeGroup = if (
+            assistantRequest == null &&
             playerSettings.streamAutoPlayPreferBingeGroup &&
             playerSettings.streamAutoPlayReuseBingeGroup
         ) {
@@ -259,13 +264,15 @@ object StreamsRepository {
             var timeoutElapsed = false
             fun evaluateAutoPlay(bingeGroupOnly: Boolean = false): StreamAutoPlayEvaluation =
                 StreamAutoPlaySelector.evaluateAutoPlayStream(
-                    streams = _uiState.value.groups.flatMap { it.streams },
+                    streams = _uiState.value.groups.flatMap { it.streams }.let { all ->
+                        if (assistantRequest != null) com.nuvio.app.assistant.AssistantStreamRanker.rank(all, assistantRequest) else all
+                    },
                     mode = autoPlayMode,
                     regexPattern = playerSettings.streamAutoPlayRegex,
-                    source = playerSettings.streamAutoPlaySource,
+                    source = if (assistantRequest != null) StreamAutoPlaySource.ALL_SOURCES else playerSettings.streamAutoPlaySource,
                     installedAddonNames = installedAddonNames,
-                    selectedAddons = playerSettings.streamAutoPlaySelectedAddons,
-                    selectedPlugins = playerSettings.streamAutoPlaySelectedPlugins,
+                    selectedAddons = if (assistantRequest != null) emptySet() else playerSettings.streamAutoPlaySelectedAddons,
+                    selectedPlugins = if (assistantRequest != null) emptySet() else playerSettings.streamAutoPlaySelectedPlugins,
                     preferredBingeGroup = persistedBingeGroup,
                     preferBingeGroupInSelection = persistedBingeGroup != null,
                     bingeGroupOnly = bingeGroupOnly,
@@ -384,7 +391,8 @@ object StreamsRepository {
             updateAutoPlayAfterStreamsChanged()
 
             val timeoutJob = if (isDirectAutoPlayFlow) {
-                val timeoutSeconds = playerSettings.streamAutoPlayTimeoutSeconds
+                // Assistant: wait up to 8 s so every add-on can answer before picking the best match.
+                val timeoutSeconds = if (assistantRequest != null) 8 else playerSettings.streamAutoPlayTimeoutSeconds
                 val isUnlimitedTimeout = timeoutSeconds == Int.MAX_VALUE
                 // Timeout semantics:
                 // - 0 (instant): timeoutElapsed immediately, full select on each response

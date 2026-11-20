@@ -1042,6 +1042,28 @@ internal fun MainAppContent(
             )
         }
 
+        com.nuvio.app.assistant.AssistantPlayback.launcher = { request ->
+            launchPlaybackWithDownloadPreference(
+                type = request.type,
+                videoId = request.videoId,
+                parentMetaId = request.parentMetaId,
+                parentMetaType = request.parentMetaType,
+                title = request.title,
+                logo = request.logo,
+                poster = request.poster,
+                background = request.background,
+                seasonNumber = request.season,
+                episodeNumber = request.episode,
+                episodeTitle = request.episodeTitle,
+                episodeThumbnail = request.episodeThumbnail,
+                pauseDescription = null,
+                resumePositionMs = request.resumePositionMs,
+                resumeProgressFraction = request.resumeProgressFraction,
+                manualSelection = false,
+                startFromBeginning = request.startFromBeginning,
+            )
+        }
+
         fun openPartyMedia(media: PartyMedia) {
             if (navController.currentRoute is PlayerRoute) navController.popBackStack()
             val resumePositionMs = PartyRepository.playback.value

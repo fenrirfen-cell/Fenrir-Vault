@@ -66,6 +66,8 @@ internal fun OpeningOverlay(
     modifier: Modifier = Modifier,
     message: String? = null,
     progress: Float? = null,
+    /** Optional buttons shown along the bottom (Fenrir Read: choose source / pick episode). */
+    bottomActions: (@Composable () -> Unit)? = null,
 ) {
     val contentAlpha by animateFloatAsState(
         targetValue = 1f,
@@ -268,6 +270,16 @@ internal fun OpeningOverlay(
             layout(constraints.maxWidth, constraints.maxHeight) {
                 artworkContent.placeRelative((constraints.maxWidth - artworkContent.width) / 2, artworkTop)
                 statusContent.placeRelative((constraints.maxWidth - statusContent.width) / 2, statusTop)
+            }
+        }
+        if (bottomActions != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(WindowInsets.safeContent.only(WindowInsetsSides.Bottom))
+                    .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+            ) {
+                bottomActions()
             }
         }
     }

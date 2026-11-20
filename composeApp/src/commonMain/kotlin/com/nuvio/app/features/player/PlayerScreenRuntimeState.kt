@@ -235,6 +235,10 @@ internal class PlayerScreenRuntime(
     val sourceFallbackTriedKeys = mutableSetOf<String>()
     var sourceFallbackJob: Job? = null
 
+    /** Fenrir Read: "different source / episode / leave" choices on the first back from an auto-picked source. */
+    var showBackChoices by mutableStateOf(false)
+    var backChoicesOffered by mutableStateOf(false)
+
     var showAudioModal by mutableStateOf(false)
     var showSubtitleModal by mutableStateOf(false)
     var showVideoSettingsModal by mutableStateOf(false)
@@ -243,7 +247,7 @@ internal class PlayerScreenRuntime(
     var showPartyChat by mutableStateOf(false)
     val isPanelOpen: Boolean
         get() = showAudioModal || showSubtitleModal || showVideoSettingsModal || showStreamInfo ||
-            showPartyPanel || showSourcesPanel || showEpisodesPanel || showSubmitIntroModal
+            showPartyPanel || showSourcesPanel || showEpisodesPanel || showSubmitIntroModal || showBackChoices
     var partyBehind by mutableStateOf(false)
     var partyBehindMs by mutableStateOf<Long?>(null)
     var partyRateNudge: Float? = null

@@ -331,6 +331,7 @@ internal fun PlayerScreenRuntime.RenderPlayerRuntimeUi(
             panelVisible = showPartyPanel && !isInPip,
         )
         RenderPlayerModals(displayedPositionMs = displayedPositionMs)
+        RenderBackChoices()
     }
 }
 
@@ -408,10 +409,7 @@ private fun PlayerScreenRuntime.RenderPlayerControls(
             onLockToggle = {
                 if (playerControlsLocked) unlockPlayerControls() else lockPlayerControls()
             },
-            onBack = {
-                flushWatchProgress()
-                args.onBack()
-            },
+            onBack = { requestLeavePlayer() },
             onPartyClick = if (PartyRepository.available.collectAsStateWithLifecycle().value) {
                 { openPartyPanel() }
             } else {
@@ -560,10 +558,7 @@ private fun BoxScope.RenderPlaybackOverlays(
         backdropArtwork = background ?: poster,
         logo = logo,
         title = title,
-        onBackWithProgress = {
-            flushWatchProgress()
-            args.onBack()
-        },
+        onBackWithProgress = { runtime.requestLeavePlayer() },
         openingLoadingMessage = if (playerSettingsUiState.showPlayerLoadingStatus) {
             p2pInitialLoadingMessage ?: playerLoadingStatusMessage(
                 showStatus = true,

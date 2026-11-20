@@ -428,6 +428,35 @@ internal fun StreamDestination(
     )
     SideEffect { onLandscapeLoadingChanged(useLandscapeLoading) }
     var autoPlayHandled by rememberSaveable(launch.videoId, effectiveVideoId) { mutableStateOf(false) }
+    // Fenrir Read: while a source is being picked automatically, let the user stop and choose
+    // the source themselves, or go to the show page to pick another episode.
+    val onChooseSourceInstead: (() -> Unit)? = if (!launch.manualSelection) {
+        {
+            autoPlayHandled = true
+            StreamsRepository.consumeAutoPlay()
+            StreamsRepository.cancelLoading()
+            val manualLaunchId = StreamLaunchStore.put(launch.copy(manualSelection = true))
+            navController.navigate(StreamRoute(launchId = manualLaunchId, title = route.title)) {
+                popUpTo<StreamRoute> { inclusive = true }
+            }
+        }
+    } else null
+    val onPickEpisodeInstead: (() -> Unit)? = if (!launch.manualSelection && launch.parentMetaId != null && launch.seasonNumber != null) {
+        {
+            autoPlayHandled = true
+            StreamsRepository.consumeAutoPlay()
+            StreamsRepository.cancelLoading()
+            navController.navigate(
+                DetailRoute(
+                    type = launch.parentMetaType ?: launch.type,
+                    id = launch.parentMetaId,
+                    title = launch.title,
+                ),
+            ) {
+                popUpTo<StreamRoute> { inclusive = true }
+            }
+        }
+    } else null
     LaunchedEffect(
         streamsUiState.autoPlayStream,
         streamsUiState.requestToken,
@@ -586,6 +615,8 @@ internal fun StreamDestination(
                 showStatus = playerSettings.showPlayerLoadingStatus,
                 resolvingDebridStream = false,
                 onBack = onBack,
+                onChooseSource = onChooseSourceInstead,
+                onPickEpisode = onPickEpisodeInstead,
             )
             return
         }
@@ -885,6 +916,8 @@ internal fun StreamDestination(
                 resolvingYouTubeStream = resolvingYouTubeStream,
                 onBack = onBack,
                 preparingPlayback = preparingServerStream,
+                onChooseSource = onChooseSourceInstead.takeUnless { autoPlayNavigationStarted },
+                onPickEpisode = onPickEpisodeInstead.takeUnless { autoPlayNavigationStarted },
             )
         }
     }

@@ -1,0 +1,313 @@
+package com.nuvio.app.features.anidrama
+
+import co.touchlab.kermit.Logger
+import com.nuvio.app.features.addons.httpGetText
+import com.nuvio.app.features.tmdb.TmdbSettingsRepository
+import com.nuvio.app.features.tmdb.buildTmdbUrl
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlin.math.roundToInt
+
+/** K-, C- and J-drama side of the Ani-drama tab, from TMDB (filtered by country and language). */
+internal object DramaRepository {
+    private val log = Logger.withTag("AniDramaDrama")
+    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+
+    private const val POSTER = "https://image.tmdb.org/t/p/w500"
+    private const val BACKDROP = "https://image.tmdb.org/t/p/w780"
+
+    /** Animation, news, reality and talk shows are left out so the lists stay dramas. */
+    private const val EXCLUDED_GENRES = "16,10763,10764,10767"
+
+    private val pageCache = HashMap<String, AniDramaPage>()
+    private val genreNames = HashMap<String, Map<Int, String>>()
+    private val keywordIds = HashMap<String, Int?>()
+    private val detailCache = HashMap<Int, TvDetails>()
+    private val airingMutex = Mutex()
+    private val airingCache = HashMap<AniDramaRegion, List<TvDetails>>()
+
+    data class Filter(
+        val chip: DramaChip,
+        val genreId: Int? = null,
+        val keywordId: Int? = null,
+        val networkId: Int? = null,
+    )
+
+    private val AniDramaRegion.country: String
+        get() = when (this) {
+            AniDramaRegion.KDrama -> "KR"
+            AniDramaRegion.CDrama -> "CN"
+            AniDramaRegion.JDrama -> "JP"
+            AniDramaRegion.Anime -> "JP"
+        }
+
+    private val AniDramaRegion.languageCode: String
+        get() = when (this) {
+            AniDramaRegion.KDrama -> "ko"
+            AniDramaRegion.CDrama -> "zh"
+            AniDramaRegion.JDrama -> "ja"
+            AniDramaRegion.Anime -> "ja"
+        }
+
+    /** Extra "genres" that TMDB only has as keywords (it has no Romance genre for TV). */
+    private fun keywordGenres(region: AniDramaRegion): List<Pair<String, List<String>>> = buildList {
+        add("Romance" to listOf("romance"))
+        add("Historical" to listOf("historical drama", "period drama", "costume drama"))
+        add("School" to listOf("high school", "school life"))
+        if (region == AniDramaRegion.CDrama) {
+            add("Wuxia" to listOf("wuxia"))
+            add("Xianxia" to listOf("xianxia"))
+        }
+        if (region == AniDramaRegion.KDrama) add("Revenge" to listOf("revenge"))
+    }
+
+    private fun language(): String = TmdbSettingsRepository.snapshot().language.ifBlank { "en" }
+
+    private fun apiKey(): String = TmdbSettingsRepository.effectiveApiKey()
+
+    suspend fun page(region: AniDramaRegion, filter: Filter, page: Int): AniDramaPage? {
+        val cacheKey = "$region|$filter|$page|${language()}"
+        pageCache[cacheKey]?.let { return it }
+        val today = AniDramaTime.todayIso()
+        val query = linkedMapOf(
+            "language" to language(),
+            "page" to page.toString(),
+            "include_adult" to "false",
+            "with_origin_country" to region.country,
+            "with_original_language" to region.languageCode,
+            "without_genres" to EXCLUDED_GENRES,
+            "sort_by" to "popularity.desc",
+        )
+        when (filter.chip) {
+            DramaChip.AiringNow, DramaChip.Schedule -> {
+                query["air_date.gte"] = AniDramaTime.addDays(today, -7)
+                query["air_date.lte"] = AniDramaTime.addDays(today, 7)
+            }
+            DramaChip.New -> {
+                query["first_air_date.gte"] = AniDramaTime.addDays(today, -60)
+                query["first_air_date.lte"] = today
+            }
+            DramaChip.Upcoming -> query["first_air_date.gte"] = AniDramaTime.addDays(today, 1)
+            DramaChip.Popular -> Unit
+            DramaChip.TopRated -> {
+                query["sort_by"] = "vote_average.desc"
+                query["vote_count.gte"] = if (region == AniDramaRegion.KDrama) "150" else "60"
+            }
+            DramaChip.Genres -> {
+                filter.genreId?.let { query["with_genres"] = it.toString() }
+                filter.keywordId?.let { query["with_keywords"] = it.toString() }
+            }
+            DramaChip.Networks -> filter.networkId?.let { query["with_networks"] = it.toString() }
+        }
+        val response = fetch<DiscoverResponse>("discover/tv", query) ?: return null
+        val names = genreNames(region)
+        val items = response.results.map { show ->
+            show.toItem(
+                caption = when (filter.chip) {
+                    DramaChip.Upcoming -> show.firstAirDate?.let { "Starts ${it.shortDate()}" }
+                    DramaChip.New -> show.firstAirDate?.let { "Started ${it.shortDate()}" }
+                    else -> show.firstAirDate?.take(4)
+                },
+                genreNames = show.genreIds.mapNotNull { names[it] },
+            )
+        }
+        val result = AniDramaPage(items, hasMore = response.page < response.totalPages)
+        pageCache[cacheKey] = result
+        return result
+    }
+
+    /** TMDB TV genres (minus excluded ones) plus keyword-based ones like Romance. Keyword ids are negative. */
+    suspend fun genres(region: AniDramaRegion): List<AniDramaNamedId> {
+        val base = genreNames(region)
+            .filterKeys { it.toString() !in EXCLUDED_GENRES.split(',') && it != 10762 && it != 10766 }
+            .map { (id, name) -> AniDramaNamedId(id, name) }
+        val extras = keywordGenres(region).mapNotNull { (label, candidates) ->
+            keywordId(candidates)?.let { AniDramaNamedId(-it, label) }
+        }
+        return (extras + base).distinctBy { it.name.lowercase() }
+    }
+
+    /** Networks of the shows airing now, most common first. */
+    suspend fun networks(region: AniDramaRegion): List<AniDramaNamedId> =
+        airingDetails(region)
+            .flatMap { it.networks }
+            .groupBy { it.id }
+            .entries
+            .sortedByDescending { it.value.size }
+            .take(14)
+            .map { (id, list) -> AniDramaNamedId(id, list.first().name) }
+
+    /** Episodes airing this week (Monday to Sunday), newest information from TMDB. */
+    suspend fun weekSchedule(region: AniDramaRegion): List<AniDramaScheduleEntry> {
+        val weekStart = AniDramaTime.mondayOfThisWeek()
+        val startDay = AniDramaTime.epochDay(weekStart) ?: return emptyList()
+        return airingDetails(region).flatMap { show ->
+            listOfNotNull(show.lastEpisode, show.nextEpisode)
+                .distinctBy { "${it.seasonNumber}x${it.episodeNumber}" }
+                .mapNotNull { episode ->
+                    val day = episode.airDate?.let(AniDramaTime::epochDay) ?: return@mapNotNull null
+                    val offset = (day - startDay).toInt()
+                    if (offset !in 0..6) return@mapNotNull null
+                    val network = show.networks.firstOrNull()?.name
+                    val item = show.toItem(
+                        badge = network,
+                        caption = "EP ${episode.episodeNumber} · ${AniDramaTime.weekdayShort[offset]}",
+                    )
+                    AniDramaScheduleEntry(
+                        item = item,
+                        weekday = offset,
+                        timeLabel = null,
+                        episodeLabel = listOfNotNull(
+                            "EP ${episode.episodeNumber}",
+                            network,
+                            show.genres.firstOrNull()?.name,
+                        ).joinToString(" · "),
+                        sortKey = day * 1000 + (1000 - (show.popularity ?: 0.0).coerceAtMost(999.0).roundToInt()),
+                        genres = show.genres.map { it.name },
+                    )
+                }
+        }
+    }
+
+    /** Details (network, episodes) for the ~60 most popular shows airing around this week. */
+    private suspend fun airingDetails(region: AniDramaRegion): List<TvDetails> = airingMutex.withLock {
+        airingCache[region]?.let { return@withLock it }
+        val ids = (1..3).flatMap { pageNumber ->
+            page(region, Filter(DramaChip.AiringNow), pageNumber)?.items.orEmpty()
+        }.mapNotNull { (it.source as? AniDramaSource.Tmdb)?.tmdbId }.distinct()
+        val permits = Semaphore(6)
+        val details = coroutineScope {
+            ids.map { id -> async { permits.withPermit { details(id) } } }.awaitAll()
+        }.filterNotNull()
+        if (details.isNotEmpty()) airingCache[region] = details
+        details
+    }
+
+    private suspend fun details(id: Int): TvDetails? {
+        detailCache[id]?.let { return it }
+        val result = fetch<TvDetails>("tv/$id", mapOf("language" to language())) ?: return null
+        detailCache[id] = result
+        return result
+    }
+
+    private suspend fun genreNames(region: AniDramaRegion): Map<Int, String> {
+        val lang = language()
+        genreNames[lang]?.let { return it }
+        val result = fetch<GenreList>("genre/tv/list", mapOf("language" to lang))
+            ?.genres?.associate { it.id to it.name }.orEmpty()
+        if (result.isNotEmpty()) genreNames[lang] = result
+        return result
+    }
+
+    private suspend fun keywordId(candidates: List<String>): Int? {
+        for (name in candidates) {
+            if (keywordIds.containsKey(name)) {
+                keywordIds[name]?.let { return it } ?: continue
+            }
+            val found = fetch<KeywordSearch>("search/keyword", mapOf("query" to name.replace(" ", "%20")))
+                ?.results?.firstOrNull { it.name.equals(name, ignoreCase = true) }?.id
+            keywordIds[name] = found
+            if (found != null) return found
+        }
+        return null
+    }
+
+    private suspend inline fun <reified T> fetch(endpoint: String, query: Map<String, String>): T? {
+        val url = buildTmdbUrl(endpoint = endpoint, apiKey = apiKey(), query = query)
+        return runCatching { json.decodeFromString<T>(httpGetText(url)) }
+            .onFailure { log.w { "TMDB $endpoint failed: ${it.message}" } }
+            .getOrNull()
+    }
+
+    private fun TvResult.toItem(caption: String?, genreNames: List<String>): AniDramaItem = AniDramaItem(
+        key = "tmdb:$id",
+        title = name,
+        poster = posterPath?.let { POSTER + it },
+        backdrop = backdropPath?.let { BACKDROP + it },
+        source = AniDramaSource.Tmdb(id),
+        badge = voteAverage?.takeIf { it > 0 }?.let { ((it * 10).roundToInt() / 10.0).toString() },
+        caption = caption,
+        year = firstAirDate?.take(4),
+        description = overview,
+        genres = genreNames,
+    )
+
+    private fun TvDetails.toItem(badge: String?, caption: String?): AniDramaItem = AniDramaItem(
+        key = "tmdb:$id",
+        title = name,
+        poster = posterPath?.let { POSTER + it },
+        backdrop = backdropPath?.let { BACKDROP + it },
+        source = AniDramaSource.Tmdb(id),
+        badge = badge,
+        caption = caption,
+        year = firstAirDate?.take(4),
+        description = overview,
+        genres = genres.map { it.name },
+    )
+
+    private val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+    private fun String.shortDate(): String {
+        val month = substring(5, 7).toIntOrNull()?.let { monthNames.getOrNull(it - 1) } ?: return this
+        val day = substring(8, 10).toIntOrNull() ?: return this
+        return "$month $day"
+    }
+
+    @Serializable
+    private data class DiscoverResponse(
+        val page: Int = 1,
+        @SerialName("total_pages") val totalPages: Int = 1,
+        val results: List<TvResult> = emptyList(),
+    )
+
+    @Serializable
+    private data class TvResult(
+        val id: Int,
+        val name: String = "",
+        @SerialName("poster_path") val posterPath: String? = null,
+        @SerialName("backdrop_path") val backdropPath: String? = null,
+        @SerialName("vote_average") val voteAverage: Double? = null,
+        @SerialName("first_air_date") val firstAirDate: String? = null,
+        val overview: String? = null,
+        @SerialName("genre_ids") val genreIds: List<Int> = emptyList(),
+    )
+
+    @Serializable
+    private data class TvDetails(
+        val id: Int,
+        val name: String = "",
+        @SerialName("poster_path") val posterPath: String? = null,
+        @SerialName("backdrop_path") val backdropPath: String? = null,
+        @SerialName("first_air_date") val firstAirDate: String? = null,
+        val overview: String? = null,
+        val popularity: Double? = null,
+        val networks: List<Named> = emptyList(),
+        val genres: List<Named> = emptyList(),
+        @SerialName("last_episode_to_air") val lastEpisode: Episode? = null,
+        @SerialName("next_episode_to_air") val nextEpisode: Episode? = null,
+    )
+
+    @Serializable
+    private data class Episode(
+        @SerialName("air_date") val airDate: String? = null,
+        @SerialName("episode_number") val episodeNumber: Int = 0,
+        @SerialName("season_number") val seasonNumber: Int = 0,
+    )
+
+    @Serializable
+    private data class Named(val id: Int, val name: String = "")
+
+    @Serializable
+    private data class GenreList(val genres: List<Named> = emptyList())
+
+    @Serializable
+    private data class KeywordSearch(val results: List<Named> = emptyList())
+}

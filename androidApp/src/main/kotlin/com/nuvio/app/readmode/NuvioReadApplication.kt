@@ -4,6 +4,7 @@ import android.content.Context
 import coil3.ImageLoader
 import com.nuvio.android.R
 import com.nuvio.app.NuvioImageLoaderComponents
+import com.nuvio.app.features.anidrama.AniDramaBridge
 import eu.kanade.tachiyomi.App
 import eu.kanade.tachiyomi.EmbeddedHost
 
@@ -32,6 +33,16 @@ class NuvioReadApplication : App() {
         EmbeddedHost.openWatch = modes::openWatch
 
         MainActivityLaunchRedirect.handler = modes::redirectLaunchIfNeeded
+
+        // Ani-drama tab: anime + K/C/J-drama browser. Remembers whether its rows also stay on Home.
+        val aniDramaPrefs = getSharedPreferences("fenrir_anidrama", MODE_PRIVATE)
+        AniDramaBridge.install(
+            keepRowsOnHome = aniDramaPrefs.getBoolean(KEY_KEEP_ROWS_ON_HOME, false),
+        ) { keep -> aniDramaPrefs.edit().putBoolean(KEY_KEEP_ROWS_ON_HOME, keep).apply() }
+    }
+
+    private companion object {
+        const val KEY_KEEP_ROWS_ON_HOME = "keep_rows_on_home"
     }
 
     /**

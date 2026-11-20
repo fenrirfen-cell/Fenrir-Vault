@@ -149,7 +149,13 @@ fun HomeScreen(
     val addonSignals by AddonRepository.uiState.collectMappedAsState { state ->
         state.addons.enabledAddons().toHomeAddonSignals()
     }
-    val homeUiState by HomeRepository.uiState.collectAsStateWithLifecycle()
+    val rawHomeUiState by HomeRepository.uiState.collectAsStateWithLifecycle()
+    // Fenrir Read: anime and drama rows from add-ons move to the Ani-drama tab.
+    val aniDramaAvailable by com.nuvio.app.features.anidrama.AniDramaBridge.isAvailable.collectAsStateWithLifecycle()
+    val keepAniDramaRowsOnHome by com.nuvio.app.features.anidrama.AniDramaBridge.keepRowsOnHome.collectAsStateWithLifecycle()
+    val homeUiState = remember(rawHomeUiState, aniDramaAvailable, keepAniDramaRowsOnHome) {
+        com.nuvio.app.features.anidrama.AniDramaRows.filterHome(rawHomeUiState, aniDramaAvailable, keepAniDramaRowsOnHome)
+    }
     HomeHeroMetaLoadEffect(homeUiState.heroItems)
     val homeSettingsUiState by remember {
         HomeCatalogSettingsRepository.snapshot()

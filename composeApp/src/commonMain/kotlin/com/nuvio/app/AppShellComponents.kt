@@ -22,6 +22,7 @@ import com.nuvio.app.core.ui.DisintegrationRequest
 import com.nuvio.app.core.ui.NuvioLoadingIndicator
 import com.nuvio.app.core.ui.NuvioTokens
 import com.nuvio.app.core.ui.nuvio
+import com.nuvio.app.features.anidrama.AniDramaScreen
 import com.nuvio.app.features.cloud.CloudLibraryContentType
 import com.nuvio.app.features.cloud.CloudLibraryFile
 import com.nuvio.app.features.cloud.CloudLibraryItem
@@ -145,6 +146,15 @@ internal fun AppTabHost(
                         onFirstCatalogRendered = actions.onInitialHomeContentRendered,
                     )
                 }
+            }
+
+            AppScreenTab.AniDrama -> {
+                AniDramaScreen(
+                    modifier = Modifier.fillMaxSize(),
+                    onPosterClick = actions.onPosterClick,
+                    onPosterLongClick = actions.onPosterLongClick,
+                    onCatalogClick = actions.onCatalogClick,
+                )
             }
 
             AppScreenTab.Search -> {

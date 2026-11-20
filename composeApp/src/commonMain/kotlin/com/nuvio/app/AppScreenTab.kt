@@ -4,6 +4,8 @@ import com.nuvio.app.core.ui.NativeNavigationTab
 
 enum class AppScreenTab {
     Home,
+    /** Fenrir Read's Ani-drama tab (Android only; see AniDramaBridge). */
+    AniDrama,
     Search,
     Library,
     Settings,
@@ -17,6 +19,7 @@ enum class AppScreenTab {
 
 internal fun AppScreenTab.toNativeNavigationTab(): NativeNavigationTab = when (this) {
     AppScreenTab.Home -> NativeNavigationTab.Home
+    AppScreenTab.AniDrama -> NativeNavigationTab.Home
     AppScreenTab.Search -> NativeNavigationTab.Search
     AppScreenTab.Library -> NativeNavigationTab.Library
     AppScreenTab.Settings -> NativeNavigationTab.Settings

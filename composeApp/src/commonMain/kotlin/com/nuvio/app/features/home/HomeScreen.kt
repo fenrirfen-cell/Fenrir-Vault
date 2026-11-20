@@ -1007,6 +1007,12 @@ fun HomeScreen(
             topPadding = if (showHeroSlot) 0.dp else null,
             listState = homeListState,
         ) {
+            // Fenrir: room for the Watch / Read switch, scrolling with the page.
+            if (com.nuvio.app.readmode.ReadModeBridge.isAvailable) {
+                item(key = "fenrir_mode_bar_space", contentType = "fenrir_mode_bar_space") {
+                    com.nuvio.app.readmode.ModeBarSpacer()
+                }
+            }
             if (showHeroSlot) {
                 item(key = "home_hero", contentType = "hero") {
                     val homeHeroState = rememberHomeHeroState(homeUiState.heroItems)

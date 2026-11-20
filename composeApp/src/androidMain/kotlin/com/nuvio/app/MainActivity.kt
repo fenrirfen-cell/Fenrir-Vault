@@ -110,6 +110,30 @@ open class MainActivity : AppCompatActivity() {
         MetaScreenSettingsStorage.initialize(applicationContext)
         com.nuvio.app.features.shuffle.EpisodeShuffleStorage.initialize(applicationContext)
         HomeCatalogSettingsStorage.initialize(applicationContext)
+        // Fenrir assistant: preferences storage and voice input (phone's own speech-to-text).
+        val fenrirAssistantPrefs = applicationContext.getSharedPreferences("fenrir_assistant", android.content.Context.MODE_PRIVATE)
+        com.nuvio.app.assistant.AssistantSettings.load = { fenrirAssistantPrefs.getString("prefs", null) }
+        com.nuvio.app.assistant.AssistantSettings.save = { value -> fenrirAssistantPrefs.edit().putString("prefs", value).apply() }
+        com.nuvio.app.assistant.AssistantPlayback.startVoice = { onSpoken ->
+            var voiceLauncher: androidx.activity.result.ActivityResultLauncher<Intent>? = null
+            voiceLauncher = activityResultRegistry.register(
+                "fenrir_voice_" + System.nanoTime(),
+                androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+            ) { result ->
+                voiceLauncher?.unregister()
+                val spoken = result.data
+                    ?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+                    ?.firstOrNull()
+                if (!spoken.isNullOrBlank()) onSpoken(spoken)
+            }
+            val voiceIntent = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                .putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Ask Fenrir")
+            runCatching { voiceLauncher?.launch(voiceIntent) }.onFailure {
+                voiceLauncher?.unregister()
+                android.widget.Toast.makeText(this, "Voice input isn't available on this phone", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
         PlayerSettingsStorage.initialize(applicationContext)
         PlayerTrackPreferenceStorage.initialize(applicationContext)
         P2pSettingsStorage.initialize(applicationContext)

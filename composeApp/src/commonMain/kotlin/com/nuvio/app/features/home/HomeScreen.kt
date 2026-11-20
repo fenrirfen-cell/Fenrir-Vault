@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import com.nuvio.app.readmode.fenrirSourceHomeItems
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -1082,7 +1083,7 @@ fun HomeScreen(
                         disintegrationRequest = continueWatchingDisintegrationRequest,
                     )
                     val sourceId = fenrirSourceId.orEmpty()
-                    com.nuvio.app.readmode.fenrirSourceHomeItems(
+                    fenrirSourceHomeItems(
                         state = fenrirSourceState.takeIf { it.sourceId == sourceId }
                             ?: com.nuvio.app.readmode.FenrirSourceHomeState(sourceId, loading = true),
                         source = com.nuvio.app.readmode.FenrirPlugins.cloudStream?.homeSources()?.firstOrNull { it.id == sourceId },

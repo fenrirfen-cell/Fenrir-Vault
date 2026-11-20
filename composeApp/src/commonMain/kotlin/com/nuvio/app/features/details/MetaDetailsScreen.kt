@@ -827,6 +827,21 @@ fun MetaDetailsScreen(
                         else -> playText
                     }
                 }
+                // Fenrir Read: remember what Play starts, for the "Found in" badges.
+                val foundInTarget = when {
+                    (meta.type == "series" || hasEpisodes) && seriesAction != null -> FoundInTarget(
+                        type = meta.type,
+                        videoId = seriesStreamVideoId ?: seriesAction.videoId,
+                        season = seriesAction.seasonNumber,
+                        episode = seriesAction.episodeNumber,
+                    )
+                    meta.type != "series" && !hasEpisodes -> FoundInTarget(meta.type, meta.id, null, null)
+                    else -> null
+                }
+                androidx.compose.runtime.SideEffect {
+                    if (foundInTarget == null) FenrirFoundIn.targets.remove(meta.id)
+                    else if (FenrirFoundIn.targets[meta.id] != foundInTarget) FenrirFoundIn.targets[meta.id] = foundInTarget
+                }
                 val onPrimaryPlayClick: () -> Unit = {
                     when {
                         shufflePoolEmpty -> showShuffle = true
@@ -1198,6 +1213,7 @@ fun MetaDetailsScreen(
                                                             onSaveClick = toggleSaved,
                                                             onSaveLongClick = openLibraryListPicker,
                                                         )
+                                                        FenrirFoundInRow(metaId = meta.id)
                                                     }
                                                 } else {
                                                     null
@@ -2374,6 +2390,7 @@ private fun ConfiguredMetaSections(
                     onSaveClick = onSaveClick,
                     onSaveLongClick = onSaveLongClick,
                 )
+                FenrirFoundInRow(metaId = meta.id)
             }
             MetaScreenSectionKey.OVERVIEW -> {
                 DetailMetaInfo(

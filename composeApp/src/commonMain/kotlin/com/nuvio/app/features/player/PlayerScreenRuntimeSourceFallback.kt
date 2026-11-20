@@ -68,20 +68,29 @@ internal fun PlayerScreenRuntime.showErrorUnlessSourceFallback(message: String?)
  *
  * Returns `true` when a fallback was started and the error must not be shown yet.
  */
-internal fun PlayerScreenRuntime.tryFallbackToNextSourceAfterError(message: String?): Boolean {
+internal fun PlayerScreenRuntime.tryFallbackToNextSourceAfterError(
+    message: String?,
+    startupTimeout: Boolean = false,
+): Boolean {
     if (sourceFallbackJob?.isActive == true) return true
     val settings = playerSettingsUiState
-    if (!settings.streamAutoPlayFallbackActive) return false
-    if (!isIos && settings.autoSwitchPlaybackEngineOnError) return false
+    // Fenrir Read: also falls back for links you picked, once the engine switch had its turn.
+    val fenrir = FenrirSourceFallback.active(settings)
+    if (!settings.streamAutoPlayFallbackActive && !fenrir) return false
+    if (!isIos && settings.autoSwitchPlaybackEngineOnError) {
+        val engineSwitchTried = engineFailoverSourceIdentity == activePlaybackIdentity
+        if (!fenrir || !(startupTimeout || engineSwitchTried)) return false
+    }
     if (initialLoadCompleted) return false
     val failedUrl = activeSourceUrl
-    if (failedUrl.isBlank() || failedUrl != autoSelectedSourceUrl) return false
+    if (failedUrl.isBlank() || (failedUrl != autoSelectedSourceUrl && !fenrir)) return false
     if (sourceFallbackAttempts >= settings.streamAutoPlayFallbackMaxSources) return false
     val videoId = activeVideoId ?: return false
 
     activeStream?.playerSourceIdentityKey()?.let(sourceFallbackTriedKeys::add)
     val failedInfoHash = activeStream?.p2pInfoHash ?: currentStreamInfoHash
     val failedAddonId = activeProviderAddonId
+    val failedProviderName = activeProviderName
     val season = activeSeasonNumber
     val episode = activeEpisodeNumber
     errorMessage = null
@@ -100,7 +109,7 @@ internal fun PlayerScreenRuntime.tryFallbackToNextSourceAfterError(message: Stri
                 val state = PlayerStreamsRepository.sourceState.value
                 val next = nextSourceFallbackCandidate(
                     streams = state.groups.flatMap { it.streams },
-                    settings = playerSettingsUiState,
+                    settings = if (fenrir) FenrirSourceFallback.candidateSettings(playerSettingsUiState) else playerSettingsUiState,
                     triedKeys = sourceFallbackTriedKeys,
                     failedAddonId = failedAddonId,
                     failedInfoHash = failedInfoHash,
@@ -127,6 +136,14 @@ internal fun PlayerScreenRuntime.tryFallbackToNextSourceAfterError(message: Stri
                     continue
                 }
                 log.i { "Source failed to start, falling back to ${playable.streamLabel} from ${playable.addonName}" }
+                if (fenrir) {
+                    showGestureFeedback(
+                        GestureFeedbackState(
+                            message = "${failedProviderName?.takeIf { it.isNotBlank() } ?: "That source"} didn't load",
+                            secondaryMessage = "Trying ${playable.addonName}… ($sourceFallbackAttempts of ${playerSettingsUiState.streamAutoPlayFallbackMaxSources})",
+                        ),
+                    )
+                }
                 playReplacementSource(playable, url, videoId)
                 return@launch
             }

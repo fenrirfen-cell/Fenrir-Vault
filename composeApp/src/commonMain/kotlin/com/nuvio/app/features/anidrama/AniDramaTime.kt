@@ -77,6 +77,14 @@ internal object AniDramaTime {
 
     fun monthName(month: Int): String = monthNames.getOrElse(month - 1) { "" }
 
+    /** "Sat, Nov 15". */
+    fun shortDayLabel(iso: String): String {
+        val weekday = weekdayOfIso(iso)?.let { weekdayShort[it] }.orEmpty()
+        val month = iso.substring(5, 7).toIntOrNull()?.let { monthNames.getOrNull(it - 1)?.take(3) }.orEmpty()
+        val day = iso.substring(8, 10).toIntOrNull() ?: 0
+        return "$weekday, $month $day"
+    }
+
     fun longDayLabel(iso: String): String {
         val weekday = weekdayOfIso(iso)?.let { listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[it] }.orEmpty()
         val month = iso.substring(5, 7).toIntOrNull()?.let { monthNames.getOrNull(it - 1)?.take(3) }.orEmpty()

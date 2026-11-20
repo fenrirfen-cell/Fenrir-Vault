@@ -429,19 +429,37 @@ private fun DramaOverview(
     onCatalogClick: ((HomeCatalogSection) -> Unit)?,
 ) {
     val (schedule, _) = rememberAniDramaLoad("drama-overview-schedule-$region") { DramaRepository.weekSchedule(region) }
+    val todayIso = remember { AniDramaTime.todayIso() }
+    val monthStart = remember { todayIso.take(8) + "01" }
+    val monthDays = remember {
+        AniDramaTime.daysInMonth(todayIso.take(4).toIntOrNull() ?: 2026, todayIso.substring(5, 7).toIntOrNull() ?: 1)
+    }
+    val (month, _) = rememberAniDramaLoad("drama-overview-month-$region-$monthStart") {
+        DramaRepository.schedule(region, monthStart, monthDays)
+    }
+    val (comingSoon, _) = rememberAniDramaLoad("drama-overview-soon-$region") { DramaRepository.comingSoon(region) }
     val airing = rememberAniDramaPagedList(key = "drama-overview-airing-$region") { page ->
         DramaRepository.page(region, DramaRepository.Filter(DramaChip.AiringNow), page)
     }
-    val justStarted = rememberAniDramaPagedList(key = "drama-overview-new-$region", maxItems = 20) { page ->
-        DramaRepository.page(region, DramaRepository.Filter(DramaChip.New), page)
-    }
-    val todayIndex = remember { AniDramaTime.weekdayOfIso(AniDramaTime.todayIso()) ?: 0 }
-    val newThisWeek = remember(schedule.value) {
-        schedule.value.orEmpty()
-            .filter { it.weekday <= todayIndex }
-            .sortedByDescending { it.sortKey }
-            .map { it.item }
-            .distinctBy { it.key }
+
+    /** Latest released episode per show, newest first, with the real air date on the poster. */
+    fun released(entries: List<AniDramaScheduleEntry>?): List<AniDramaItem> =
+        entries.orEmpty()
+            .filter { it.dateIso <= todayIso }
+            .sortedWith(compareByDescending<AniDramaScheduleEntry> { it.dateIso }.thenBy { it.sortKey })
+            .distinctBy { it.item.key }
+            .map { entry ->
+                entry.item.copy(caption = "EP ${entry.episode} · ${AniDramaTime.shortDayLabel(entry.dateIso)}")
+            }
+
+    val releasedThisWeek = remember(schedule.value) { released(schedule.value) }
+    val releasedThisMonth = remember(month.value) { released(month.value) }
+    val premieredThisMonth = remember(month.value) {
+        month.value.orEmpty()
+            .filter { it.isPremiere && it.dateIso <= todayIso }
+            .sortedByDescending { it.dateIso }
+            .distinctBy { it.item.key }
+            .map { it.item.copy(caption = "Premiered ${AniDramaTime.shortDayLabel(it.dateIso)}") }
     }
 
     OverviewColumn(
@@ -450,11 +468,38 @@ private fun DramaOverview(
         onPosterLongClick = onPosterLongClick,
         onCatalogClick = onCatalogClick,
     ) {
-        item(key = "new-episodes") {
+        item(key = "released-week") {
             AniDramaShelf(
-                title = "New episodes this week",
-                items = newThisWeek,
+                title = "Released this week",
+                items = releasedThisWeek,
                 loading = schedule.loading,
+                onItemClick = onItemClick,
+                onItemLongClick = onItemLongClick,
+            )
+        }
+        item(key = "released-month") {
+            AniDramaShelf(
+                title = "Released this month",
+                items = releasedThisMonth,
+                loading = month.loading,
+                onItemClick = onItemClick,
+                onItemLongClick = onItemLongClick,
+            )
+        }
+        item(key = "premiered-month") {
+            AniDramaShelf(
+                title = "Premiered this month",
+                items = premieredThisMonth,
+                loading = month.loading,
+                onItemClick = onItemClick,
+                onItemLongClick = onItemLongClick,
+            )
+        }
+        item(key = "coming-soon") {
+            AniDramaShelf(
+                title = "Coming soon",
+                items = comingSoon.value.orEmpty(),
+                loading = comingSoon.loading,
                 onItemClick = onItemClick,
                 onItemLongClick = onItemLongClick,
             )
@@ -465,15 +510,6 @@ private fun DramaOverview(
                 items = airing.items,
                 loading = airing.loading,
                 onSeeAll = onSeeAllAiring,
-                onItemClick = onItemClick,
-                onItemLongClick = onItemLongClick,
-            )
-        }
-        item(key = "just-started") {
-            AniDramaShelf(
-                title = "Just started",
-                items = justStarted.items,
-                loading = justStarted.loading,
                 onItemClick = onItemClick,
                 onItemLongClick = onItemLongClick,
             )

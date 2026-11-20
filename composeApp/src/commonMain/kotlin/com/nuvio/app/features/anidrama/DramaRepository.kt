@@ -205,6 +205,34 @@ internal object DramaRepository {
             entries
         }
 
+    /** Shows premiering in the next 90 days (most talked-about first), soonest date first. */
+    suspend fun comingSoon(region: AniDramaRegion): List<AniDramaItem> {
+        val today = AniDramaTime.todayIso()
+        val query = linkedMapOf(
+            "language" to language(),
+            "include_adult" to "false",
+            "with_origin_country" to region.country,
+            "with_original_language" to region.languageCode,
+            "without_genres" to EXCLUDED_GENRES,
+            "sort_by" to "popularity.desc",
+            "first_air_date.gte" to AniDramaTime.addDays(today, 1),
+            "first_air_date.lte" to AniDramaTime.addDays(today, 90),
+        )
+        val shows = (1..2).flatMap { page ->
+            fetch<DiscoverResponse>("discover/tv", query + ("page" to "$page"))?.results.orEmpty()
+        }.distinctBy { it.id }
+        val names = genreNames(region)
+        return shows
+            .filter { !it.firstAirDate.isNullOrBlank() }
+            .sortedBy { it.firstAirDate }
+            .map { show ->
+                show.toItem(
+                    caption = "Starts ${AniDramaTime.shortDayLabel(show.firstAirDate!!)}",
+                    genreNames = show.genreIds.mapNotNull { names[it] },
+                )
+            }
+    }
+
     /** The next episode (number, local noon of its air date in epoch ms) of a show, or null. */
     suspend fun nextEpisode(tmdbId: Int): Pair<Int, Long>? {
         detailCache.remove(tmdbId)

@@ -88,6 +88,44 @@ internal fun PlaybackStreamSettings(
                         onClick = { showReuseCacheDurationDialog = true },
                     )
                 }
+                // Fenrir Read: when a link fails or doesn't start, play the next source that has it.
+                if (com.nuvio.app.features.player.FenrirSourceFallback.available) {
+                    val fenrirFallback by com.nuvio.app.features.player.FenrirSourceFallback.enabled.collectAsStateWithLifecycle()
+                    SettingsGroupDivider(isTablet = isTablet)
+                    SettingsSwitchRow(
+                        title = "Try the next source automatically",
+                        description = "When a link fails or doesn't start in time, Fenrir plays the next source that has " +
+                            "the episode, in your add-on order. Works for links you pick too.",
+                        checked = fenrirFallback,
+                        enabled = !settings.externalPlayerEnabled,
+                        isTablet = isTablet,
+                        onCheckedChange = com.nuvio.app.features.player.FenrirSourceFallback::setEnabled,
+                    )
+                    if (fenrirFallback) {
+                        SettingsGroupDivider(isTablet = isTablet)
+                        SettingsSliderRow(
+                            title = "Give up on a source after",
+                            value = settings.streamAutoPlayFallbackStartupTimeoutSeconds,
+                            valueText = { seconds -> stringResource(Res.string.settings_playback_timeout_seconds, seconds) },
+                            valueRange = SOURCE_STARTUP_TIMEOUT_SECONDS_RANGE,
+                            step = SOURCE_STARTUP_TIMEOUT_SECONDS_STEP,
+                            isTablet = isTablet,
+                            enabled = !settings.externalPlayerEnabled,
+                            onValueChange = PlayerSettingsRepository::setStreamAutoPlayFallbackStartupTimeoutSeconds,
+                        )
+                        SettingsGroupDivider(isTablet = isTablet)
+                        SettingsSliderRow(
+                            title = "Sources to try",
+                            value = settings.streamAutoPlayFallbackMaxSources,
+                            valueText = { count -> count.toString() },
+                            valueRange = SOURCE_FALLBACK_MAX_SOURCES_RANGE,
+                            step = 1,
+                            isTablet = isTablet,
+                            enabled = !settings.externalPlayerEnabled,
+                            onValueChange = PlayerSettingsRepository::setStreamAutoPlayFallbackMaxSources,
+                        )
+                    }
+                }
             }
         }
 

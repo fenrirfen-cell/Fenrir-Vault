@@ -166,6 +166,7 @@ internal fun PlayerScreenRuntime.BindPlayerRuntimeEffects() {
         if (!initialLoadCompleted && errorMessage == null) {
             tryFallbackToNextSourceAfterError(
                 getString(Res.string.player_error_source_startup_timeout, startupTimeoutSeconds),
+                startupTimeout = true,
             )
         }
     }

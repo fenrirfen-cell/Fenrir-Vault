@@ -41,12 +41,18 @@ class NuvioReadApplication : App() {
             keepRowsOnHome = aniDramaPrefs.getBoolean(KEY_KEEP_ROWS_ON_HOME, false),
         ) { keep -> aniDramaPrefs.edit().putBoolean(KEY_KEEP_ROWS_ON_HOME, keep).apply() }
 
+        // Try the next source automatically when a link fails (on by default in Fenrir).
+        com.nuvio.app.features.player.FenrirSourceFallback.install(
+            enabled = aniDramaPrefs.getBoolean(KEY_SOURCE_FALLBACK, true),
+        ) { on -> aniDramaPrefs.edit().putBoolean(KEY_SOURCE_FALLBACK, on).apply() }
+
         // Episode reminders from the Ani-drama calendar (notification + optional spoken alert).
         com.nuvio.app.features.anidrama.AniDramaRemindersAndroid.install(this)
     }
 
     private companion object {
         const val KEY_KEEP_ROWS_ON_HOME = "keep_rows_on_home"
+        const val KEY_SOURCE_FALLBACK = "source_fallback"
     }
 
     /**

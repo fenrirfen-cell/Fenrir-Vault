@@ -650,7 +650,25 @@ private fun AuthBrandLockup(
                 fontWeight = FontWeight.Normal,
             ),
         )
+        if (com.nuvio.app.readmode.FenrirStyle.isAvailable) {
+            Spacer(modifier = Modifier.height(12.dp))
+            FenrirForkBadge()
+        }
     }
+}
+
+/** Fenrir Read: "A fork of Nuvio" badge under the sign-in tagline. */
+@Composable
+private fun FenrirForkBadge() {
+    Text(
+        text = "A fork of Nuvio",
+        style = MaterialTheme.typography.labelMedium,
+        color = androidx.compose.ui.graphics.Color(0xFFFF8A91),
+        modifier = Modifier
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(androidx.compose.ui.graphics.Color(0x26FF4D57))
+            .padding(horizontal = 12.dp, vertical = 5.dp),
+    )
 }
 
 @Composable

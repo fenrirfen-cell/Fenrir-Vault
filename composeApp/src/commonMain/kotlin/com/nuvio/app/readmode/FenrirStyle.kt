@@ -89,15 +89,33 @@ fun FenrirTopBar(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        FenrirWordmark(modifier = Modifier.weight(1f))
+        FenrirModePill(selected, onWatch, onAniDrama, openRead)
+    }
+}
+
+/** "FENRIR" with a smaller red "READ" beside it. */
+@Composable
+fun FenrirWordmark(modifier: Modifier = Modifier, scale: Float = 1f) {
+    Row(modifier = modifier, verticalAlignment = Alignment.Bottom) {
         Text(
             text = "FENRIR",
             color = Color.White,
-            fontSize = 22.sp,
-            letterSpacing = 6.sp,
-            fontWeight = FontWeight.Normal,
-            modifier = Modifier.weight(1f),
+            fontSize = (22 * scale).sp,
+            letterSpacing = (5 * scale).sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
         )
-        FenrirModePill(selected, onWatch, onAniDrama, openRead)
+        Spacer(Modifier.width((6 * scale).dp))
+        Text(
+            text = "READ",
+            color = Color(0xFFFF4D57),
+            fontSize = (13 * scale).sp,
+            letterSpacing = (4 * scale).sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            modifier = Modifier.padding(bottom = (3 * scale).dp),
+        )
     }
 }
 
@@ -120,12 +138,12 @@ fun FenrirModePill(
                 .clip(CircleShape)
                 .background(FenrirStyle.pill)
                 .clickable(role = Role.Button) { open = true }
-                .padding(start = 14.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+                .padding(start = 18.dp, end = 12.dp, top = 11.dp, bottom = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(label, color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.width(4.dp))
-            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Switch side", tint = Color.White, modifier = Modifier.size(18.dp))
+            Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Spacer(Modifier.width(6.dp))
+            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Switch side", tint = Color.White, modifier = Modifier.size(22.dp))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             ModeMenuItem(ReadModeBridge.watchLabel, Icons.Rounded.PlayArrow, selected == FenrirMode.Watch) { open = false; onWatch() }

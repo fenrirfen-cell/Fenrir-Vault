@@ -33,13 +33,7 @@ internal fun AppBrandWordmark(
     // Fenrir Read: our own name instead of the Nuvio logo.
     if (com.nuvio.app.readmode.FenrirStyle.isAvailable) {
         androidx.compose.foundation.layout.Box(modifier, contentAlignment = androidx.compose.ui.Alignment.Center) {
-            androidx.compose.material3.Text(
-                text = "FENRIR",
-                color = androidx.compose.ui.graphics.Color.White,
-                fontSize = androidx.compose.ui.unit.TextUnit(28f, androidx.compose.ui.unit.TextUnitType.Sp),
-                letterSpacing = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp),
-                maxLines = 1,
-            )
+            com.nuvio.app.readmode.FenrirWordmark(scale = 1.3f)
         }
         return
     }

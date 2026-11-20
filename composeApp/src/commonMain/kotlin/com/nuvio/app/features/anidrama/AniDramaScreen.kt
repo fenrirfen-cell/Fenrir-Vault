@@ -693,13 +693,13 @@ private fun AniDramaGrid(
 }
 
 private fun androidx.compose.foundation.lazy.grid.LazyGridScope.gridItems(
-    items: List<AniDramaItem>,
+    posters: List<AniDramaItem>,
     showDubBadge: Boolean,
     onItemClick: (AniDramaItem) -> Unit,
     onItemLongClick: (AniDramaItem) -> Unit,
 ) {
-    items(count = items.size, key = { index -> items[index].key }) { index ->
-        val item = items[index]
+    items(count = posters.size, key = { index -> posters[index].key }) { index ->
+        val item = posters[index]
         AniDramaPosterTile(
             item = item,
             onClick = { onItemClick(item) },

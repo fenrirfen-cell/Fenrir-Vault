@@ -112,6 +112,9 @@ jobs:
 
       - name: Save merged code
         if: steps.go.outputs.build == 'true' && steps.merge.outputs.changed == 'true'
+        # Can't save when the official update touches Nuvio's own workflow files (GitHub blocks
+        # that for this token). The APK is still published; tomorrow's run merges again.
+        continue-on-error: true
         run: git push origin "HEAD:$BRANCH"
 
       - name: Publish release

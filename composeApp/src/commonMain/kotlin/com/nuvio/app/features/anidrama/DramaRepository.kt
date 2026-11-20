@@ -92,10 +92,16 @@ internal object DramaRepository {
                 query["air_date.lte"] = AniDramaTime.addDays(today, 7)
             }
             DramaChip.New -> {
+                // Newest premiere first, so the order matches the dates on the posters.
                 query["first_air_date.gte"] = AniDramaTime.addDays(today, -60)
                 query["first_air_date.lte"] = today
+                query["sort_by"] = "first_air_date.desc"
             }
-            DramaChip.Upcoming -> query["first_air_date.gte"] = AniDramaTime.addDays(today, 1)
+            DramaChip.Upcoming -> {
+                // Soonest first.
+                query["first_air_date.gte"] = AniDramaTime.addDays(today, 1)
+                query["sort_by"] = "first_air_date.asc"
+            }
             DramaChip.Popular -> Unit
             DramaChip.TopRated -> {
                 query["sort_by"] = "vote_average.desc"
@@ -109,11 +115,14 @@ internal object DramaRepository {
         }
         val response = fetch<DiscoverResponse>("discover/tv", query) ?: return null
         val names = genreNames(region)
-        val items = response.results.map { show ->
+        val dateSorted = filter.chip == DramaChip.New || filter.chip == DramaChip.Upcoming
+        // Sorting by date alone pulls in tiny listings; skip ones without a poster.
+        val results = if (dateSorted) response.results.filter { it.posterPath != null } else response.results
+        val items = results.map { show ->
             show.toItem(
                 caption = when (filter.chip) {
-                    DramaChip.Upcoming -> show.firstAirDate?.let { "Starts ${it.shortDate()}" }
-                    DramaChip.New -> show.firstAirDate?.let { "Started ${it.shortDate()}" }
+                    DramaChip.Upcoming -> show.firstAirDate?.let { "Starts ${AniDramaTime.shortDayLabel(it)}" }
+                    DramaChip.New -> show.firstAirDate?.let { "Started ${AniDramaTime.shortDayLabel(it)}" }
                     else -> show.firstAirDate?.take(4)
                 },
                 genreNames = show.genreIds.mapNotNull { names[it] },

@@ -63,6 +63,14 @@ data class FenrirPluginPlayRequest(
     val showTitle: String,
     val episodeName: String,
     val stream: FenrirPluginStream,
+    /** Source + title on that source ("Kisskh|url"): lets Continue watching find it again. */
+    val hitKey: String? = null,
+    val poster: String? = null,
+    val episodeIndex: Int? = null,
+    val season: Int? = null,
+    val episode: Int? = null,
+    val isMovie: Boolean = false,
+    val resumePositionMs: Long = 0L,
 )
 
 object FenrirPluginPlayback {

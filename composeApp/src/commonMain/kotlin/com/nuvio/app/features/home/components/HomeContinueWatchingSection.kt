@@ -762,6 +762,7 @@ private fun ContinueWatchingCard(
             )
         }
         if (item.shufflePlayback) ShuffleBadge(Modifier.align(Alignment.TopStart).padding(8.dp))
+        com.nuvio.app.readmode.FenrirCloudStreamTag(item.parentMetaId, Modifier.align(Alignment.TopEnd).padding(8.dp))
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -954,6 +955,7 @@ private fun ContinueWatchingWideCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     if (item.shufflePlayback) ShuffleBadge()
+                    com.nuvio.app.readmode.FenrirCloudStreamTag(item.parentMetaId)
                     if (item.progressFraction <= 0f && item.seasonNumber != null && item.episodeNumber != null) {
                         val todayIsoDate = CurrentDateProvider.todayIsoDate()
                         val badgeText = when {
@@ -1072,6 +1074,7 @@ private fun ContinueWatchingPosterCard(
                 )
             }
             if (item.shufflePlayback) ShuffleBadge(Modifier.align(Alignment.TopStart).padding(8.dp))
+            com.nuvio.app.readmode.FenrirCloudStreamTag(item.parentMetaId, Modifier.align(Alignment.TopEnd).padding(8.dp))
             if (item.progressFraction <= 0f && item.seasonNumber != null && item.episodeNumber != null) {
                 Box(
                     modifier = Modifier

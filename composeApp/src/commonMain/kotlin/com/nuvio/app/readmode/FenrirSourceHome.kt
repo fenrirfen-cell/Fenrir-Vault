@@ -17,6 +17,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
+/** A Continue watching entry played from a CloudStream source. */
+data class FenrirResumeTarget(
+    val parentMetaId: String,
+    val videoId: String,
+    val title: String,
+    val poster: String?,
+    val episodeTitle: String?,
+    val season: Int?,
+    val episode: Int?,
+    val positionMs: Long,
+) {
+    val sourceName: String get() = FenrirSourceHome.sourceOf(parentMetaId).orEmpty()
+}
+
 /** What the home screen shows for the picked source. */
 data class FenrirSourceHomeState(
     val sourceId: String? = null,
@@ -82,6 +96,59 @@ object FenrirSourceHome {
                 rows = rows,
             )
         }
+    }
+
+    // ------------------------------------------------------------------ Continue watching
+
+    const val ID_PREFIX = "fenrircs:"
+
+    fun isCloudStreamId(id: String?): Boolean = id?.startsWith(ID_PREFIX) == true
+
+    /** "fenrircs:Kisskh|https://…" → "Kisskh". */
+    fun sourceOf(parentMetaId: String?): String? =
+        parentMetaId?.takeIf { isCloudStreamId(it) }?.removePrefix(ID_PREFIX)?.substringBefore("|")?.takeIf { it.isNotBlank() }
+
+    /**
+     * Gets a fresh link for the saved episode from the same source and plays it from where it was
+     * left. Returns the title to show in the episode sheet instead when that isn't possible.
+     */
+    suspend fun resume(target: FenrirResumeTarget): FenrirHomeItem? {
+        val host = host ?: return null
+        val key = target.parentMetaId.removePrefix(ID_PREFIX)
+        val hit = FenrirPluginHit(key, sourceOf(target.parentMetaId).orEmpty(), target.title, target.poster)
+        val fallback = FenrirHomeItem(hit)
+        // Plugins load in the background when the app starts; give them a moment.
+        var waited = 0
+        while (host.homeSources().none { it.id == hit.sourceName } && waited < 10_000) {
+            kotlinx.coroutines.delay(500)
+            waited += 500
+        }
+        val episodes = runCatching { host.episodes(hit) }.getOrDefault(emptyList())
+        if (episodes.isEmpty()) return fallback
+        val index = target.videoId.substringAfterLast("#", "").toIntOrNull()
+        val episode = episodes.getOrNull(index ?: -1)?.takeIf { target.episodeTitle == null || it.name == target.episodeTitle }
+            ?: episodes.firstOrNull { target.episodeTitle != null && it.name == target.episodeTitle }
+            ?: episodes.firstOrNull { target.episode != null && it.episode == target.episode && (target.season == null || it.season == target.season) }
+            ?: episodes.getOrNull(index ?: -1)
+            ?: return fallback.copy(isMovie = episodes.size == 1)
+        val streams = runCatching { host.streams(episode) }.getOrDefault(emptyList())
+        val stream = streams.firstOrNull() ?: return fallback.copy(isMovie = episodes.size == 1)
+        FenrirPluginPlayback.play(
+            FenrirPluginPlayRequest(
+                hostId = host.id,
+                showTitle = target.title,
+                episodeName = episode.name,
+                stream = stream,
+                hitKey = key,
+                poster = target.poster,
+                episodeIndex = episodes.indexOf(episode),
+                season = episode.season,
+                episode = episode.episode,
+                isMovie = episodes.size == 1,
+                resumePositionMs = target.positionMs,
+            ),
+        )
+        return null
     }
 
     // ------------------------------------------------------------------ matching to a Nuvio show page

@@ -530,8 +530,11 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
     }
 
     override suspend fun episodes(hit: FenrirPluginHit): List<FenrirPluginEpisode> = withContext(Dispatchers.IO) {
-        val (provider, result) = synchronized(hits) { hits[hit.key] } ?: return@withContext emptyList()
-        val response = runCatching { provider.load(result.url) }.getOrNull() ?: return@withContext emptyList()
+        // After a restart the browse cache is empty: the key itself is "source|url" (Continue watching).
+        val (provider, url) = synchronized(hits) { hits[hit.key] }?.let { (p, r) -> p to r.url }
+            ?: providers().firstOrNull { it.name == hit.key.substringBefore("|") }?.let { it to hit.key.substringAfter("|") }
+            ?: return@withContext emptyList()
+        val response = runCatching { provider.load(url) }.getOrNull() ?: return@withContext emptyList()
         data class Row(val data: String, val label: String, val season: Int?, val episode: Int?)
         val list: List<Row> = when (response) {
             is MovieLoadResponse -> listOf(Row(response.dataUrl, response.name, null, null))

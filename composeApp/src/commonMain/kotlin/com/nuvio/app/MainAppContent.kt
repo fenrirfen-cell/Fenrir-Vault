@@ -713,9 +713,17 @@ internal fun MainAppContent(
             streamSubtitle = stream.sourceName,
             providerName = stream.sourceName,
             providerAddonId = "fenrir:${request.hostId}",
-            contentType = "series",
-            parentMetaId = "fenrir:${request.hostId}:${request.showTitle}",
-            parentMetaType = "series",
+            // A CloudStream title gets its own id (source + title on that source) so it shows in
+            // Continue watching and can be resumed from the same source.
+            contentType = if (request.isMovie) "movie" else "series",
+            parentMetaId = request.hitKey?.let { com.nuvio.app.readmode.FenrirSourceHome.ID_PREFIX + it }
+                ?: "fenrir:${request.hostId}:${request.showTitle}",
+            parentMetaType = if (request.isMovie) "movie" else "series",
+            videoId = request.hitKey?.let { com.nuvio.app.readmode.FenrirSourceHome.ID_PREFIX + it + "#" + (request.episodeIndex ?: 0) },
+            poster = request.poster,
+            seasonNumber = request.season,
+            episodeNumber = request.episode,
+            initialPositionMs = request.resumePositionMs,
         )
         val launchId = PlayerLaunchStore.put(launch)
         navController.navigate(PlayerRoute(launchId = launchId, title = launch.title))
@@ -1236,7 +1244,24 @@ internal fun MainAppContent(
             )
         }
 
+        // Fenrir Read: a show played from a CloudStream source resumes from that source.
+        fun resumeFenrirCloudStream(item: ContinueWatchingItem, startFromBeginning: Boolean) {
+            resumePromptItem = null
+            com.nuvio.app.readmode.FenrirSourceHomeUi.resuming.value = com.nuvio.app.readmode.FenrirResumeTarget(
+                parentMetaId = item.parentMetaId,
+                videoId = item.videoId,
+                title = item.title,
+                poster = item.poster ?: item.imageUrl,
+                episodeTitle = item.episodeTitle,
+                season = item.seasonNumber,
+                episode = item.episodeNumber,
+                positionMs = if (startFromBeginning) 0L else item.resumePositionMs,
+            )
+            if (navController.currentRoute !is TabsRoute) navController.popBackStack()
+        }
+
         fun canPlayContinueWatching(item: ContinueWatchingItem): Boolean =
+            com.nuvio.app.readmode.FenrirSourceHome.isCloudStreamId(item.parentMetaId) ||
             item.isCloudLibraryContinueWatchingItem() || playbackAvailability.canPlay(
                 type = item.parentMetaType,
                 videoId = item.videoId,
@@ -1247,11 +1272,14 @@ internal fun MainAppContent(
 
         fun canSelectContinueWatchingStreams(item: ContinueWatchingItem): Boolean =
             !item.isCloudLibraryContinueWatchingItem() &&
+                !com.nuvio.app.readmode.FenrirSourceHome.isCloudStreamId(item.parentMetaId) &&
                 playbackAvailability.canStream(item.parentMetaType, item.videoId)
 
         val openContinueWatching: (ContinueWatchingItem, Boolean, Boolean) -> Unit = { item, manualSelection, startFromBeginning ->
             resumePromptItem = null
-            if (item.isCloudLibraryContinueWatchingItem()) {
+            if (com.nuvio.app.readmode.FenrirSourceHome.isCloudStreamId(item.parentMetaId)) {
+                resumeFenrirCloudStream(item, startFromBeginning)
+            } else if (item.isCloudLibraryContinueWatchingItem()) {
                 coroutineScope.launch {
                     when (
                         val lookup = CloudLibraryRepository.findPlaybackTargetForProgressResult(
@@ -1315,7 +1343,9 @@ internal fun MainAppContent(
         }
 
         val onContinueWatchingClick: (ContinueWatchingItem) -> Unit = { item ->
-            if (
+            if (com.nuvio.app.readmode.FenrirSourceHome.isCloudStreamId(item.parentMetaId)) {
+                resumeFenrirCloudStream(item, false)
+            } else if (
                 !item.isCloudLibraryContinueWatchingItem() &&
                 continueWatchingPreferencesUiState.clickAction.opensDetails(item)
             ) {
@@ -1965,7 +1995,8 @@ internal fun MainAppContent(
                 selectedContinueWatchingZoomAnchor?.let { anchor ->
                     key(item.videoId, anchor) {
                         val showManualPlayOption = streamAutoPlayEnabled && canSelectContinueWatchingStreams(item)
-                        val showDetailsOption = !item.isCloudLibraryContinueWatchingItem()
+                        val showDetailsOption = !item.isCloudLibraryContinueWatchingItem() &&
+                            !com.nuvio.app.readmode.FenrirSourceHome.isCloudStreamId(item.parentMetaId)
                         NuvioPosterZoomActionOverlay(
                             imageUrl = cloudLibraryDisplayArtworkUrl(anchor.imageUrl ?: item.poster ?: item.imageUrl),
                             title = item.title,
@@ -2045,7 +2076,8 @@ internal fun MainAppContent(
                 item = selectedContinueWatchingForActions.takeIf { selectedContinueWatchingZoomAnchor == null },
                 showManualPlayOption = streamAutoPlayEnabled &&
                     selectedContinueWatchingForActions?.let(::canSelectContinueWatchingStreams) == true,
-                showDetailsOption = selectedContinueWatchingForActions?.isCloudLibraryContinueWatchingItem() != true,
+                showDetailsOption = selectedContinueWatchingForActions?.isCloudLibraryContinueWatchingItem() != true &&
+                    !com.nuvio.app.readmode.FenrirSourceHome.isCloudStreamId(selectedContinueWatchingForActions?.parentMetaId),
                 onDismiss = { selectedContinueWatchingForActions = null },
                 onOpenDetails = {
                     selectedContinueWatchingForActions?.let { item ->

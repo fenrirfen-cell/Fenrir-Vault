@@ -80,6 +80,8 @@ private val Muted = Color(0xFF8E8E99)
 
 /** Open "See all" grid and title sheet for the source home. */
 object FenrirSourceHomeUi {
+    /** A CloudStream show tapped in Continue watching, being resumed. */
+    val resuming = MutableStateFlow<FenrirResumeTarget?>(null)
     val seeAll = MutableStateFlow<FenrirHomeRow?>(null)
     val sheetItem = MutableStateFlow<FenrirHomeItem?>(null)
     val opening = MutableStateFlow<FenrirHomeItem?>(null)
@@ -420,6 +422,29 @@ fun FenrirSourceHomeOverlays(onOpenShowPage: (MetaPreview) -> Unit) {
     val sheetItem by FenrirSourceHomeUi.sheetItem.collectAsStateWithLifecycle()
     val selected by FenrirSourceHome.selected.collectAsStateWithLifecycle()
 
+    val resuming by FenrirSourceHomeUi.resuming.collectAsStateWithLifecycle()
+    LaunchedEffect(resuming) {
+        val target = resuming ?: return@LaunchedEffect
+        val outcome = runCatching { FenrirSourceHome.resume(target) }.getOrNull()
+        FenrirSourceHomeUi.resuming.value = null
+        if (outcome != null) FenrirSourceHomeUi.sheetItem.value = outcome
+    }
+    if (resuming != null) {
+        Dialog(onDismissRequest = { FenrirSourceHomeUi.resuming.value = null }) {
+            Row(
+                Modifier.clip(RoundedCornerShape(18.dp)).background(Panel).padding(horizontal = 22.dp, vertical = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CircularProgressIndicator(color = Red, strokeWidth = 2.5.dp, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(14.dp))
+                Column {
+                    Text("Resuming ${resuming?.title.orEmpty()}…", color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("Getting a fresh link from ${resuming?.sourceName.orEmpty()}", color = Muted, fontSize = 13.sp, maxLines = 1)
+                }
+            }
+        }
+    }
+
     LaunchedEffect(opening) {
         val item = opening ?: return@LaunchedEffect
         val match = runCatching { FenrirSourceHome.matchToNuvio(item) }.getOrNull()
@@ -627,6 +652,12 @@ private fun TitleSheet(item: FenrirHomeItem, onDismiss: () -> Unit) {
                                                                     showTitle = item.hit.title,
                                                                     episodeName = episode.name,
                                                                     stream = stream,
+                                                                    hitKey = item.hit.key,
+                                                                    poster = item.hit.poster,
+                                                                    episodeIndex = list.indexOf(episode),
+                                                                    season = episode.season,
+                                                                    episode = episode.episode,
+                                                                    isMovie = item.isMovie || list.size == 1,
                                                                 ),
                                                             )
                                                             onDismiss()
@@ -654,4 +685,23 @@ private fun TitleSheet(item: FenrirHomeItem, onDismiss: () -> Unit) {
             }
         }
     }
+}
+
+
+/** Small "CS · Kisskh" tag for Continue watching cards of shows played from a CloudStream source. */
+@Composable
+fun FenrirCloudStreamTag(parentMetaId: String, modifier: Modifier = Modifier) {
+    val source = FenrirSourceHome.sourceOf(parentMetaId) ?: return
+    Text(
+        "CS · $source",
+        color = Color.White,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+            .clip(RoundedCornerShape(7.dp))
+            .background(Color(0xE63A1F25))
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    )
 }

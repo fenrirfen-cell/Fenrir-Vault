@@ -70,12 +70,17 @@ class NuvioReadApplication : App() {
         FenrirPlugins.aniyomi = AniyomiPluginHost(this)
         // CloudStream plugins (.cs3 from the user's own repositories).
         FenrirPlugins.cloudStream = CloudStreamPluginHost(this)
+        // Which CloudStream source Home shows (picked from the FENRIR READ drop-down); none = Nuvio home.
+        com.nuvio.app.readmode.FenrirSourceHome.install(aniDramaPrefs.getString(KEY_HOME_SOURCE, null)) { id ->
+            aniDramaPrefs.edit().apply { if (id == null) remove(KEY_HOME_SOURCE) else putString(KEY_HOME_SOURCE, id) }.apply()
+        }
     }
 
     private companion object {
         const val KEY_KEEP_ROWS_ON_HOME = "keep_rows_on_home"
         const val KEY_SOURCE_FALLBACK = "source_fallback"
         const val KEY_FENRIR_STYLE = "fenrir_style"
+        const val KEY_HOME_SOURCE = "home_cloudstream_source"
     }
 
     /**

@@ -48,7 +48,38 @@ data class FenrirPluginStream(
 
 data class FenrirPluginHit(val key: String, val sourceName: String, val title: String, val poster: String?)
 
-data class FenrirPluginEpisode(val key: String, val name: String)
+data class FenrirPluginEpisode(
+    val key: String,
+    val name: String,
+    val season: Int? = null,
+    val episode: Int? = null,
+)
+
+/** A site whose own home page (its categories) can be shown on Fenrir Read's home screen. */
+data class FenrirHomeSource(
+    val id: String,
+    val name: String,
+    val subtitle: String,
+    val iconUrl: String? = null,
+)
+
+/** One title in a source's home row. */
+data class FenrirHomeItem(
+    val hit: FenrirPluginHit,
+    /** "SUB", "DUB", "SUB · DUB" or null. */
+    val badge: String? = null,
+    val year: Int? = null,
+    val isMovie: Boolean = false,
+)
+
+/** One category of a source's home page ("Latest", "Top K-Drama"…), in the source's own order. */
+data class FenrirHomeRow(
+    val title: String,
+    val categoryName: String,
+    val categoryData: String,
+    val items: List<FenrirHomeItem>,
+    val horizontalImages: Boolean = false,
+)
 
 /**
  * A kind of plugin that runs inside Fenrir Read (Aniyomi extensions, CloudStream plugins).
@@ -79,6 +110,15 @@ interface FenrirPluginHost {
     suspend fun search(query: String): List<FenrirPluginHit>
     suspend fun episodes(hit: FenrirPluginHit): List<FenrirPluginEpisode>
     suspend fun streams(episode: FenrirPluginEpisode): List<FenrirPluginStream>
+
+    /** Sites that have their own home page (categories). */
+    fun homeSources(): List<FenrirHomeSource> = emptyList()
+
+    /** All of [sourceId]'s home categories, first page each. */
+    suspend fun homeRows(sourceId: String): List<FenrirHomeRow> = emptyList()
+
+    /** A further page of one category, for "See all". Empty when there's no more. */
+    suspend fun homeRowPage(sourceId: String, categoryName: String, categoryData: String, page: Int): List<FenrirHomeItem> = emptyList()
 }
 
 object FenrirPlugins {

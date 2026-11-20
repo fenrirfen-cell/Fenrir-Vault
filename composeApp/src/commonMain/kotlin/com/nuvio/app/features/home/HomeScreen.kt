@@ -941,7 +941,13 @@ fun HomeScreen(
         }
     }
     val hasRenderableHomeRows = homeUiState.sections.isNotEmpty() || hasRenderableCollectionRows
-    val showHeroSlot = shouldShowHomeHeroSlot(
+    // Fenrir Read: a CloudStream source picked from the FENRIR READ drop-down replaces Nuvio's rows.
+    val fenrirSourceId by com.nuvio.app.readmode.FenrirSourceHome.selected.collectAsStateWithLifecycle()
+    val fenrirSourceState by com.nuvio.app.readmode.FenrirSourceHome.state.collectAsStateWithLifecycle()
+    LaunchedEffect(fenrirSourceId) {
+        fenrirSourceId?.let { com.nuvio.app.readmode.FenrirSourceHome.load(it) }
+    }
+    val showHeroSlot = fenrirSourceId == null && shouldShowHomeHeroSlot(
         heroEnabled = homeSettingsUiState.heroEnabled,
         hasHeroItems = homeUiState.heroItems.isNotEmpty(),
         isResolvingHeroSources = isResolvingHeroSources,
@@ -1061,6 +1067,30 @@ fun HomeScreen(
             }
 
             when {
+                fenrirSourceId != null -> {
+                    homeContinueWatchingSections(
+                        preferences = continueWatchingPreferences,
+                        continueWatchingItems = continueWatchingItems,
+                        upcomingItems = upcomingItems,
+                        dataSourceKey = effectiveWatchProgressSource,
+                        sectionPadding = homeSectionPadding,
+                        layout = continueWatchingLayout,
+                        continueWatchingListState = continueWatchingListState,
+                        upcomingListState = upcomingListState,
+                        onItemClick = onContinueWatchingClick,
+                        onItemLongPress = onContinueWatchingLongPress,
+                        disintegrationRequest = continueWatchingDisintegrationRequest,
+                    )
+                    val sourceId = fenrirSourceId.orEmpty()
+                    com.nuvio.app.readmode.fenrirSourceHomeItems(
+                        state = fenrirSourceState.takeIf { it.sourceId == sourceId }
+                            ?: com.nuvio.app.readmode.FenrirSourceHomeState(sourceId, loading = true),
+                        source = com.nuvio.app.readmode.FenrirPlugins.cloudStream?.homeSources()?.firstOrNull { it.id == sourceId },
+                        sourceId = sourceId,
+                        horizontalPadding = homeSectionPadding,
+                    )
+                }
+
                 isInitialHomeContentLoading -> {
                     homeContinueWatchingSections(
                         preferences = continueWatchingPreferences,
@@ -1233,6 +1263,8 @@ fun HomeScreen(
                 }
             }
         }
+        // Fenrir Read: poster taps from a CloudStream source's rows, and its "See all" grid.
+        com.nuvio.app.readmode.FenrirSourceHomeOverlays(onOpenShowPage = { onPosterClick?.invoke(it) })
     }
 }
 

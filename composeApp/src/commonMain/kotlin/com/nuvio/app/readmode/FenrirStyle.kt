@@ -89,7 +89,10 @@ fun FenrirTopBar(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FenrirWordmark(modifier = Modifier.weight(1f))
+        // Tap FENRIR READ to pick what Home shows: Nuvio's home or a CloudStream source's home.
+        Box(modifier = Modifier.weight(1f)) {
+            FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
+        }
         FenrirModePill(selected, onWatch, onAniDrama, openRead)
     }
 }

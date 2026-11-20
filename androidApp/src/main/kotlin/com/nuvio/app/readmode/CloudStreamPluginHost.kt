@@ -9,6 +9,12 @@ import com.lagradost.cloudstream3.APIHolder
 import com.lagradost.cloudstream3.AnimeLoadResponse
 import com.lagradost.cloudstream3.Episode
 import com.lagradost.cloudstream3.MainAPI
+import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.AnimeSearchResponse
+import com.lagradost.cloudstream3.DubStatus
+import com.nuvio.app.readmode.FenrirHomeItem
+import com.nuvio.app.readmode.FenrirHomeRow
+import com.nuvio.app.readmode.FenrirHomeSource
 import com.lagradost.cloudstream3.MovieLoadResponse
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.TvSeriesLoadResponse
@@ -47,6 +53,7 @@ import java.net.URL
 internal class CloudStreamPluginHost(private val app: Application) : FenrirPluginHost {
     private companion object {
         const val TAG = "FenrirCloudStream"
+        const val HOME_ROW_TIMEOUT_MS = 20_000L
         const val PREFS = "fenrir_cloudstream"
         const val KEY_REPOS = "repos"
         const val KEY_INSTALLED = "installed"
@@ -525,18 +532,19 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
     override suspend fun episodes(hit: FenrirPluginHit): List<FenrirPluginEpisode> = withContext(Dispatchers.IO) {
         val (provider, result) = synchronized(hits) { hits[hit.key] } ?: return@withContext emptyList()
         val response = runCatching { provider.load(result.url) }.getOrNull() ?: return@withContext emptyList()
-        val list: List<Pair<String, String>> = when (response) {
-            is MovieLoadResponse -> listOf(response.dataUrl to response.name)
-            is TvSeriesLoadResponse -> response.episodes.map { ep -> ep.data to ep.label() }
+        data class Row(val data: String, val label: String, val season: Int?, val episode: Int?)
+        val list: List<Row> = when (response) {
+            is MovieLoadResponse -> listOf(Row(response.dataUrl, response.name, null, null))
+            is TvSeriesLoadResponse -> response.episodes.map { ep -> Row(ep.data, ep.label(), ep.season, ep.episode) }
             is AnimeLoadResponse -> response.episodes.flatMap { (dub, eps) ->
-                eps.map { ep -> ep.data to "${ep.label()} · ${if (dub.name == "Dubbed") "Dub" else "Sub"}" }
+                eps.map { ep -> Row(ep.data, "${ep.label()} · ${if (dub.name == "Dubbed") "Dub" else "Sub"}", ep.season, ep.episode) }
             }
             else -> emptyList()
         }
-        list.mapIndexed { index, (data, label) ->
+        list.mapIndexed { index, row ->
             val key = "${hit.key}#$index"
-            synchronized(episodeData) { episodeData[key] = provider to data }
-            FenrirPluginEpisode(key, label)
+            synchronized(episodeData) { episodeData[key] = provider to row.data }
+            FenrirPluginEpisode(key, row.label, row.season, row.episode)
         }
     }
 
@@ -550,5 +558,91 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
     override suspend fun streams(episode: FenrirPluginEpisode): List<FenrirPluginStream> = withContext(Dispatchers.IO) {
         val (provider, data) = synchronized(episodeData) { episodeData[episode.key] } ?: return@withContext emptyList()
         runCatching { links(provider, data, "", "") }.getOrDefault(emptyList())
+    }
+
+    // ------------------------------------------------------------------ home pages (like Zangetsu / CloudStream)
+
+    override fun homeSources(): List<FenrirHomeSource> = synchronized(loaded) {
+        loaded.values.flatMap { entry ->
+            entry.providers.filter { it.hasMainPage }.map { provider ->
+                FenrirHomeSource(
+                    id = provider.name,
+                    name = provider.name,
+                    subtitle = listOf(entry.saved.name.takeIf { it != provider.name }, provider.lang.uppercase())
+                        .filterNotNull().joinToString(" · "),
+                    iconUrl = entry.saved.iconUrl,
+                )
+            }
+        }.distinctBy { it.id }.sortedBy { it.name.lowercase() }
+    }
+
+    private fun homeProvider(sourceId: String): MainAPI? =
+        providers().firstOrNull { it.name == sourceId && it.hasMainPage }
+
+    override suspend fun homeRows(sourceId: String): List<FenrirHomeRow> = coroutineScope {
+        val provider = homeProvider(sourceId) ?: return@coroutineScope emptyList()
+        val categories = provider.mainPage
+        // Every category at once, each with its own time limit, so one slow category
+        // can't hold up the rest (same as Zangetsu).
+        val responses = categories.map { category ->
+            async(Dispatchers.IO) {
+                withTimeoutOrNull(HOME_ROW_TIMEOUT_MS) {
+                    runCatching {
+                        provider.getMainPage(1, MainPageRequest(category.name, category.data, category.horizontalImages))
+                    }.onFailure { Log.w(TAG, "${provider.name} home '${category.name}': ${it.message}") }.getOrNull()
+                }
+            }
+        }.awaitAll()
+        responses.flatMapIndexed { index, response ->
+            val category = categories.getOrNull(index)
+            response?.items.orEmpty().mapNotNull { list ->
+                val items = list.list.map { it.toHomeItem(provider) }
+                if (items.isEmpty()) null else FenrirHomeRow(
+                    title = list.name.ifBlank { category?.name.orEmpty() },
+                    categoryName = category?.name ?: list.name,
+                    categoryData = category?.data.orEmpty(),
+                    items = items,
+                    horizontalImages = list.isHorizontalImages,
+                )
+            }
+        }
+    }
+
+    override suspend fun homeRowPage(
+        sourceId: String,
+        categoryName: String,
+        categoryData: String,
+        page: Int,
+    ): List<FenrirHomeItem> = withContext(Dispatchers.IO) {
+        val provider = homeProvider(sourceId) ?: return@withContext emptyList()
+        val category = provider.mainPage.firstOrNull { it.name == categoryName && it.data == categoryData }
+            ?: provider.mainPage.firstOrNull { it.name == categoryName }
+            ?: return@withContext emptyList()
+        val response = withTimeoutOrNull(HOME_ROW_TIMEOUT_MS) {
+            runCatching {
+                provider.getMainPage(page, MainPageRequest(category.name, category.data, category.horizontalImages))
+            }.getOrNull()
+        } ?: return@withContext emptyList()
+        response.items.flatMap { list -> list.list.map { it.toHomeItem(provider) } }
+    }
+
+    private fun SearchResponse.toHomeItem(provider: MainAPI): FenrirHomeItem {
+        val key = "${provider.name}|$url"
+        synchronized(hits) { hits[key] = provider to this }
+        val dub = (this as? AnimeSearchResponse)?.dubStatus.orEmpty()
+        val badge = listOfNotNull(
+            "SUB".takeIf { DubStatus.Subbed in dub },
+            "DUB".takeIf { DubStatus.Dubbed in dub },
+        ).joinToString(" · ").ifBlank { null }
+        val year = (this as? com.lagradost.cloudstream3.MovieSearchResponse)?.year
+            ?: (this as? com.lagradost.cloudstream3.TvSeriesSearchResponse)?.year
+            ?: (this as? AnimeSearchResponse)?.year
+        val typeName = type?.name.orEmpty()
+        return FenrirHomeItem(
+            hit = FenrirPluginHit(key, provider.name, name, posterUrl),
+            badge = badge,
+            year = year,
+            isMovie = typeName in setOf("Movie", "AnimeMovie", "Documentary"),
+        )
     }
 }

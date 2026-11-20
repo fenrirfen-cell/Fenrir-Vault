@@ -112,7 +112,14 @@ class AppUpdaterController internal constructor(
             if (channel != preferences.channel.value) return@launch
 
             result.onSuccess { update ->
-                val remoteNewer = VersionUtils.isRemoteNewer(update.tag, AppVersionConfig.VERSION_NAME)
+                val fenrirCurrent = com.nuvio.app.readmode.FenrirUpdates.currentBuild
+                val remoteNewer = if (com.nuvio.app.readmode.FenrirUpdates.repo != null) {
+                    // Fenrir Read: newer when the release's build number is higher than ours.
+                    val remoteBuild = com.nuvio.app.readmode.FenrirUpdates.buildOf(update.tag)
+                    remoteBuild != null && (fenrirCurrent == null || remoteBuild > fenrirCurrent)
+                } else {
+                    VersionUtils.isRemoteNewer(update.tag, AppVersionConfig.VERSION_NAME)
+                }
                 val ignored = ignoredTag != null && ignoredTag == update.tag
                 val shouldShowDialog = remoteNewer && (force || !ignored)
 

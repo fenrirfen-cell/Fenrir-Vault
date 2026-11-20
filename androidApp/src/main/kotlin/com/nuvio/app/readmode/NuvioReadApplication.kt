@@ -49,6 +49,12 @@ class NuvioReadApplication : App() {
         // Episode reminders from the Ani-drama calendar (notification + optional spoken alert).
         com.nuvio.app.features.anidrama.AniDramaRemindersAndroid.install(this)
 
+        // In-app updates come from Fenrir Read's own GitHub releases, compared by build number.
+        FenrirUpdates.repo = "fenrirfen-cell/NuvioMobile1.0.0"
+        FenrirUpdates.currentBuild = runCatching {
+            FenrirUpdates.buildOf(packageManager.getPackageInfo(packageName, 0).versionName)
+        }.getOrNull()
+
         // Fenrir style (Zangetsu-like layout), on by default; the Read side follows it too.
         FenrirStyle.install(enabled = aniDramaPrefs.getBoolean(KEY_FENRIR_STYLE, true)) { on ->
             aniDramaPrefs.edit().putBoolean(KEY_FENRIR_STYLE, on).apply()

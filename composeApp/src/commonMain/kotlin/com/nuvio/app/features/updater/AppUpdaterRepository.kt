@@ -38,6 +38,7 @@ internal object AppUpdaterRepository {
     }
 
     suspend fun getLatestChannelUpdate(channel: UpdateChannel): Result<AppUpdate> = runCatching {
+        com.nuvio.app.readmode.FenrirUpdates.repo?.let { repo -> return@runCatching fenrirLatest(repo) }
         val response = httpRequestRaw(
             method = "GET",
             url = "https://api.github.com/repos/NuvioMedia/NuvioMobile/${releasePath(channel)}",
@@ -54,6 +55,37 @@ internal object AppUpdaterRepository {
         }
         selectUpdate(response.body, channel, AppUpdaterPlatform.getSupportedAbis())
             ?: throw NoChannelReleaseException()
+    }
+
+    /** Fenrir Read: the newest release in the Fenrir repository, whatever its version label. */
+    private suspend fun fenrirLatest(repo: String): AppUpdate {
+        val response = httpRequestRaw(
+            method = "GET",
+            url = "https://api.github.com/repos/$repo/releases/latest",
+            headers = mapOf(
+                "Accept" to "application/vnd.github+json",
+                "User-Agent" to "FenrirRead",
+            ),
+            body = "",
+        )
+        currentCoroutineContext().ensureActive()
+        if (response.status == 404) throw NoChannelReleaseException()
+        if (response.status !in 200..299) {
+            error(getString(Res.string.updates_github_api_error, response.status))
+        }
+        val release = json.decodeFromString<GitHubReleaseDto>(response.body)
+        val asset = chooseBestApkAsset(release.assets, AppUpdaterPlatform.getSupportedAbis())
+            ?: throw NoChannelReleaseException()
+        val tag = release.tagName ?: release.name.orEmpty()
+        return AppUpdate(
+            tag = tag,
+            title = release.name?.takeIf { it.isNotBlank() } ?: tag,
+            notes = release.body.orEmpty(),
+            releaseUrl = release.htmlUrl,
+            assetName = asset.name,
+            assetUrl = asset.browserDownloadUrl,
+            assetSizeBytes = asset.size,
+        )
     }
 
     internal fun releasePath(channel: UpdateChannel): String = when (channel) {

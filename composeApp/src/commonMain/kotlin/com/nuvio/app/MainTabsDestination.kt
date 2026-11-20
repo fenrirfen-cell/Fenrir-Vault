@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -94,6 +95,43 @@ internal fun MainTabsDestination(
         val navBarGlowEnabled by ThemeSettingsRepository.navBarGlowEnabled.collectAsStateWithLifecycle()
         val aniDramaAvailable by AniDramaBridge.isAvailable.collectAsStateWithLifecycle()
         val assistantOpen by com.nuvio.app.assistant.AssistantController.open.collectAsStateWithLifecycle()
+        val fenrirStyleOn by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsStateWithLifecycle()
+        // Fenrir style replaces the phone bottom bars with its own pill bar.
+        val fenrirBar = fenrirStyleOn && !isTabletLayout && !useNativeBottomTabs
+        val fenrirNavItems = listOfNotNull(
+            com.nuvio.app.readmode.FenrirNavItem(
+                label = stringResource(Res.string.compose_nav_home),
+                selected = selectedTab == AppScreenTab.Home || selectedTab == AppScreenTab.AniDrama,
+                onClick = { onTabSelected(AppScreenTab.Home) },
+                icon = Icons.Filled.Home,
+            ),
+            com.nuvio.app.readmode.FenrirNavItem(
+                label = stringResource(Res.string.compose_nav_search),
+                selected = selectedTab == AppScreenTab.Search,
+                onClick = { onTabSelected(AppScreenTab.Search) },
+                painter = org.jetbrains.compose.resources.painterResource(Res.drawable.sidebar_search),
+            ),
+            if (ReadModeBridge.isAvailable) {
+                com.nuvio.app.readmode.FenrirNavItem(
+                    label = "Assistant",
+                    selected = assistantOpen,
+                    onClick = { com.nuvio.app.assistant.AssistantController.show() },
+                    icon = Icons.Rounded.AutoAwesome,
+                )
+            } else null,
+            com.nuvio.app.readmode.FenrirNavItem(
+                label = "My list",
+                selected = selectedTab == AppScreenTab.Library,
+                onClick = { onTabSelected(AppScreenTab.Library) },
+                painter = org.jetbrains.compose.resources.painterResource(Res.drawable.sidebar_library),
+            ),
+            com.nuvio.app.readmode.FenrirNavItem(
+                label = "Settings",
+                selected = selectedTab == AppScreenTab.Settings,
+                onClick = { onTabSelected(AppScreenTab.Settings) },
+                icon = Icons.Rounded.Settings,
+            ),
+        )
         val floatingNavigationItems = listOfNotNull(
             FloatingNavigationItem(
                 selected = selectedTab == AppScreenTab.Home,
@@ -146,7 +184,9 @@ internal fun MainTabsDestination(
             containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets(0),
             bottomBar = {
-                if (!isTabletLayout && !useNativeBottomTabs && navBarStyleSetting == NavBarStyle.CLASSIC) {
+                if (fenrirBar) {
+                    com.nuvio.app.readmode.FenrirNavigationBar(fenrirNavItems)
+                } else if (!isTabletLayout && !useNativeBottomTabs && navBarStyleSetting == NavBarStyle.CLASSIC) {
                     NuvioClassicNavigationBar {
                         NavItem(
                             selected = selectedTab == AppScreenTab.Home,
@@ -194,7 +234,7 @@ internal fun MainTabsDestination(
                 (selectedTab == AppScreenTab.Home || selectedTab == AppScreenTab.AniDrama)
             Box(modifier = Modifier.fillMaxSize()) {
                 CompositionLocalProvider(
-                    LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
+                    LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (fenrirBar) 0.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
                     LocalNuvioNavBarScrollState provides navBarScrollState,
                 ) {
                     AppTabHost(
@@ -216,7 +256,19 @@ internal fun MainTabsDestination(
                     androidx.compose.runtime.LaunchedEffect(selectedTab) { ModeBarScroll.reset() }
                     // Soft fade behind the switch; Home content scrolls underneath it.
                     ModeBarBackground()
-                    ReadModeSwitch(
+                    if (fenrirStyleOn) {
+                        com.nuvio.app.readmode.FenrirTopBar(
+                            selected = if (selectedTab == AppScreenTab.AniDrama) FenrirMode.AniDrama else FenrirMode.Watch,
+                            onWatch = { onTabSelected(AppScreenTab.Home) },
+                            onAniDrama = if (aniDramaAvailable) {
+                                { onTabSelected(AppScreenTab.AniDrama) }
+                            } else null,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
+                                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 14.dp),
+                        )
+                    } else ReadModeSwitch(
                         hazeState = navBarHazeState,
                         selected = if (selectedTab == AppScreenTab.AniDrama) FenrirMode.AniDrama else FenrirMode.Watch,
                         onWatch = { onTabSelected(AppScreenTab.Home) },
@@ -249,7 +301,7 @@ internal fun MainTabsDestination(
                     )
                 }
 
-                if (!isTabletLayout && !useNativeBottomTabs && navBarStyleSetting != NavBarStyle.CLASSIC) {
+                if (!fenrirBar && !isTabletLayout && !useNativeBottomTabs && navBarStyleSetting != NavBarStyle.CLASSIC) {
                     when (navBarStyleSetting) {
                         NavBarStyle.EXPANDED -> navBarScrollState.expand()
                         NavBarStyle.COMPACT -> navBarScrollState.collapse()

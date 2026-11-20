@@ -56,6 +56,7 @@ import com.nuvio.app.features.home.components.HomeContinueWatchingSection
 import com.nuvio.app.features.home.components.HomeEmptyStateCard
 import com.nuvio.app.features.home.components.HomeHeroReservedSpace
 import com.nuvio.app.features.home.components.HomeHeroSection
+import com.nuvio.app.features.home.components.FenrirHeroCard
 import com.nuvio.app.features.home.components.HomeSkeletonHero
 import com.nuvio.app.features.home.components.HomeSkeletonRow
 import com.nuvio.app.features.home.components.HomeContinueWatchingSectionBottomPadding
@@ -994,6 +995,7 @@ fun HomeScreen(
             }
         }
 
+        val fenrirStyleOn by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsStateWithLifecycle()
         val heroStretchState = rememberHeroStretchState(homeListState)
         val heroStretchModifier = if (showHeroSlot) {
             Modifier.nestedScroll(heroStretchState.nestedScrollConnection)
@@ -1027,6 +1029,13 @@ fun HomeScreen(
                                 modifier = Modifier,
                                 viewportHeight = maxHeight,
                                 mobileBelowSectionHeightHint = mobileHeroBelowSectionHeightHint,
+                            )
+
+                            homeUiState.heroItems.isNotEmpty() && fenrirStyleOn && maxWidth < 600.dp -> FenrirHeroCard(
+                                items = homeHeroState.items,
+                                height = (maxHeight * 0.58f).coerceIn(380.dp, 520.dp),
+                                onOpen = { onPosterClick?.invoke(it) },
+                                modifier = Modifier.padding(top = 4.dp),
                             )
 
                             homeUiState.heroItems.isNotEmpty() -> HomeHeroSection(

@@ -2,9 +2,15 @@ package com.nuvio.app.features.settings
 
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -16,6 +22,14 @@ internal fun LazyListScope.settingsRootContent(
     onWatchPartyClick: (() -> Unit)? = null,
     category: SettingsCategory? = null,
 ) {
+    // Fenrir: all sources in one place (Stremio add-ons here, manga and novel sources on the Read side).
+    if (com.nuvio.app.readmode.FenrirSources.openReadExtensions != null &&
+        (category == null || category == SettingsCategory.Watch)
+    ) {
+        item(key = "fenrir-sources") {
+            FenrirSourcesGroup(isTablet = isTablet, onPageClick = onPageClick)
+        }
+    }
     SettingsCategory.entries.filter { category == null || it == category }.forEach { group ->
         item(key = group.name) {
             SettingsGroup(isTablet = isTablet) {
@@ -49,6 +63,10 @@ internal fun LazyListScope.settingsRootContent(
                         }
                     }
                     SettingsCategory.Look -> {
+                        if (com.nuvio.app.readmode.FenrirStyle.isAvailable) {
+                            FenrirStyleRow(isTablet = isTablet)
+                            SettingsGroupDivider(isTablet = isTablet)
+                        }
                         SettingsPageRow(
                             page = SettingsPage.Appearance,
                             description = Res.string.settings_appearance_description,
@@ -136,4 +154,53 @@ private fun SettingsPageRow(
         isTablet = isTablet,
         onClick = { onPageClick(page) },
     )
+}
+
+
+@Composable
+private fun FenrirStyleRow(isTablet: Boolean) {
+    val enabled by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsStateWithLifecycle()
+    SettingsSwitchRow(
+        title = "Fenrir style",
+        description = "Big Home banner, red pill tab bar and white Play buttons. Pick colors in Appearance.",
+        checked = enabled,
+        isTablet = isTablet,
+        onCheckedChange = { com.nuvio.app.readmode.FenrirStyle.setEnabled(it) },
+    )
+}
+
+@Composable
+private fun FenrirSourcesGroup(isTablet: Boolean, onPageClick: (SettingsPage) -> Unit) {
+    val addons by com.nuvio.app.features.addons.AddonRepository.uiState.collectAsStateWithLifecycle()
+    val sources = com.nuvio.app.readmode.FenrirSources
+    val mangaCount = remember { runCatching { sources.mangaExtensionCount?.invoke() }.getOrNull() }
+    val novelCount = remember { runCatching { sources.novelPluginCount?.invoke() }.getOrNull() }
+    fun installed(count: Int?) = count?.let { if (it == 1) "1 installed" else "$it installed" }
+    SettingsSection(title = "Sources", isTablet = isTablet) {
+        SettingsGroup(isTablet = isTablet) {
+            SettingsNavigationRow(
+                title = "Stremio add-ons",
+                description = listOfNotNull("Catalogs and streams", installed(addons.addons.size)).joinToString(" · "),
+                icon = Icons.Default.Extension,
+                isTablet = isTablet,
+                onClick = { onPageClick(SettingsPage.Addons) },
+            )
+            SettingsGroupDivider(isTablet = isTablet)
+            SettingsNavigationRow(
+                title = "Manga extensions",
+                description = listOfNotNull("Read side", installed(mangaCount)).joinToString(" · "),
+                icon = Icons.AutoMirrored.Rounded.MenuBook,
+                isTablet = isTablet,
+                onClick = { sources.openReadExtensions?.invoke() },
+            )
+            SettingsGroupDivider(isTablet = isTablet)
+            SettingsNavigationRow(
+                title = "Novel plugins",
+                description = listOfNotNull("Read side", installed(novelCount)).joinToString(" · "),
+                icon = Icons.Rounded.AutoStories,
+                isTablet = isTablet,
+                onClick = { sources.openReadExtensions?.invoke() },
+            )
+        }
+    }
 }

@@ -39,6 +39,15 @@ internal class ReadModeController(
         activity.startActivity(intent, fade(activity))
     }
 
+    /** From Settings → Sources on the Watch side: open the Read side on its extension list. */
+    fun openReadExtensions() {
+        val activity = currentActivity?.get() ?: return
+        val intent = Intent(activity, ReadActivity::class.java)
+            .setAction("eu.kanade.tachiyomi.EXTENSIONS")
+            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+        activity.startActivity(intent, fade(activity))
+    }
+
     /** From the Read side (called by Tsundoku's switch). */
     fun openWatch(activity: Activity) {
         val intent = Intent()

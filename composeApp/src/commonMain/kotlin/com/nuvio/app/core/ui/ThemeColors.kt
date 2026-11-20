@@ -173,6 +173,20 @@ object ThemeColors {
         backgroundCard = Color(0xFF222222),
     )
 
+    /** Fenrir Read: near-black surfaces and coral red, like the Fenrir style screens. */
+    val Fenrir = ThemeColorPalette(
+        secondary = Color(0xFFFF4D57),
+        secondaryVariant = Color(0xFFE8434C),
+        nativeAccentHex = "#FF4D57",
+        onSecondary = Color.White,
+        onSecondaryVariant = Color.White,
+        focusRing = Color(0xFFFF6B73),
+        focusBackground = Color(0xFF3A1A1E),
+        background = Color(0xFF0B0B0F),
+        backgroundElevated = Color(0xFF16161C),
+        backgroundCard = Color(0xFF20212A),
+    )
+
     fun getColorPalette(
         theme: AppTheme,
         customColors: CustomThemeColors = CustomThemeColors.Default,
@@ -190,5 +204,6 @@ object ThemeColors {
         AppTheme.AMBER -> Amber
         AppTheme.ROSE -> Rose
         AppTheme.WHITE -> White
+        AppTheme.FENRIR -> Fenrir
     }
 }

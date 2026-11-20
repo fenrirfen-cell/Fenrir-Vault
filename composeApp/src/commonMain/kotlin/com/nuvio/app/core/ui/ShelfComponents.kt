@@ -26,6 +26,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -320,6 +322,21 @@ private fun NuvioViewAllPill(
     val actionSize = if (size == NuvioViewAllPillSize.Compact) NuvioTokens.Space.s32 else NuvioTokens.Space.s40
     val iconSize = if (size == NuvioViewAllPillSize.Compact) NuvioTokens.Icon.sm else tokens.icons.md
     val viewAllText = stringResource(Res.string.home_view_all)
+    val fenrir by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsState()
+    if (fenrir) {
+        // Fenrir style: a plain red "See all" link.
+        Text(
+            text = "See all",
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+            modifier = modifier
+                .clip(RoundedCornerShape(NuvioTokens.Radius.xl))
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .padding(horizontal = 6.dp, vertical = 6.dp),
+        )
+        return
+    }
 
     Box(
         modifier = modifier

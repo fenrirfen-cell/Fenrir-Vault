@@ -336,8 +336,11 @@ fun LibraryScreen(
                             .fillMaxWidth()
                             .padding(LocalVerticalBarPadding.current),
                     ) {
+                        val fenrirLibrary by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsStateWithLifecycle()
                         NuvioScreenHeader(
-                            title = if (sourceMode != LibraryViewMode.Saved) {
+                            title = if (fenrirLibrary && uiState.sourceMode == LibrarySourceMode.LOCAL) {
+                                "My list"
+                            } else if (sourceMode != LibraryViewMode.Saved) {
                                 stringResource(Res.string.library_title)
                             } else {
                                 when (uiState.sourceMode) {

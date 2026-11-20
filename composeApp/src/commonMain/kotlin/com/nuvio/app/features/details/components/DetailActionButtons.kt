@@ -4,6 +4,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -23,23 +25,28 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CheckCircleOutline
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -266,6 +273,36 @@ fun DetailActions(
             onClick = onClick,
         )
     }
+    val fenrirStyle by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsState()
+    if (fenrirStyle && !isTablet) {
+        FenrirDetailActions(
+            playLabel = if (playEnabled) playLabel else stringResource(Res.string.playback_unavailable),
+            playEnabled = playEnabled,
+            actions = buildList {
+                add(
+                    DetailSecondaryAction(
+                        label = if (isSaved) "In my list" else "My list",
+                        icon = if (isSaved) Icons.Default.Check else Icons.Default.Add,
+                        isActive = isSaved,
+                        onClick = onSaveClick,
+                        onLongClick = onSaveLongClick,
+                    ),
+                )
+                add(
+                    DetailSecondaryAction(
+                        label = if (isWatched) "Watched" else "Mark watched",
+                        icon = if (isWatched) Icons.Default.CheckCircle else Icons.Default.CheckCircleOutline,
+                        isActive = isWatched,
+                        onClick = onWatchedClick,
+                    ),
+                )
+                shuffleAction?.let(::add)
+            },
+            onPlayClick = onPlayClick,
+            onPlayLongClick = onPlayLongClick,
+        )
+        return
+    }
     DetailActionButtons(
         playLabel = if (playEnabled) playLabel else stringResource(Res.string.playback_unavailable),
         playEnabled = playEnabled,
@@ -341,6 +378,70 @@ private fun DetailIconAction(
                 contentDescription = label,
                 modifier = Modifier.size(21.dp),
             )
+        }
+    }
+}
+
+
+/** Fenrir style: a full-width white Play button and a row of labelled icon actions under it. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FenrirDetailActions(
+    playLabel: String,
+    playEnabled: Boolean,
+    actions: List<DetailSecondaryAction>,
+    onPlayClick: () -> Unit,
+    onPlayLongClick: (() -> Unit)?,
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth()) {
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (playEnabled) Color.White else Color(0xFF2A2B34))
+                .combinedClickable(enabled = playEnabled, onClick = onPlayClick, onLongClick = onPlayLongClick)
+                .padding(vertical = 14.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = if (playEnabled) Color(0xFF0B0B0F) else Color(0xFF8E8E99), modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = playLabel,
+                color = if (playEnabled) Color(0xFF0B0B0F) else Color(0xFF8E8E99),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            actions.forEach { action ->
+                androidx.compose.foundation.layout.Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF1C1D26))
+                        .combinedClickable(onClick = action.onClick, onLongClick = action.onLongClick)
+                        .padding(vertical = 12.dp, horizontal = 6.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(action.icon, contentDescription = null, tint = if (action.isActive) accent else Color.White, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = action.label,
+                        color = if (action.isActive) accent else Color.White,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.nuvio.app
 
+import androidx.compose.foundation.layout.fillMaxSize
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -47,6 +49,7 @@ fun App(
     appGateController: AppGateController? = null,
 ) {
     AppEnvironment {
+      androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize()) {
         AppGate(
             initialTab = initialTab,
             initialRoute = initialRoute,
@@ -67,6 +70,9 @@ fun App(
             nativeProfileSwitcherController = nativeProfileSwitcherController,
             appGateController = appGateController,
         )
+        // Fenrir: "FENRIR READ" for about a second when the app opens.
+        com.nuvio.app.readmode.FenrirSplash()
+      }
     }
 }
 

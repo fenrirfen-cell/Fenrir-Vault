@@ -48,11 +48,23 @@ class NuvioReadApplication : App() {
 
         // Episode reminders from the Ani-drama calendar (notification + optional spoken alert).
         com.nuvio.app.features.anidrama.AniDramaRemindersAndroid.install(this)
+
+        // Fenrir style (Zangetsu-like layout), on by default; the Read side follows it too.
+        FenrirStyle.install(enabled = aniDramaPrefs.getBoolean(KEY_FENRIR_STYLE, true)) { on ->
+            aniDramaPrefs.edit().putBoolean(KEY_FENRIR_STYLE, on).apply()
+        }
+        EmbeddedHost.fenrirStyle = { FenrirStyle.enabled.value }
+
+        // Settings → Sources: open the Read side's extensions and show how many are installed.
+        FenrirSources.openReadExtensions = modes::openReadExtensions
+        FenrirSources.mangaExtensionCount = EmbeddedHost::mangaExtensionCount
+        FenrirSources.novelPluginCount = EmbeddedHost::novelPluginCount
     }
 
     private companion object {
         const val KEY_KEEP_ROWS_ON_HOME = "keep_rows_on_home"
         const val KEY_SOURCE_FALLBACK = "source_fallback"
+        const val KEY_FENRIR_STYLE = "fenrir_style"
     }
 
     /**

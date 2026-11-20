@@ -1204,21 +1204,23 @@ fun MetaDetailsScreen(
                                                 onHeightChanged = { heroHeightPx.intValue = it },
                                                 actions = if (isSectionEnabled(MetaScreenSectionKey.ACTIONS)) {
                                                     {
-                                                        DetailActions(
-                                                            playLabel = playButtonLabel,
-                                                            playEnabled = isPrimaryPlayEnabled,
-                                                            isSaved = isSaved,
-                                                            isWatched = isWatched,
-                                                            isTablet = true,
-                                                            shuffleEnabled = shuffleSettings.enabled,
-                                                            onPlayClick = onPrimaryPlayClick,
-                                                            onPlayLongClick = if (showManualPlayOption) onPrimaryPlayLongClick else null,
-                                                            onShuffleClick = onShuffleClick,
-                                                            onWatchedClick = toggleWatched,
-                                                            onSaveClick = toggleSaved,
-                                                            onSaveLongClick = openLibraryListPicker,
-                                                        )
-                                                        FenrirFoundInRow(metaId = meta.id)
+                                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                                            DetailActions(
+                                                                playLabel = playButtonLabel,
+                                                                playEnabled = isPrimaryPlayEnabled,
+                                                                isSaved = isSaved,
+                                                                isWatched = isWatched,
+                                                                isTablet = true,
+                                                                shuffleEnabled = shuffleSettings.enabled,
+                                                                onPlayClick = onPrimaryPlayClick,
+                                                                onPlayLongClick = if (showManualPlayOption) onPrimaryPlayLongClick else null,
+                                                                onShuffleClick = onShuffleClick,
+                                                                onWatchedClick = toggleWatched,
+                                                                onSaveClick = toggleSaved,
+                                                                onSaveLongClick = openLibraryListPicker,
+                                                            )
+                                                            FenrirFoundInRow(metaId = meta.id)
+                                                        }
                                                     }
                                                 } else {
                                                     null
@@ -2381,21 +2383,24 @@ private fun ConfiguredMetaSections(
     fun RenderSection(key: MetaScreenSectionKey, showHeader: Boolean = true) {
         when (key) {
             MetaScreenSectionKey.ACTIONS -> {
-                DetailActions(
-                    playLabel = playButtonLabel,
-                    playEnabled = isPrimaryPlayEnabled,
-                    isSaved = isSaved,
-                    isWatched = isWatched,
-                    isTablet = isTablet,
-                    shuffleEnabled = shuffleEnabled,
-                    onPlayClick = onPrimaryPlayClick,
-                    onPlayLongClick = if (showManualPlayOption) onPrimaryPlayLongClick else null,
-                    onShuffleClick = onShuffleClick,
-                    onWatchedClick = onWatchedClick,
-                    onSaveClick = onSaveClick,
-                    onSaveLongClick = onSaveLongClick,
-                )
-                FenrirFoundInRow(metaId = meta.id)
+                // Column so the "Found in" badges sit below the buttons instead of on top of them.
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    DetailActions(
+                        playLabel = playButtonLabel,
+                        playEnabled = isPrimaryPlayEnabled,
+                        isSaved = isSaved,
+                        isWatched = isWatched,
+                        isTablet = isTablet,
+                        shuffleEnabled = shuffleEnabled,
+                        onPlayClick = onPrimaryPlayClick,
+                        onPlayLongClick = if (showManualPlayOption) onPrimaryPlayLongClick else null,
+                        onShuffleClick = onShuffleClick,
+                        onWatchedClick = onWatchedClick,
+                        onSaveClick = onSaveClick,
+                        onSaveLongClick = onSaveLongClick,
+                    )
+                    FenrirFoundInRow(metaId = meta.id)
+                }
             }
             MetaScreenSectionKey.OVERVIEW -> {
                 DetailMetaInfo(

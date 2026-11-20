@@ -5,6 +5,26 @@ import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.nicehttp.Requests
 import com.lagradost.nicehttp.ResponseParser
 import kotlin.reflect.KClass
+import okhttp3.Interceptor
+import okhttp3.Response
+
+/**
+ * Fenrir Read: plugins add their own interceptors to these clients. If one of them throws
+ * something other than an IOException (e.g. it needs a CloudStream app class Fenrir Read
+ * doesn't have), OkHttp rethrows it on its own thread and the whole app crashes. This sits
+ * outermost and turns those into a normal failed request, so only that site fails.
+ */
+private object PluginErrorGuard : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response = try {
+        chain.proceed(chain.request())
+    } catch (e: java.io.IOException) {
+        throw e
+    } catch (e: OutOfMemoryError) {
+        throw e
+    } catch (e: Throwable) {
+        throw java.io.IOException("Plugin request failed: ${e.javaClass.simpleName}: ${e.message}", e)
+    }
+}
 
 // Short name for requests client to make it nicer to use
 private val jsonResponseParser = object : ResponseParser {
@@ -29,6 +49,7 @@ private val jsonResponseParser = object : ResponseParser {
  * If you need to make requests to websites with invalid SSL certificates use insecureApp instead. */
 var app = Requests(responseParser = jsonResponseParser).apply {
     defaultHeaders = mapOf("user-agent" to USER_AGENT)
+    baseClient = baseClient.newBuilder().addInterceptor(PluginErrorGuard).build()
 }
 
 /** Same as the default app networking helper, but this instance ignores SSL certificates.
@@ -36,4 +57,5 @@ var app = Requests(responseParser = jsonResponseParser).apply {
 @UnsafeSSL
 var insecureApp = Requests(responseParser = jsonResponseParser).apply {
     defaultHeaders = mapOf("user-agent" to USER_AGENT)
+    baseClient = baseClient.newBuilder().addInterceptor(PluginErrorGuard).build()
 }

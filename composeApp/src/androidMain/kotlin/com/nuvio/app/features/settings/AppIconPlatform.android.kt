@@ -53,6 +53,10 @@ internal actual object AppIconPlatform {
     }
 
     fun currentLauncherComponent(context: Context): ComponentName {
+        // Fenrir Read: one fixed home-screen entry (see the androidApp manifest).
+        val fenrir = component(context, "$launcherPackage.FenrirLauncher")
+        val hasFenrir = runCatching { context.packageManager.getActivityInfo(fenrir, 0) }.isSuccess
+        if (hasFenrir) return fenrir
         val currentName = currentIconName(context)
         val className = launcherComponents.first { it.first == currentName }.second
         return component(context, className)

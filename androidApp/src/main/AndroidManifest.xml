@@ -94,12 +94,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Fenrir Read's home-screen entry (new name, so launchers don't reuse Nuvio's cached icon). -->
         <activity
-            android:name="com.nuvio.app.launcher.AppIconDefault"
+            android:name="com.nuvio.app.launcher.FenrirLauncher"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:enabled="true"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_fenrir"
+            android:roundIcon="@mipmap/ic_launcher_fenrir_round"
             android:label="Fenrir Read"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash">
@@ -110,6 +112,17 @@
         </activity>
 
         <activity
+            android:name="com.nuvio.app.launcher.AppIconDefault"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_fenrir"
+            android:label="Fenrir Read"
+            android:supportsPictureInPicture="true"
+            android:theme="@style/Theme.Nuvio.Splash">
+            </activity>
+
+        <activity
             android:name="com.nuvio.app.launcher.AppIconArcticBlue"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:enabled="false"
@@ -118,11 +131,7 @@
             android:label="Fenrir Read"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash.ArcticBlue">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            </activity>
 
         <activity
             android:name="com.nuvio.app.launcher.AppIconEmerald"
@@ -133,11 +142,7 @@
             android:label="Fenrir Read"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash.Emerald">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            </activity>
 
         <activity
             android:name="com.nuvio.app.launcher.AppIconRoseGold"
@@ -148,11 +153,7 @@
             android:label="Fenrir Read"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash.RoseGold">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            </activity>
 
         <activity
             android:name="com.nuvio.app.launcher.AppIconCopper"
@@ -163,11 +164,7 @@
             android:label="Fenrir Read"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash.Copper">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            </activity>
 
         <activity
             android:name="com.nuvio.app.launcher.AppIconGraphite"
@@ -178,11 +175,7 @@
             android:label="Fenrir Read"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash.Graphite">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            </activity>
 
         <service
             android:name="com.nuvio.app.features.player.PlayerNowPlayingService"

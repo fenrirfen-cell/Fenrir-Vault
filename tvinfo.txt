@@ -1,0 +1,407 @@
+﻿file: J:\NuvioMobile1.0.0\tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt
+=== structure ===
+
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:11:import android.view.GestureDetector
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:26:import androidx.core.widget.NestedScrollView
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:69:class NovelViewer(val activity: ReaderActivity) : Viewer {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:71:    private val container = FrameLayout(activity)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:72:    private lateinit var scrollView: NestedScrollView
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:74:    private val inlineFeedback by lazy {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:77:    private val textRenderer by lazy {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:80:    private val preferences: ReaderPreferences by injectLazy()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:81:    private val libraryPreferences: tachiyomi.domain.library.service.LibraryPreferences by injectLazy()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:82:    private val contentPipeline = ContentPipeline(preferences)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:83:    private var isAutoScrolling = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:84:    private var autoScrollJob: Job? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:86:    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:87:    private val config = NovelConfig(scope)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:88:    private val navigator get() = config.navigator
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:90:    private var loadJob: Job? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:91:    private var attachListener: View.OnAttachStateChangeListener? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:92:    private var currentPage: ReaderPage? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:93:    private var currentChapters: ViewerChapters? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:94:    private var renderGeneration = 0L
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:97:        val chapter: ReaderChapter,
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:98:        val block: ChapterTextBlock,
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:99:        val headerView: TextView,
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:100:        var separatorView: View? = null,
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:101:        var isLoaded: Boolean = false,
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:103:        // marks when the empty block has a smaller height than scrollView.
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:104:        var isTextSet: Boolean = false,
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:106:        var pendingContent: ProcessedContent? = null,
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:109:    private val chapterQueue = ChapterQueue<LoadedChapter> { it.chapter.chapter.id }
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:114:    private val loadedChapters: List<LoadedChapter> get() = chapterQueue.all
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:115:    private var isLoadingNext: Boolean
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:120:    private var isRestoringScroll = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:121:    private var currentChapterIndex: Int
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:126:    private var disableScrollbarForSession = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:128:    private var lastSavedProgress = 0f
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:131:    private var pendingRestoreChapterId: Long? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:132:    private var pendingRestoreProgress = 0f
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:135:    private var cachedFontUri: String? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:136:    private var cachedTypeface: android.graphics.Typeface? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:140:    private var lastChapterSwitchTime = 0L
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:148:    private var chapterEntryTime = 0L
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:151:    private var reachedNovelEnd = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:155:    private var nextLoadRequiresManualRetry = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:158:    private var awaitingFirstScrollSample = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:165:    private val gestureDetector = GestureDetector(
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:167:        object : GestureDetector.SimpleOnGestureListener() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:169:            override fun onDown(e: MotionEvent): Boolean = true
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:171:            override fun onFling(
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:177:                if (!preferences.novelSwipeNavigation.get()) return false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:184:                    onNext = { activity.loadNextChapter() },
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:188:            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:196:                val pos = android.graphics.PointF(
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:202:                    val menuZone = navigator.getRegions().firstOrNull()?.rectF
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:217:                        scrollView.smoothScrollBy(0, (container.height * 0.8).toInt())
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:222:                        scrollView.smoothScrollBy(0, -(container.height * 0.8).toInt())
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:243:        container.addView(scrollView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:248:    private fun initViews() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:249:        scrollView = object : NestedScrollView(activity) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:250:            override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:251:                gestureDetector.onTouchEvent(ev)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:255:            override fun draw(canvas: Canvas) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:279:        scrollView.addView(contentContainer)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:286:            override fun onViewAttachedToWindow(v: View) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:290:            override fun onViewDetachedFromWindow(v: View) {}
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:294:    private fun setupScrollListener() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:295:        scrollView.setOnScrollChangeListener { _: NestedScrollView, _: Int, scrollY: Int, _: Int, _: Int ->
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:296:            val child = scrollView.getChildAt(0) ?: return@setOnScrollChangeListener
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:297:            val totalHeight = child.height - scrollView.height
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:298:            if (totalHeight <= 0) return@setOnScrollChangeListener
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:300:            val previousChapterIndex = currentChapterIndex
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:306:            val inGracePeriod = System.currentTimeMillis() - chapterEntryTime < CHAPTER_ENTRY_GRACE_MS
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:312:            val chapterChanged = previousChapterIndex != currentChapterIndex
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:313:            if (chapterChanged) return@setOnScrollChangeListener
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:315:            val chapterProgress = calculateCurrentChapterProgress(scrollY)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:325:            if (!inGracePeriod && preferences.novelInfiniteScroll.get()) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:326:                val autoLoadAt = preferences.novelAutoLoadNextChapterAt.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:327:                val effectiveThreshold = if (autoLoadAt > 0) autoLoadAt / 100f else 0.95f
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:329:                val onLastLoaded = currentChapterIndex == (loadedChapters.size - 1).coerceAtLeast(0)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:333:                val ttsIsDrivingChapterHandoff = ttsController.isTtsAutoPlay
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:343:                    loadNextChapterIfAvailable()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:353:    private fun calculateCurrentChapterProgress(scrollY: Int): Float {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:354:        val loaded = loadedChapters.getOrNull(currentChapterIndex) ?: return 0f
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:355:        val textTop = loaded.block.container.top
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:356:        val textBottom = loaded.block.container.bottom
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:357:        val textHeight = textBottom - textTop
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:370:        val isLast = currentChapterIndex >= loadedChapters.size - 1
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:372:            if (textHeight <= scrollView.height) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:373:                val page = loaded.chapter.pages?.firstOrNull()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:376:            val scrollableHeight = (textHeight - scrollView.height).coerceAtLeast(1)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:377:            val scrollInText = (scrollY - textTop).coerceIn(0, scrollableHeight)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:381:        val scrollInText = (scrollY - textTop).coerceIn(0, textHeight)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:385:    private var progressSaveJob: Job? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:386:    private fun scheduleProgressSave(progress: Float) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:387:        val snapped = NovelProgress.snapProgress(progress)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:388:        val intPercent = NovelProgress.progressToPercent(snapped)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:389:        val lastIntPercent = NovelProgress.progressToPercent(lastSavedProgress)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:411:    fun flushProgress() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:417:    private fun saveProgress(progress: Float) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:419:            val progressValue = (progress * 100f).roundToInt().coerceIn(0, 100)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:432:    private var lastSavedTtsChunkIndex: Int = -1
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:435:    private fun isTtsDrivingVisibleChapter(): Boolean =
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:441:    private fun saveTtsProgressForChunk(chunkIndex: Int) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:444:        val total = ttsController.ttsChunks.size
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:448:        val loaded = (
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:453:        val page = loaded.chapter.pages?.firstOrNull() ?: return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:454:        val percent = (((chunkIndex + 1) * 100f) / total).roundToInt().coerceIn(0, 100)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:461:    private fun shouldAutoMarkShortChapter(page: ReaderPage?): Boolean {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:463:        val chapter = page?.chapter?.chapter ?: return false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:467:    private fun syncShortChapterProgressIfNeeded() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:468:        val page = currentPage ?: return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:472:        val loaded = loadedChapters.getOrNull(currentChapterIndex) ?: return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:475:        val textHeight = loaded.block.container.height
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:476:        if (textHeight <= 0 || textHeight > scrollView.height) return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:483:        val onLastLoaded = currentChapterIndex == (loadedChapters.size - 1).coerceAtLeast(0)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:484:        if (preferences.novelInfiniteScroll.get() && !ttsController.isTtsAutoPlay && onLastLoaded) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:485:            loadNextChapterIfAvailable()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:489:    private fun updateCurrentChapterFromScroll(scrollY: Int) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:506:    private fun onChapterChanged(oldIndex: Int, newIndex: Int) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:507:        val now = System.currentTimeMillis()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:517:        val initialProgress = if (newIndex > oldIndex) 0f else 1f
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:531:        val loadedChapter = loadedChapters.getOrNull(newIndex) ?: return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:543:    private fun loadNextChapterIfAvailable() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:544:        val anchor = loadedChapters.getOrNull(currentChapterIndex)?.chapter
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:565:        val retry = {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:567:            loadNextChapterIfAvailable()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:569:        var loadFailed = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:573:                val preparedChapter = activity.viewModel.prepareNextChapterForInfiniteScroll(anchor) ?: run {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:595:                val page = preparedChapter.pages?.firstOrNull() ?: run {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:596:                    val prepareError = (preparedChapter.state as? ReaderChapter.State.Error)?.error
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:610:                val loader = page.chapter.pageLoader ?: run {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:626:                val loadError: Throwable? = try {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:627:                    val loaded = awaitPageText(page = page, loader = loader, timeoutMs = 30_000)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:677:    private fun reloadContent() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:687:    private fun observePreferences() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:699:    private fun applyNovelScrollbarSettings() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:700:        scrollView.isVerticalScrollBarEnabled = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:701:        scrollView.isHorizontalScrollBarEnabled = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:702:        scrollView.scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:703:        scrollView.isScrollbarFadingEnabled = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:704:        scrollView.layoutDirection = View.LAYOUT_DIRECTION_LTR
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:708:    private fun createSelectableTextView(): TextView {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:725:                    override fun onCreateActionMode(mode: android.view.ActionMode, menu: Menu): Boolean {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:726:                        val rememberItem = menu.add(
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:737:                    override fun onPrepareActionMode(mode: android.view.ActionMode, menu: Menu): Boolean {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:741:                    override fun onActionItemClicked(mode: android.view.ActionMode, item: MenuItem): Boolean {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:752:                    override fun onDestroyActionMode(mode: android.view.ActionMode) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:759:    private fun createChapterBlock(): ChapterTextBlock =
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:762:    private fun applyTextSelectionPreference(textView: TextView) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:763:        val selectable = preferences.novelTextSelectable.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:774:    private fun refreshAllChapterStyles() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:783:    private var pendingTtsAutoStart = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:787:    private var pendingTtsHandoffAfterPrefetch = false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:791:    private val ttsController = TtsController(
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:796:            override fun onInitialized(pendingRequest: TtsController.StartRequest?) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:804:            override fun getCurrentPage(): ReaderPage? = currentPage
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:806:            override fun onHighlightChunk(chunkIndex: Int, chunk: String, startOffset: Int, paragraphIndex: Int) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:811:            override fun onClearHighlights() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:815:            override fun onLastChunkDone() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:817:                loadNextChapterForTts(currentChapterIndex)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:820:            override fun runOnUiThread(action: () -> Unit) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:827:    private fun clearTtsSpansInLoadedChapters() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:831:                val spanned = chunkView.text as? android.text.Spannable ?: return@forEach
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:832:                val len = spanned.length
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:841:    private fun clearAllTtsHighlights() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:845:    private fun applyTtsHighlight(chunk: String, startOffset: Int, paragraphIndex: Int) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:847:            val highlightColor = preferences.novelTtsHighlightColor.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:848:            val highlightTextColor = preferences.novelTtsHighlightTextColor.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:849:            val highlightStyle = preferences.novelTtsHighlightStyle.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:850:            val keepInView = preferences.novelTtsKeepHighlightInView.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:854:            val targetLoaded = (
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:860:            val block = targetLoaded.block
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:861:            val text = block.fullText ?: return@runOnUiThread
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:863:            val chunkStartIndex = text.indexOf(chunk, startOffset.coerceAtLeast(0))
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:866:            val (startIndex, endIndex) = when {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:874:            var firstChunkView: TextView? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:875:            var firstChunkLocalStart = 0
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:877:                val chunkStart = block.chunkStarts.getOrNull(i) ?: break
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:878:                val chunkEnd = chunkStart + chunkView.text.length
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:881:                val spanned = chunkView.text as? android.text.Spannable ?: continue
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:882:                val localStart = (startIndex - chunkStart).coerceAtLeast(0)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:883:                val localEnd = (endIndex - chunkStart).coerceAtMost(spanned.length)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:928:                val scrollTarget = firstChunkView ?: return@runOnUiThread
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:929:                val localStart = firstChunkLocalStart
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:930:                fun doScroll() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:931:                    val layout = scrollTarget.layout ?: return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:932:                    val line = layout.getLineForOffset(localStart.coerceAtMost(layout.text.length - 1).coerceAtLeast(0))
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:933:                    val targetInChunk = layout.getLineTop(line)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:934:                    val targetInScroll =
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:935:                        block.container.top + scrollTarget.top + targetInChunk - (scrollView.height / 3)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:936:                    scrollView.smoothScrollTo(0, targetInScroll.coerceAtLeast(0))
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:943:    private fun loadNextChapterForTts(anchorChapterIndex: Int = currentChapterIndex) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:948:        if (preferences.novelInfiniteScroll.get()) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:969:        val chapters = currentChapters ?: return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:979:            // Must NOT use activity.loadNextChapter(): it stops TTS (manual-nav)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:981:            activity.loadNextChapterForTtsHandoff()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:985:    private fun preFetchNextChapterForTts() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:993:                val anchor = loadedChapters.lastOrNull()?.chapter ?: currentChapters?.currChapter ?: return@launch
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:994:                val preparedChapter = activity.viewModel.prepareNextChapterForInfiniteScroll(anchor) ?: return@launch
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:995:                val nextId = preparedChapter.chapter.id ?: return@launch
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:997:                val page = preparedChapter.pages?.firstOrNull() ?: return@launch
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:998:                val loader = page.chapter.pageLoader ?: return@launch
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1002:                val textLoaded = try {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1010:                val rawContent = page.text ?: return@launch
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1011:                val cfg = ContentConfig.from(
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1017:                val translator: (suspend (String) -> String)? =
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1023:                val finalContent = withContext(Dispatchers.Default) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1031:                    val headerView = TextView(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1039:                    val cachedChapter = LoadedChapter(
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1052:                        loadNextChapterForTts(currentChapterIndex)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1067:    private fun syncCurrentChapterIndexWithCurrentPage(): Boolean {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1068:        val targetChapterId = currentPage?.chapter?.chapter?.id
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1071:        val targetIndex = loadedChapters.indexOfFirst { it.chapter.chapter.id == targetChapterId }
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1077:    private fun moveToLoadedNextChapterForTts(anchorChapterIndex: Int = currentChapterIndex): Boolean {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1081:        val nextIndex = anchorChapterIndex + 1
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1082:        val nextLoaded = loadedChapters.getOrNull(nextIndex)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1085:            val cached = handoffState.cachedOrNull ?: return false
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1089:            val separator = TextView(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1105:            scrollView.post { isRestoringScroll = false }
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1120:            val content = cached.pendingContent
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1143:    private val ttsKeepBehindChapters = 1
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1149:    private fun trimReadChaptersForTts() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1151:        val removeCount = currentChapterIndex - ttsKeepBehindChapters
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1153:        val toRemove = loadedChapters.take(removeCount)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1156:        var removedHeight = 0
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1172:        // Post the scrollBy so it runs after the layout pass that follows removeView - a
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1173:        // synchronous call here reads stale ScrollView content height and can be re-clamped
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1176:        scrollView.post {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1177:            if (removedHeight > 0) scrollView.scrollBy(0, -removedHeight)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1185:    fun startTts() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1195:        val text = loadedChapters.getOrNull(currentChapterIndex)?.block?.fullText
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1219:        if (preferences.novelInfiniteScroll.get() &&
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1226:    fun stopTts() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1241:    private fun abortPendingTtsOnLoadFailure() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1247:    fun pauseTts() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1254:    fun resumeTts() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1258:    fun ttsNextParagraph() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1262:    fun ttsPreviousParagraph() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1266:    fun isTtsPaused(): Boolean = ttsController.isPaused()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1267:    fun isTtsSpeaking(): Boolean = ttsController.isSpeaking()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1275:    fun isTtsActive(): Boolean =
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1280:    fun getTtsParagraphProgress(): Pair<Int, Int> = ttsController.getParagraphProgress()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1283:    fun seekTtsToParagraph(paragraphIndex: Int) = ttsController.seekToParagraph(paragraphIndex)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1285:    fun startTtsFromViewport() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1295:        val text = loadedChapters.getOrNull(currentChapterIndex)?.block?.fullText
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1303:        val firstVisibleParagraphIndex = findFirstVisibleParagraphIndex(text)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1319:    private fun findFirstVisibleParagraphIndex(text: String): Int {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1320:        val viewportTop = scrollView.scrollY
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1321:        val viewportBottom = viewportTop + scrollView.height
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1325:        val loaded = loadedChapters.firstOrNull { it.isLoaded && it.block.fullText === text } ?: return 0
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1326:        val paragraphOffsets = loaded.block.paragraphBoundsByNewline().map { it.first }
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1329:        val containerTop = loaded.block.container.top
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1331:            val chunkTop = containerTop + chunkView.top
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1332:            val chunkBottom = chunkTop + chunkView.height
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1335:                val layout = chunkView.layout ?: return 0
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1337:                    val chunkRelativeY = (viewportTop - chunkTop).coerceAtLeast(0)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1338:                    val lineAtViewportTop = layout.getLineForVertical(chunkRelativeY.coerceAtMost(layout.height))
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1339:                    val chunkStart = loaded.block.chunkStarts.getOrNull(i) ?: 0
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1340:                    val charOffset = (chunkStart + layout.getLineStart(lineAtViewportTop)).coerceAtLeast(0)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1341:                    val pIdx = paragraphOffsets.indexOfLast { it <= charOffset }
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1350:    override fun destroy() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1365:    override fun getView(): View {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1369:    fun reloadWithTranslation() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1370:        val generation = ++renderGeneration
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1372:            val page = loadedChapter.chapter.pages?.firstOrNull() ?: return@forEach
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1373:            val content = page.text ?: return@forEach
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1374:            val block = loadedChapter.block
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1375:            val cfg = ContentConfig.from(
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1383:                val pre = withContext(Dispatchers.Default) { contentPipeline.preTranslate(content, cfg) }
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1384:                val processed = if (activity.isTranslationEnabled()) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1385:                    val chapterId = loadedChapter.chapter.chapter.id
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1386:                    val labelRes = if (activity.hasCachedTranslation(chapterId)) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1405:    override fun setChapters(chapters: ViewerChapters) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1409:        val chapterLoadError = (chapters.currChapter.state as? ReaderChapter.State.Error)?.error
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1416:        val page = chapters.currChapter.pages?.firstOrNull() ?: return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1422:        val isAlreadyLoaded = loadedChapters.any { it.chapter.chapter.id == chapters.currChapter.chapter.id }
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1424:        if (preferences.novelInfiniteScroll.get() && loadedChapters.isNotEmpty() && isAlreadyLoaded) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1428:        if (!preferences.novelInfiniteScroll.get() || !isAlreadyLoaded) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1444:            val loader = page.chapter.pageLoader
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1453:            val state = try {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1480:    private fun displayChapter(chapter: ReaderChapter, page: ReaderPage) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1481:        val rawContent = page.text
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1489:        val existingIndex = loadedChapters.indexOfFirst { it.chapter.chapter.id == chapter.chapter.id }
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1499:            "NovelViewer: Displaying chapter ${chapter.chapter.id}, infinite scroll enabled: ${preferences.novelInfiniteScroll.get()}, loaded count: 
+${loadedChapters.size}"
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1502:        val headerView = TextView(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1512:        val block = createChapterBlock()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1514:        val loadedChapter = LoadedChapter(
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1521:        val isAppend = loadedChapters.isNotEmpty() && preferences.novelInfiniteScroll.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1538:        // Reset is deferred to scrollView.post{} so it happens AFTER the layout pass.
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1542:            val separator = TextView(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1560:        val cfg = ContentConfig.from(
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1567:            val pre = withContext(Dispatchers.Default) { contentPipeline.preTranslate(rawContent, cfg) }
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1568:            val finalProcessed = if (activity.isTranslationEnabled() && !preferences.novelShowRawHtml.get()) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1569:                val chapterId = chapter.chapter.id
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1570:                val labelRes = if (activity.hasCachedTranslation(chapterId)) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1601:                        onRetry = { nextLoadRequiresManualRetry = false; loadNextChapterIfAvailable() },
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1615:        if (!preferences.novelInfiniteScroll.get()) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1624:        scrollView.post {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1635:    private fun addNextChapterButton() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1640:        val chapters = currentChapters ?: return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1641:        val hasNext = chapters.nextChapter != null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1645:        val buttonContainer = LinearLayout(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1656:        val nextButton = android.widget.Button(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1671:            setOnClickListener { activity.loadNextChapter() }
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1678:    private fun cleanupDistantChapters() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1679:        val maxChapters = 3
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1681:            val toRemove = loadedChapters.first()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1682:            var removedHeight = toRemove.headerView.height + toRemove.block.container.height
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1701:            scrollView.scrollBy(0, -removedHeight)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1707:    private fun restoreProgress(page: ReaderPage) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1708:        val savedProgress = page.chapter.chapter.last_page_read
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1709:        val isRead = page.chapter.chapter.read
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1714:        val shouldRestore = if (!isRead) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1720:            val progress = (savedProgress / 100f).coerceIn(0f, 1f)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1729:            scrollView.post {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1731:                scrollView.scrollTo(0, 0)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1737:    private fun applyTextViewStyles(textView: TextView) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1738:        val fontSize = preferences.novelFontSize.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1739:        val lineHeight = preferences.novelLineHeight.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1740:        val marginLeft = preferences.novelMarginLeft.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1741:        val marginRight = preferences.novelMarginRight.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1742:        val marginTop = preferences.novelMarginTop.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1743:        val marginBottom = preferences.novelMarginBottom.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1744:        val fontColor = preferences.novelFontColor.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1745:        val theme = preferences.novelTheme.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1746:        val textAlign = preferences.novelTextAlign.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1747:        val fontFamily = preferences.novelFontFamily.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1749:        val density = activity.resources.displayMetrics.density
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1750:        val leftPx = (marginLeft * density).toInt()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1751:        val rightPx = (marginRight * density).toInt()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1752:        val topPx = (marginTop * density).toInt()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1753:        val bottomPx = (marginBottom * density).toInt()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1768:                        val fontUri = fontFamily.toUri()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1769:                        val fontFile = if (fontFamily.startsWith("content://")) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1770:                            val tempFile = java.io.File(activity.cacheDir, "custom_font.ttf")
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1809:        val (_, themeTextColor) = getThemeColors(theme)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1810:        val finalTextColor = if (fontColor != 0) fontColor else themeTextColor
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1821:    private fun applyBackgroundColor() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1822:        val theme = preferences.novelTheme.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1823:        val backgroundColor = preferences.novelBackgroundColor.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1825:        val (themeBgColor, _) = getThemeColors(theme)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1826:        val finalBgColor = if (theme == "custom" && backgroundColor != 0) backgroundColor else themeBgColor
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1827:        scrollView.setBackgroundColor(finalBgColor)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1830:    private fun getThemeColors(theme: String): Pair<Int, Int> =
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1833:    private fun setChapterContent(loaded: LoadedChapter, processed: ProcessedContent) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1841:    private fun onChapterTextSet(loaded: LoadedChapter) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1846:            val progress = pendingRestoreProgress
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1849:            scrollView.doOnPreDraw {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1861:            val loadedIdx = loadedChapters.indexOf(loaded)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1875:    private var initialLoadingView: TextView? = null
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1877:    private fun showLoadingIndicator() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1892:    private fun hideLoadingIndicator() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1899:    private fun displayError(error: Throwable) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1900:        val fmt = ErrorFormatter.format(error)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1903:        val errorContainer = LinearLayout(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1914:        val categoryView = TextView(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1926:        val summaryView = TextView(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1937:        val buttonRow = LinearLayout(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1942:        val retryButton = android.widget.Button(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1954:        val copyButton = android.widget.Button(activity).apply {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1963:                val cm = activity.getSystemService(android.content.ClipboardManager::class.java)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1980:    fun startAutoScroll() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1982:        val level = preferences.novelAutoScrollLevel()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1989:            // the WebView path; smoothScrollBy re-arms a ~250ms animation every 50ms and juddered.
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1990:            var acc = 0f
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1993:                val step = acc.toInt()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:1995:                    scrollView.scrollBy(0, step)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2003:    fun stopAutoScroll() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2008:    fun toggleAutoScroll() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2016:    fun isAutoScrollActive(): Boolean = isAutoScrolling
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2018:    fun scrollToTop() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2019:        scrollView.scrollTo(0, 0)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2022:    fun getProgressPercent(): Int {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2023:        val scrollY = scrollView.scrollY
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2024:        if (loadedChapters.size > 1 && preferences.novelInfiniteScroll.get()) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2025:            val progress = calculateCurrentChapterProgress(scrollY)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2028:        val child = scrollView.getChildAt(0)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2029:        val totalHeight = if (child != null) child.height - scrollView.height else 0
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2037:        val progress = scrollY.toFloat() / totalHeight
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2041:    fun setScrollProgress(progress: Float) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2042:        if (loadedChapters.size <= 1 || !preferences.novelInfiniteScroll.get()) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2043:            val child = scrollView.getChildAt(0) ?: return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2044:            val totalHeight = child.height - scrollView.height
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2045:            val scrollY = (totalHeight * progress).toInt()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2046:            scrollView.scrollTo(0, scrollY)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2050:        var accumulatedHeight = 0
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2052:            val separatorHeight = loadedChapter.separatorView?.height ?: 0
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2054:                val chapterHeight =
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2056:                val visibleHeight = scrollView.height
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2057:                val effectiveChapterHeight = (chapterHeight - visibleHeight).coerceAtLeast(1)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2058:                val chapterScrollY = accumulatedHeight + (effectiveChapterHeight * progress).toInt()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2059:                scrollView.scrollTo(0, chapterScrollY)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2067:    fun setProgressPercent(percent: Int) {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2068:        val progress = percent.coerceIn(0, 100) / 100f
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2070:        maybeLoadNextChapterFromSlider()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2073:    private fun maybeLoadNextChapterFromSlider() {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2074:        if (!preferences.novelInfiniteScroll.get()) return
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2076:        scrollView.post {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2078:            val onLastLoaded = currentChapterIndex == (loadedChapters.size - 1).coerceAtLeast(0)
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2080:            val autoLoadAt = preferences.novelAutoLoadNextChapterAt.get()
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\textview\NovelViewer.kt:2081:            val effectiveThreshold = if (autoLoadAt > 0) autoLoadAt / 100f else 0.95f
+
+
+

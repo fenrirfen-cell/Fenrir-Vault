@@ -38,6 +38,8 @@ internal actual object AppIconPlatform {
     }
 
     fun currentLauncherIconResource(context: Context): Int {
+        context.resources.getIdentifier("ic_launcher_fenrir", "mipmap", context.packageName)
+            .takeIf { it != 0 }?.let { return it }
         val option = AppIconOption.fromPlatformName(currentIconName(context))
         val resourceName = if (option == AppIconOption.ORIGINAL) {
             "ic_launcher"

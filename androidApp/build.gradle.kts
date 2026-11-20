@@ -157,6 +157,13 @@ android {
             isShrinkResources = true
             matchingFallbacks += "release"
         }
+        create("fast") {
+            // Fenrir Read everyday build: not debuggable (fast) but no code shrinking (safe).
+            initWith(buildTypes.getByName("benchmark"))
+            isMinifyEnabled = false
+            isShrinkResources = false
+            matchingFallbacks += listOf("benchmark", "release")
+        }
     }
 
     compileOptions {
@@ -172,6 +179,9 @@ androidComponents {
         variant.applicationId.set("com.nuviodebug.com")
     }
     onVariants(selector().withBuildType("benchmark")) { variant ->
+        variant.applicationId.set("com.nuviodebug.com")
+    }
+    onVariants(selector().withBuildType("fast")) { variant ->
         variant.applicationId.set("com.nuviodebug.com")
     }
     onVariants { variant ->
@@ -203,7 +213,7 @@ sentry {
     sentryAuthToken?.let(authToken::set)
     sentryOrg?.let(org::set)
     sentryProject?.let(projectName::set)
-    ignoredBuildTypes.set(setOf("debug", "benchmark"))
+    ignoredBuildTypes.set(setOf("debug", "benchmark", "fast"))
     autoInstallation {
         enabled.set(false)
     }

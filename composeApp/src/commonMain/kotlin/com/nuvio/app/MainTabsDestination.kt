@@ -37,6 +37,9 @@ import com.nuvio.app.features.settings.NavBarStyle
 import com.nuvio.app.features.settings.ThemeSettingsRepository
 import com.nuvio.app.readmode.ReadModeBridge
 import com.nuvio.app.readmode.ReadModeSwitch
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.background
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import nuvio.composeapp.generated.resources.Res
@@ -159,6 +162,7 @@ internal fun MainTabsDestination(
                 }
             },
         ) { innerPadding ->
+            val readModeBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 70.dp
             Box(modifier = Modifier.fillMaxSize()) {
                 CompositionLocalProvider(
                     LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
@@ -173,12 +177,19 @@ internal fun MainTabsDestination(
                             .fillMaxSize()
                             .then(if (isTabletLayout || navBarStyleSetting != NavBarStyle.CLASSIC) Modifier.hazeSource(state = navBarHazeState) else Modifier)
                             .then(if (navBarStyleSetting == NavBarStyle.ADAPTIVE) Modifier.nestedScroll(navBarScrollState.nestedScrollConnection) else Modifier)
-                            .padding(innerPadding),
+                            .padding(innerPadding)
+                            .padding(top = if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) readModeBarHeight else 0.dp),
                     )
                 }
 
                 // Watch / Read switch (Android app with Read mode only), floating over the Home hero.
                 if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(readModeBarHeight)
+                            .background(androidx.compose.material3.MaterialTheme.colorScheme.background),
+                    )
                     ReadModeSwitch(
                         modifier = Modifier
                             .align(if (isTabletLayout) Alignment.TopStart else Alignment.TopCenter)

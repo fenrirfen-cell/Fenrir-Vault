@@ -1,0 +1,385 @@
+﻿start
+=== touch listener (790-880) ===
+790:                         defaultValue: String?,
+791:                         result: JsPromptResult,
+792:                     ): Boolean {
+793:                         if (activity.isFinishing || activity.isDestroyed) {
+794:                             result.cancel()
+795:                             return true
+796:                         }
+797:                         val input = EditText(activity).apply { setText(defaultValue.orEmpty()) }
+798:                         activeJsDialog = AlertDialog.Builder(activity)
+799:                             .setMessage(message)
+800:                             .setView(input)
+801:                             .setPositiveButton(android.R.string.ok) { _, _ -> result.confirm(input.text.toString()) }
+802:                             .setNegativeButton(android.R.string.cancel) { _, _ -> result.cancel() }
+803:                             .setOnCancelListener { result.cancel() }
+804:                             .setOnDismissListener { activeJsDialog = null }
+805:                             .show()
+806:                         return true
+807:                     }
+808: 
+809:                     override fun onShowFileChooser(
+810:                         webView: WebView?,
+811:                         filePathCallback: ValueCallback<Array<Uri>>?,
+812:                         fileChooserParams: FileChooserParams?,
+813:                     ): Boolean {
+814:                         if (filePathCallback == null || fileChooserParams == null) return false
+815:                         return activity.launchWebViewFileChooser(filePathCallback, fileChooserParams)
+816:                     }
+817:                 }
+818:             }
+819: 
+820:             addJavascriptInterface(this@NovelWebViewViewer.WebViewInterface(), "Android")
+821: 
+822:             isLongClickable = true
+823: 
+824:             setOnTouchListener { view, event ->
+825:                 if (isPagedModeActive() && preferences.novelPagedSwipeEnabled.get() && !isEditingMode) {
+826:                     handlePagedDragTouch(event, view.width)
+827:                 }
+828:                 gestureDetector.onTouchEvent(event)
+829:                 false
+830:             }
+831:         }
+832: 
+833:         // Construct the styler now that `webView` has been assigned. Doing this
+834:         // here (instead of as a `by lazy { … }` initializer that referenced
+835:         // `webView`) avoids the "lateinit property webView has not been
+836:         // initialized" crash that fired when the lazy initializer ran from
+837:         // inside the WebView's `.apply { }` block during construction.
+838:         styler = NovelWebViewStyler(
+839:             activity = activity,
+840:             preferences = preferences,
+841:             webView = webView,
+842:             container = container,
+843:             evaluateJs = { js -> evaluateJavascriptSafe(js, null) },
+844:         )
+845:         styler.applyScrollbarSettings()
+846: 
+847:         val theme = preferences.novelTheme.get()
+848:         val backgroundColor = preferences.novelBackgroundColor.get()
+849:         val (themeBgColor, _) = getThemeColors(theme)
+850:         val finalBgColor = if (theme == "custom" && backgroundColor != 0) backgroundColor else themeBgColor
+851:         webView.setBackgroundColor(finalBgColor)
+852:         container.setBackgroundColor(finalBgColor)
+853: 
+854:         container.addView(webView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+855:     }
+856: 
+857:     private fun observePreferences() {
+858:         NovelWebViewPreferenceObserver(
+859:             preferences = preferences,
+860:             scope = scope,
+861:             onStyleChanged = {
+862:                 styler.injectStyles()
+863:                 if (isPagedModeActive()) {
+864:                     evaluateJavascriptSafe("if (window.__tdPagedRepaginate) window.__tdPagedRepaginate();")
+865:                 }
+866:             },
+867:             onScriptChanged = {
+868:                 val isAppend = preferences.novelInfiniteScroll.get() && loadedChapterIds.size > 1
+869:                 styler.injectScript(isAppend = isAppend, reapplyChangedOnly = true) { buildTsundokuScript() }
+870:             },
+871:             onChapterReloadRequested = {
+872:                 // Force a full pipeline re-run so the new prefs take effect.
+873:                 // Plain setChapters() would no-op on an already-loaded chapter.
+874:                 reloadChapter()
+875:             },
+876:             onBlockMediaChanged = { blockMedia ->
+877:                 webView.settings.apply {
+878:                     blockNetworkImage = blockMedia
+879:                     loadsImagesAutomatically = !blockMedia
+880:                 }
+=== nav (1860-1940) ===
+1860:                 window.Android.copyToClipboard('$base64Trace');
+1861:               }
+1862:             }
+1863:             </script>
+1864:             </body>
+1865:             </html>
+1866:         """.trimIndent()
+1867: 
+1868:         rearmAutoScrollOnErrorPage = isAutoScrolling
+1869:         webView.loadDataWithBaseURL(null, errorHtml, "text/html", "UTF-8", null)
+1870:     }
+1871: 
+1872:     override fun moveToPage(page: ReaderPage) {
+1873:     }
+1874: 
+1875:     override fun handleKeyEvent(event: KeyEvent): Boolean {
+1876:         val isUp = event.action == KeyEvent.ACTION_UP
+1877:         // Paged mode's page turn doesn't need the menu hidden first, unlike continuous scroll.
+1878:         val volumeKeysActive = preferences.novelVolumeKeysScroll.get() && !isEditingMode &&
+1879:             (isPagedModeActive() || !activity.viewModel.state.value.menuVisible)
+1880: 
+1881:         when (event.keyCode) {
+1882:             KeyEvent.KEYCODE_MENU -> {
+1883:                 if (isUp) activity.toggleMenu()
+1884:                 return true
+1885:             }
+1886:             KeyEvent.KEYCODE_VOLUME_DOWN -> {
+1887:                 if (volumeKeysActive) {
+1888:                     if (!isUp) pageScrollBy(1, 0.3)
+1889:                     return true
+1890:                 }
+1891:                 return false
+1892:             }
+1893:             KeyEvent.KEYCODE_VOLUME_UP -> {
+1894:                 if (volumeKeysActive) {
+1895:                     if (!isUp) pageScrollBy(-1, 0.3)
+1896:                     return true
+1897:                 }
+1898:                 return false
+1899:             }
+1900:             KeyEvent.KEYCODE_SPACE -> {
+1901:                 if (!isUp) {
+1902:                     if (event.isShiftPressed) {
+1903:                         webView.pageUp(false)
+1904:                     } else {
+1905:                         webView.pageDown(false)
+1906:                     }
+1907:                 }
+1908:                 return true
+1909:             }
+1910:             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_PAGE_UP -> {
+1911:                 if (!isUp) webView.pageUp(false)
+1912:                 return true
+1913:             }
+1914:             KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> {
+1915:                 if (!isUp) webView.pageDown(false)
+1916:                 return true
+1917:             }
+1918:         }
+1919:         return false
+1920:     }
+1921: 
+1922:     fun toggleEditMode(isEditing: Boolean, save: Boolean = true) {
+1923:         if (!isEditing && !save) {
+1924:             this.isEditingMode = false
+1925:             webView.evaluateJavascript(
+1926:                 "(function() { window.getSelection().removeAllRanges(); document.activeElement.blur(); })();",
+1927:                 null,
+1928:             )
+1929:             webView.clearFocus()
+1930:             val imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+1931:             imm?.hideSoftInputFromWindow(webView.windowToken, 0)
+1932: 
+1933:             // Reload chapter to discard edits
+1934:             chapterQueue.clear()
+1935:             activity.viewModel.reloadChapter(fromSource = false)
+1936:             return
+1937:         }
+1938: 
+1939:         this.isEditingMode = isEditing
+1940:         styler.injectScript { buildTsundokuScript() }
+=== handlePagedDragTouch (2804-2924) ===
+2804:     private fun handlePagedDragTouch(event: MotionEvent, viewWidthPx: Int) {
+2805:         when (event.actionMasked) {
+2806:             MotionEvent.ACTION_DOWN -> {
+2807:                 pagedDragStartX = event.x
+2808:                 pagedDragStartY = event.y
+2809:                 pagedDragDetermined = false
+2810:                 pagedDragActive = false
+2811:             }
+2812:             MotionEvent.ACTION_MOVE -> {
+2813:                 val dx = event.x - pagedDragStartX
+2814:                 val dy = event.y - pagedDragStartY
+2815:                 if (!pagedDragDetermined) {
+2816:                     val slop = android.view.ViewConfiguration.get(activity).scaledTouchSlop
+2817:                     if (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop) {
+2818:                         pagedDragDetermined = true
+2819:                         pagedDragActive = kotlin.math.abs(dx) > kotlin.math.abs(dy)
+2820:                     }
+2821:                 }
+2822:                 if (pagedDragActive && viewWidthPx > 0) {
+2823:                     val fraction = dx / viewWidthPx.toFloat()
+2824:                     evaluateJavascriptSafe("if (window.__tdPagedDragTo) window.__tdPagedDragTo($fraction);")
+2825:                 }
+2826:             }
+2827:             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+2828:                 if (pagedDragActive && viewWidthPx > 0) {
+2829:                     // A cancelled gesture (parent intercept, multi-touch conflict, system gesture)
+2830:                     // isn't a real release - always snap back to the current page instead of
+2831:                     // committing whatever fraction the finger happened to be at.
+2832:                     val fraction = if (event.actionMasked == MotionEvent.ACTION_CANCEL) {
+2833:                         0f
+2834:                     } else {
+2835:                         (event.x - pagedDragStartX) / viewWidthPx.toFloat()
+2836:                     }
+2837:                     evaluateJavascriptSafe("if (window.__tdPagedDragRelease) window.__tdPagedDragRelease($fraction);")
+2838:                 }
+2839:                 pagedDragDetermined = false
+2840:                 pagedDragActive = false
+2841:             }
+2842:         }
+2843:     }
+2844: 
+2845:     fun toggleAutoScroll() {
+2846:         if (isAutoScrolling) stopAutoScroll() else startAutoScroll()
+2847:     }
+2848: 
+2849:     private fun startAutoScroll() {
+2850:         isAutoScrolling = true
+2851:         autoScrollStartAttempt = 0
+2852:         issueAutoScrollStart(++autoScrollSession)
+2853:     }
+2854: 
+2855:     private fun issueAutoScrollStart(session: Int) {
+2856:         // Pref is half-steps (speed x2); level is 1.0..10.0 in 0.5 increments.
+2857:         val level = preferences.novelAutoScrollLevel()
+2858: 
+2859:         // Drive the scroll from a single in-page requestAnimationFrame loop instead of a Kotlin
+2860:         // timer that fires window.scrollBy over the JS bridge every 50ms: those round-trips arrive
+2861:         // with jittery timing and each moves a fixed integer step, which reads as stutter. The rAF
+2862:         // loop advances by (px/sec * frame delta) with sub-pixel accumulation for smooth motion, and
+2863:         // naturally pauses while the WebView is backgrounded (no frames), resuming without a jump via
+2864:         // the dt clamp. speed level (1..10) maps to CSS px/sec.
+2865:         val pxPerSec = level * 20
+2866:         val attempt = ++autoScrollStartAttempt
+2867:         evaluateJavascriptSafe(
+2868:             """
+2869:             (function() {
+2870:                 var s = window.__tdAutoScroll || (window.__tdAutoScroll = {});
+2871:                 s.pxPerSec = $pxPerSec;
+2872:                 if (s.running) return;
+2873:                 s.running = true;
+2874:                 s.last = null;
+2875:                 s.acc = 0;
+2876:                 function step(ts) {
+2877:                     if (!s.running) return;
+2878:                     if (s.last === null) s.last = ts;
+2879:                     var dt = (ts - s.last) / 1000;
+2880:                     s.last = ts;
+2881:                     // Clamp so a long background gap (or first frame) can't jump the page.
+2882:                     if (dt > 0.05) dt = 0.05;
+2883:                     s.acc += s.pxPerSec * dt;
+2884:                     var whole = Math.floor(s.acc);
+2885:                     if (whole > 0) { window.scrollBy(0, whole); s.acc -= whole; }
+2886:                     s.raf = requestAnimationFrame(step);
+2887:                 }
+2888:                 s.raf = requestAnimationFrame(step);
+2889:             })();
+2890:             """.trimIndent(),
+2891:             null,
+2892:         )
+2893:         // Confirm the in-page loop actually started: evaluateJavascript is silently dropped when the
+2894:         // JS context isn't ready, which would leave isAutoScrolling stuck on with no motion. Query the
+2895:         // loop's own flag; retry a few times, then give up and clear isAutoScrolling so the state
+2896:         // reflects reality. s.running stays true while backgrounded (rAF paused), so this won't
+2897:         // false-negative on a paused page.
+2898:         webView.postDelayed({
+2899:             if (!isAutoScrolling || session != autoScrollSession || attempt != autoScrollStartAttempt) {
+2900:                 return@postDelayed
+2901:             }
+2902:             evaluateJavascriptSafe(
+2903:                 "(function(){ return !!(window.__tdAutoScroll && window.__tdAutoScroll.running); })();",
+2904:             ) { running ->
+2905:                 if (!isAutoScrolling || session != autoScrollSession || attempt != autoScrollStartAttempt) {
+2906:                     return@evaluateJavascriptSafe
+2907:                 }
+2908:                 if (running != "true") {
+2909:                     if (autoScrollStartAttempt < AUTO_SCROLL_MAX_START_ATTEMPTS) {
+2910:                         issueAutoScrollStart(session)
+2911:                     } else {
+2912:                         isAutoScrolling = false
+2913:                         logcat(LogPriority.WARN) { "NovelWebViewViewer: autoscroll failed to start, giving up" }
+2914:                     }
+2915:                 }
+2916:             }
+2917:         }, AUTO_SCROLL_START_VERIFY_MS)
+2918:     }
+2919: 
+2920:     fun stopAutoScroll() {
+2921:         isAutoScrolling = false
+2922:         ++autoScrollSession
+2923:         evaluateJavascriptSafe(
+2924:             """
+=== onPageInfoChanged (2085-2125) ===
+2085:         fun onContentEdited() {
+2086:             activity.runOnUiThread {
+2087:                 activity.viewModel.setHasUnsavedChanges(true)
+2088:             }
+2089:         }
+2090: 
+2091:         @JavascriptInterface
+2092:         fun onSaveEditedContent(json: String) {
+2093:             logcat(LogPriority.DEBUG) { "NovelWebViewViewer: onSaveEditedContent(length=${json.length})" }
+2094:             activity.runOnUiThread {
+2095:                 activity.viewModel.saveEditedChapterContent(json)
+2096:             }
+2097:         }
+2098: 
+2099:         @JavascriptInterface
+2100:         fun onPageInfoChanged(pageIndex: Int, pageCount: Int) {
+2101:             activity.runOnUiThread {
+2102:                 if (pageCount > 0) lastKnownPagedPageCount = pageCount
+2103:                 activity.onNovelPageInfoChanged(pageIndex, pageCount)
+2104:                 // Prefetch the neighbor chapter(s) once the reader nears an edge, so a chapter-switch
+2105:                 // triggered by paging past it (always a full switch now, never an append) is fast.
+2106:                 // A single-page chapter is simultaneously at both edges, so both are checked
+2107:                 // independently rather than an if/else-if that can only ever pick one.
+2108:                 // Reads the ViewModel's viewerChapters, not this viewer's own (possibly stale)
+2109:                 // currentChapters - see loadNextChapter()'s matching comment.
+2110:                 val chapters = activity.viewModel.state.value.viewerChapters
+2111:                 if (pageIndex >= pageCount - 1) {
+2112:                     val next = chapters?.nextChapter
+2113:                     val nextId = next?.chapter?.id
+2114:                     if (next != null && nextId != lastPreloadRequestedNextChapterId) {
+2115:                         lastPreloadRequestedNextChapterId = nextId
+2116:                         activity.requestPreloadChapter(next)
+2117:                     }
+2118:                 }
+2119:                 if (pageIndex <= 0) {
+2120:                     val prev = chapters?.prevChapter
+2121:                     val prevId = prev?.chapter?.id
+2122:                     if (prev != null && prevId != lastPreloadRequestedPrevChapterId) {
+2123:                         lastPreloadRequestedPrevChapterId = prevId
+2124:                         activity.requestPreloadChapter(prev)
+2125:                     }
+=== JS interface lines ===
+
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:124:    private lateinit var webView: WebView
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:820:            addJavascriptInterface(this@NovelWebViewViewer.WebViewInterface(), "Android")
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2083:    inner class WebViewInterface {
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2084:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2091:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2099:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2130:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2141:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2154:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2197:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2203:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2210:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2275:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2304:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2319:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2324:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2329:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2334:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2348:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2353:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2358:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2363:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2368:        @JavascriptInterface
+tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\viewer\text\webview\NovelWebViewViewer.kt:2786:    fun isPagedModeActive(): Boolean = preferences.novelPagedMode.get()
+
+
+
+=== prefs ===
+
+> tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\setting\ReaderPreferences.kt:306:    val novelPagedMode: Preference<Boolean> = preferenceStore.getBoolean("pref_novel_paged_mode", false)
+  tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\setting\ReaderPreferences.kt:307:
+  tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\setting\ReaderPreferences.kt:308:    // Whether swipe/drag turns a page while paged mode is on (tap zones always work regardless -
+  tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\setting\ReaderPreferences.kt:309:    // this only controls the swipe gesture, for users who want tap-only navigation).
+> tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\setting\ReaderPreferences.kt:310:    val novelPagedSwipeEnabled: Preference<Boolean> =
+  tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\setting\ReaderPreferences.kt:311:        preferenceStore.getBoolean("pref_novel_paged_swipe_enabled", true)
+  tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\setting\ReaderPreferences.kt:312:
+  tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\setting\ReaderPreferences.kt:313:    // Swipe distance (percent of width) needed to commit a page turn in paged mode
+> tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\ReaderActivity.kt:841:            val novelPagedModeState by readerPreferences.novelPagedMode.collectAsState()
+  tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\ReaderActivity.kt:842:
+  tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\ReaderActivity.kt:843:            // Get common callbacks that work for both viewer types
+  tsundoku\app\src\main\java\eu\kanade\tachiyomi\ui\reader\ReaderActivity.kt:844:            val onScrollToTop: () -> Unit = {
+
+
+

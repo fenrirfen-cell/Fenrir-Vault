@@ -117,6 +117,15 @@ jobs:
         continue-on-error: true
         run: git push origin "HEAD:$BRANCH"
 
+      - name: Check app icon (Android's own tool)
+        if: steps.go.outputs.build == 'true'
+        continue-on-error: true
+        run: |
+          APK=$(ls androidApp/build/outputs/apk/full/fast/*.apk | head -n1)
+          AAPT2=$(ls -d "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -n1)
+          echo "== badging"; "$AAPT2" dump badging "$APK" | grep -iE "^package|icon|launchable" | head -40
+          echo "== launcher resources"; "$AAPT2" dump resources "$APK" | grep -iA12 "mipmap/ic_launcher_fenrir " | head -60
+
       - name: Publish release
         if: steps.go.outputs.build == 'true'
         env:

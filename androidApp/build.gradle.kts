@@ -71,8 +71,12 @@ android {
         // Read mode (Tsundoku) needs Android 8.0+.
         minSdk = maxOf(libs.versions.android.minSdk.get().toInt(), 26)
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = releaseAppVersionCode
-        versionName = releaseAppVersionName
+        // Fenrir Read: every published build gets its own, higher version code (Nuvio's code x 1000
+        // + build number). Phones cache an app's icon per version, so a code that never changed kept
+        // showing an icon saved from an old install.
+        val fenrirBuildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+        versionCode = if (fenrirBuildNumber != null) releaseAppVersionCode * 1000 + fenrirBuildNumber else releaseAppVersionCode
+        versionName = if (fenrirBuildNumber != null) "$releaseAppVersionName-r$fenrirBuildNumber" else releaseAppVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

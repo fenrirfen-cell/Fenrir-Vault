@@ -62,6 +62,8 @@ class NuvioReadApplication : App() {
 
         // Aniyomi extensions (anime plugins from the user's own repositories).
         FenrirPlugins.aniyomi = AniyomiPluginHost(this)
+        // CloudStream plugins (.cs3 from the user's own repositories).
+        FenrirPlugins.cloudStream = CloudStreamPluginHost(this)
     }
 
     private companion object {

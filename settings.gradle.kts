@@ -41,4 +41,5 @@ includeBuild("tsundoku") {
 
 include(":composeApp")
 include(":androidApp")
+include(":cloudstreamLibrary")
 include(":baselineprofile")

@@ -107,6 +107,15 @@ android {
                 "META-INF/NOTICE",
                 "META-INF/README.md",
             )
+            // CloudStream library dependencies (Jackson, Rhino, NewPipe) ship overlapping metadata.
+            excludes += setOf(
+                "META-INF/LICENSE.md",
+                "META-INF/NOTICE.md",
+                "META-INF/NOTICE.txt",
+                "META-INF/LICENSE-notice.md",
+                "META-INF/INDEX.LIST",
+                "META-INF/versions/9/module-info.class",
+            )
         }
         jniLibs {
             useLegacyPackaging = true
@@ -236,6 +245,8 @@ dependencies {
     implementation(project(":composeApp"))
     // Read mode: Tsundoku, from the ./tsundoku included build (see settings.gradle.kts).
     implementation("app.tsundoku:embedded")
+    // CloudStream plugin library (vendored, GPL-3.0) for CloudStream plugins.
+    implementation(project(":cloudstreamLibrary"))
     // Tsundoku brings some Coil 3 modules at an older version; keep every Coil module on Nuvio's.
     implementation(platform("io.coil-kt.coil3:coil-bom:${libs.versions.coil.get()}"))
     implementation(libs.androidx.appcompat)

@@ -31,6 +31,7 @@ class NuvioReadApplication : App() {
         EmbeddedHost.watchLabel = ReadModeBridge.watchLabel
         EmbeddedHost.readLabel = ReadModeBridge.readLabel
         EmbeddedHost.openWatch = modes::openWatch
+        EmbeddedHost.openAniDrama = modes::openAniDrama
 
         MainActivityLaunchRedirect.handler = modes::redirectLaunchIfNeeded
 
@@ -39,6 +40,9 @@ class NuvioReadApplication : App() {
         AniDramaBridge.install(
             keepRowsOnHome = aniDramaPrefs.getBoolean(KEY_KEEP_ROWS_ON_HOME, false),
         ) { keep -> aniDramaPrefs.edit().putBoolean(KEY_KEEP_ROWS_ON_HOME, keep).apply() }
+
+        // Episode reminders from the Ani-drama calendar (notification + optional spoken alert).
+        com.nuvio.app.features.anidrama.AniDramaRemindersAndroid.install(this)
     }
 
     private companion object {

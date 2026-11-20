@@ -413,6 +413,15 @@ internal fun MainAppContent(
         }
     }
 
+    // Fenrir: the Read side's switch can ask for the Ani-drama tab.
+    val aniDramaOpenRequested by com.nuvio.app.features.anidrama.AniDramaBridge.openRequested.collectAsStateWithLifecycle()
+    LaunchedEffect(aniDramaOpenRequested) {
+        if (aniDramaOpenRequested) {
+            com.nuvio.app.features.anidrama.AniDramaBridge.consumeOpenRequest()
+            activateTab(AppScreenTab.AniDrama)
+        }
+    }
+
     fun handleRootTabClick(tab: AppScreenTab) {
         if (selectedTab != tab) {
             activateTab(tab)

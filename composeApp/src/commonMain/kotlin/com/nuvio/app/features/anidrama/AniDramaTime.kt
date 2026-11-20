@@ -46,6 +46,44 @@ internal object AniDramaTime {
     fun localStartOfDayMs(iso: String): Long =
         CurrentDateProvider.localStartOfDayEpochMs(iso) ?: ((epochDay(iso) ?: 0L) * DAY_MS)
 
+    /** Local date (yyyy-MM-dd) of a moment, found by walking from today. */
+    fun localDayIsoOf(epochMs: Long): String {
+        var day = todayIso()
+        var guard = 0
+        while (epochMs < localStartOfDayMs(day) && guard++ < 4000) day = addDays(day, -1)
+        while (epochMs >= localStartOfDayMs(addDays(day, 1)) && guard++ < 4000) day = addDays(day, 1)
+        return day
+    }
+
+    /** Local time label (e.g. "9:30 PM") of a moment. */
+    fun localTimeLabelOf(epochMs: Long): String {
+        val minutes = ((epochMs - localStartOfDayMs(localDayIsoOf(epochMs))) / 60_000L).toInt()
+        return timeLabel(minutes / 60, minutes % 60)
+    }
+
+    fun firstOfMonth(year: Int, month: Int): String =
+        "${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-01"
+
+    fun daysInMonth(year: Int, month: Int): Int {
+        val start = epochDay(firstOfMonth(year, month)) ?: return 30
+        val next = if (month == 12) firstOfMonth(year + 1, 1) else firstOfMonth(year, month + 1)
+        return ((epochDay(next) ?: (start + 30)) - start).toInt()
+    }
+
+    private val monthNames = listOf(
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    )
+
+    fun monthName(month: Int): String = monthNames.getOrElse(month - 1) { "" }
+
+    fun longDayLabel(iso: String): String {
+        val weekday = weekdayOfIso(iso)?.let { listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[it] }.orEmpty()
+        val month = iso.substring(5, 7).toIntOrNull()?.let { monthNames.getOrNull(it - 1)?.take(3) }.orEmpty()
+        val day = iso.substring(8, 10).toIntOrNull() ?: 0
+        return "$weekday, $month $day"
+    }
+
     /** Local weekday (0 = Monday) and time label for a moment in epoch seconds, within this week. */
     fun localWeekdayAndTime(epochSeconds: Long, weekStartIso: String): Pair<Int, String>? {
         val ms = epochSeconds * 1000

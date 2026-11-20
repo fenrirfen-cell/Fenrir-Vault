@@ -39,6 +39,7 @@ import com.nuvio.app.features.settings.NavBarStyle
 import com.nuvio.app.features.settings.ThemeSettingsRepository
 import com.nuvio.app.readmode.ReadModeBridge
 import com.nuvio.app.readmode.ReadModeSwitch
+import com.nuvio.app.readmode.FenrirMode
 import com.nuvio.app.readmode.ModeBarBackground
 import com.nuvio.app.readmode.ModeBarScroll
 import com.nuvio.app.readmode.modeBarHeight
@@ -92,6 +93,7 @@ internal fun MainTabsDestination(
         val navBarStyleSetting by remember { ThemeSettingsRepository.navBarStyle }.collectAsStateWithLifecycle()
         val navBarGlowEnabled by ThemeSettingsRepository.navBarGlowEnabled.collectAsStateWithLifecycle()
         val aniDramaAvailable by AniDramaBridge.isAvailable.collectAsStateWithLifecycle()
+        val assistantOpen by com.nuvio.app.assistant.AssistantController.open.collectAsStateWithLifecycle()
         val floatingNavigationItems = listOfNotNull(
             FloatingNavigationItem(
                 selected = selectedTab == AppScreenTab.Home,
@@ -99,12 +101,13 @@ internal fun MainTabsDestination(
                 icon = Icons.Filled.Home,
                 label = stringResource(Res.string.compose_nav_home),
             ),
-            if (aniDramaAvailable) {
+            // Fenrir assistant: opens the assistant panel (Ani-drama lives in the top switch).
+            if (ReadModeBridge.isAvailable) {
                 FloatingNavigationItem(
-                    selected = selectedTab == AppScreenTab.AniDrama,
-                    onClick = { onTabSelected(AppScreenTab.AniDrama) },
+                    selected = assistantOpen,
+                    onClick = { com.nuvio.app.assistant.AssistantController.show() },
                     icon = Icons.Rounded.AutoAwesome,
-                    label = AniDramaBridge.TAB_LABEL,
+                    label = "Assistant",
                 )
             } else null,
             FloatingNavigationItem(
@@ -151,12 +154,12 @@ internal fun MainTabsDestination(
                             icon = Icons.Filled.Home,
                             contentDescription = stringResource(Res.string.compose_nav_home),
                         )
-                        if (aniDramaAvailable) {
+                        if (ReadModeBridge.isAvailable) {
                             NavItem(
-                                selected = selectedTab == AppScreenTab.AniDrama,
-                                onClick = { onTabSelected(AppScreenTab.AniDrama) },
+                                selected = assistantOpen,
+                                onClick = { com.nuvio.app.assistant.AssistantController.show() },
                                 icon = Icons.Rounded.AutoAwesome,
-                                contentDescription = AniDramaBridge.TAB_LABEL,
+                                contentDescription = "Assistant",
                             )
                         }
                         NavItem(
@@ -186,7 +189,9 @@ internal fun MainTabsDestination(
                 }
             },
         ) { innerPadding ->
-            val readModeBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 70.dp
+            // Fenrir: the Watch / Ani-drama / Read bar sits on top of Home and Ani-drama.
+            val showModeBar = ReadModeBridge.isAvailable &&
+                (selectedTab == AppScreenTab.Home || selectedTab == AppScreenTab.AniDrama)
             Box(modifier = Modifier.fillMaxSize()) {
                 CompositionLocalProvider(
                     LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
@@ -199,40 +204,31 @@ internal fun MainTabsDestination(
                         actions = tabActions,
                         modifier = Modifier
                             .fillMaxSize()
-                            .then(if (isTabletLayout || navBarStyleSetting != NavBarStyle.CLASSIC || (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable)) Modifier.hazeSource(state = navBarHazeState) else Modifier)
+                            .then(if (isTabletLayout || navBarStyleSetting != NavBarStyle.CLASSIC || showModeBar) Modifier.hazeSource(state = navBarHazeState) else Modifier)
                             .then(if (navBarStyleSetting == NavBarStyle.ADAPTIVE) Modifier.nestedScroll(navBarScrollState.nestedScrollConnection) else Modifier)
                             .padding(innerPadding)
                             .then(if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) Modifier.nestedScroll(ModeBarScroll.connection) else Modifier),
                     )
                 }
 
-                // Watch / Read switch (Android app with Read mode only), floating over the Home hero.
-                if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) {
-                    androidx.compose.runtime.LaunchedEffect(Unit) { ModeBarScroll.reset() }
+                // Watch / Ani-drama / Read switch (Android app with Read mode only).
+                if (showModeBar) {
+                    androidx.compose.runtime.LaunchedEffect(selectedTab) { ModeBarScroll.reset() }
                     // Soft fade behind the switch; Home content scrolls underneath it.
                     ModeBarBackground()
                     ReadModeSwitch(
                         hazeState = navBarHazeState,
+                        selected = if (selectedTab == AppScreenTab.AniDrama) FenrirMode.AniDrama else FenrirMode.Watch,
+                        onWatch = { onTabSelected(AppScreenTab.Home) },
+                        onAniDrama = if (aniDramaAvailable) {
+                            { onTabSelected(AppScreenTab.AniDrama) }
+                        } else null,
                         modifier = Modifier
                             .align(if (isTabletLayout) Alignment.TopStart else Alignment.TopCenter)
                             .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
                             .padding(
                                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 10.dp,
                                 start = if (isTabletLayout) 16.dp else 0.dp,
-                            ),
-                    )
-                }
-
-                // Fenrir assistant button, top right of Home.
-                if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) {
-                    com.nuvio.app.assistant.AssistantLauncherButton(
-                        hazeState = navBarHazeState,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
-                            .padding(
-                                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 14.dp,
-                                end = 10.dp,
                             ),
                     )
                 }

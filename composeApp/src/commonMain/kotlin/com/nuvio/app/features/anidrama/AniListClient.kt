@@ -82,10 +82,20 @@ internal object AniListClient {
         return pageData.media to (pageData.pageInfo?.hasNextPage == true)
     }
 
+    private const val NEXT_QUERY = """
+        query (${'$'}id: Int) { Media(id: ${'$'}id, type: ANIME) { nextAiringEpisode { episode airingAt } } }
+    """
+
+    /** The next episode of one show, or null if none is scheduled. */
+    suspend fun nextEpisode(id: Int): AniListNextEpisode? {
+        val variables = buildJsonObject { put("id", id) }
+        return post<NextEnvelope>(NEXT_QUERY, variables)?.data?.media?.nextAiringEpisode
+    }
+
     /** Episodes airing between two moments (epoch seconds), Japanese TV only, oldest first. */
-    suspend fun schedule(fromEpochSeconds: Long, toEpochSeconds: Long): List<AniListAiring> {
+    suspend fun schedule(fromEpochSeconds: Long, toEpochSeconds: Long, maxPages: Int = 6): List<AniListAiring> {
         val all = mutableListOf<AniListAiring>()
-        for (page in 1..6) {
+        for (page in 1..maxPages) {
             val variables = buildJsonObject {
                 put("page", page)
                 put("from", fromEpochSeconds.toInt())
@@ -137,6 +147,15 @@ internal object AniListClient {
 
     @Serializable
     private data class PageInfo(val hasNextPage: Boolean = false)
+
+    @Serializable
+    private data class NextEnvelope(val data: NextData? = null)
+
+    @Serializable
+    private data class NextData(@SerialName("Media") val media: NextMedia? = null)
+
+    @Serializable
+    private data class NextMedia(val nextAiringEpisode: AniListNextEpisode? = null)
 }
 
 @Serializable

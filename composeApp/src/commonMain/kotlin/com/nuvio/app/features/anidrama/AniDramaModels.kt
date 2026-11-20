@@ -20,7 +20,7 @@ enum class AnimeChip(val label: String) {
     Seasons("Seasons"),
     Genres("Genres"),
     Upcoming("Upcoming"),
-    Schedule("Schedule"),
+    Calendar("Calendar"),
 }
 
 /** Chips on the drama sides. */
@@ -32,7 +32,7 @@ enum class DramaChip(val label: String) {
     TopRated("Top rated"),
     Genres("Genres"),
     Networks("Networks"),
-    Schedule("Schedule"),
+    Calendar("Calendar"),
 }
 
 /** Dub / Sub / Both filter on the anime side, using the community MAL-Dubs list. */
@@ -78,13 +78,23 @@ data class AniDramaItem(
     val description: String? = null,
     val genres: List<String> = emptyList(),
     val hasEnglishDub: Boolean = false,
+    /** IDs this show may have in your Library (tt..., tmdb:..., kitsu:...), for "My shows". */
+    val matchIds: Set<String> = emptySet(),
 )
 
-/** One line in a weekly schedule. */
+/** One episode in the calendar. */
 data class AniDramaScheduleEntry(
     val item: AniDramaItem,
     /** 0 = Monday ... 6 = Sunday, in the phone's time zone. */
     val weekday: Int,
+    /** Local date, yyyy-MM-dd. */
+    val dateIso: String = "",
+    val episode: Int = 0,
+    /** First episode of a show (or season). */
+    val isPremiere: Boolean = false,
+    /** When it airs (epoch ms); for dramas TMDB only gives a date, so this is local noon. */
+    val airEpochMs: Long? = null,
+    val network: String? = null,
     /** Local time, e.g. "9:30 PM"; null when only the date is known (dramas). */
     val timeLabel: String?,
     val episodeLabel: String,

@@ -7,6 +7,7 @@ import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,15 +45,26 @@ object ReadModeBridge {
     val isAvailable: Boolean get() = openRead != null
 }
 
+/** Which side of Fenrir Read the switch shows as selected. */
+enum class FenrirMode { Watch, AniDrama, Read }
+
 /**
- * The Watch / Read pill. Floats over the top of the Home tab; Watch is always the selected side
- * here (Tsundoku draws its own copy with Read selected).
+ * The Watch / Ani-drama / Read pill at the top of Home and Ani-drama (Tsundoku draws its own copy
+ * with Read selected). Without [onAniDrama] it falls back to the two-way Watch / Read pill.
  */
 @Composable
-fun ReadModeSwitch(modifier: Modifier = Modifier, hazeState: HazeState? = null) {
+fun ReadModeSwitch(
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
+    selected: FenrirMode = FenrirMode.Watch,
+    onWatch: () -> Unit = {},
+    onAniDrama: (() -> Unit)? = null,
+) {
     val openRead = ReadModeBridge.openRead ?: return
+    val threeWay = onAniDrama != null
     Row(
         modifier = modifier
+            .then(if (threeWay) Modifier.fillMaxWidth().padding(horizontal = 12.dp) else Modifier)
             .clip(CircleShape)
             .then(
                 // Same frosted glass as the bottom navigation bar.
@@ -62,17 +75,32 @@ fun ReadModeSwitch(modifier: Modifier = Modifier, hazeState: HazeState? = null) 
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
+        val segmentModifier = if (threeWay) Modifier.weight(1f) else Modifier
         ModeSegment(
             label = ReadModeBridge.watchLabel,
             icon = Icons.Rounded.PlayArrow,
-            selected = true,
-            onClick = {},
+            selected = selected == FenrirMode.Watch,
+            onClick = onWatch,
+            compact = threeWay,
+            modifier = segmentModifier,
         )
+        if (onAniDrama != null) {
+            ModeSegment(
+                label = "Ani-drama",
+                icon = Icons.Rounded.Tv,
+                selected = selected == FenrirMode.AniDrama,
+                onClick = onAniDrama,
+                compact = true,
+                modifier = segmentModifier,
+            )
+        }
         ModeSegment(
             label = ReadModeBridge.readLabel,
             icon = Icons.AutoMirrored.Rounded.MenuBook,
-            selected = false,
+            selected = selected == FenrirMode.Read,
             onClick = openRead,
+            compact = threeWay,
+            modifier = segmentModifier,
         )
     }
 }
@@ -83,29 +111,34 @@ private fun ModeSegment(
     icon: ImageVector,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     val contentColor = if (selected) colors.onPrimary else Color.White.copy(alpha = 0.85f)
     Row(
-        modifier = Modifier
+        modifier = modifier
             .clip(CircleShape)
             .then(if (selected) Modifier.background(colors.primary) else Modifier)
             .semantics { this.selected = selected }
             .clickable(enabled = !selected, role = Role.Tab, onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(horizontal = if (compact) 8.dp else 20.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(if (compact) 18.dp else 22.dp),
             tint = contentColor,
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(if (compact) 6.dp else 8.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.titleMedium,
+            style = if (compact) MaterialTheme.typography.labelLarge else MaterialTheme.typography.titleMedium,
             color = contentColor,
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }

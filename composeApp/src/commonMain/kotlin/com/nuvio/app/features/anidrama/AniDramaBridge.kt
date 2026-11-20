@@ -29,6 +29,19 @@ object AniDramaBridge {
         _isAvailable.value = true
     }
 
+    private val _openRequested = MutableStateFlow(false)
+
+    /** True when another screen (e.g. the Read side's switch) asked to show Ani-drama. */
+    val openRequested: StateFlow<Boolean> = _openRequested.asStateFlow()
+
+    fun requestOpen() {
+        _openRequested.value = true
+    }
+
+    fun consumeOpenRequest() {
+        _openRequested.value = false
+    }
+
     fun setKeepRowsOnHome(keep: Boolean) {
         _keepRowsOnHome.value = keep
         persistKeepRowsOnHome?.invoke(keep)

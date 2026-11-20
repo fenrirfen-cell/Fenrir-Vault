@@ -63,20 +63,38 @@ internal object AnimeRepository {
     }
 
     /** This week's episodes, Monday to Sunday in the phone's time zone. */
-    suspend fun weekSchedule(): List<AniDramaScheduleEntry> {
-        val weekStart = AniDramaTime.mondayOfThisWeek()
-        val from = AniDramaTime.localStartOfDayMs(weekStart) / 1000 - 1
-        val to = AniDramaTime.localStartOfDayMs(AniDramaTime.addDays(weekStart, 7)) / 1000
-        val airings = AniListClient.schedule(from, to)
+    suspend fun weekSchedule(): List<AniDramaScheduleEntry> = schedule(AniDramaTime.mondayOfThisWeek(), 7)
+
+    private val scheduleCache = HashMap<String, List<AniDramaScheduleEntry>>()
+
+    /** Episodes airing over [days] days from [startIso] (local dates). Kept for this app session. */
+    suspend fun schedule(startIso: String, days: Int): List<AniDramaScheduleEntry> {
+        val cacheKey = "$startIso+$days"
+        scheduleCache[cacheKey]?.let { return it }
+        val startDay = AniDramaTime.epochDay(startIso) ?: return emptyList()
+        val from = AniDramaTime.localStartOfDayMs(startIso) / 1000 - 1
+        val to = AniDramaTime.localStartOfDayMs(AniDramaTime.addDays(startIso, days)) / 1000
+        val airings = AniListClient.schedule(from, to, maxPages = if (days > 7) 24 else 6)
         val dubbed = dubbedIds()
         mapIds(airings.mapNotNull { it.media?.id }.distinct())
-        return airings.mapNotNull { airing ->
+        // Local midnight of each day in the range (and the day after), to place episodes quickly.
+        val dayStarts = (0..days).map { AniDramaTime.localStartOfDayMs(AniDramaTime.addDays(startIso, it)) }
+        val entries = airings.mapNotNull { airing ->
             val media = airing.media ?: return@mapNotNull null
-            val (weekday, time) = AniDramaTime.localWeekdayAndTime(airing.airingAt, weekStart) ?: return@mapNotNull null
+            val ms = airing.airingAt * 1000
+            val offset = (0 until days).firstOrNull { ms >= dayStarts[it] && ms < dayStarts[it + 1] } ?: return@mapNotNull null
+            val dateIso = AniDramaTime.addDays(startIso, offset)
+            val day = startDay + offset
+            val minutes = ((ms - dayStarts[offset]) / 60_000L).toInt()
+            val time = AniDramaTime.timeLabel(minutes / 60, minutes % 60)
             val item = media.toItem(dubbed, caption = "EP ${airing.episode}")
             AniDramaScheduleEntry(
                 item = item,
-                weekday = weekday,
+                weekday = AniDramaTime.weekdayOfEpochDay(day),
+                dateIso = dateIso,
+                episode = airing.episode,
+                isPremiere = airing.episode == 1,
+                airEpochMs = ms,
                 timeLabel = time,
                 episodeLabel = buildString {
                     append("EP ${airing.episode} airs $time")
@@ -86,7 +104,13 @@ internal object AnimeRepository {
                 genres = media.genres,
             )
         }
+        if (entries.isNotEmpty()) scheduleCache[cacheKey] = entries
+        return entries
     }
+
+    /** The next episode (number, epoch ms) of a show, or null when nothing is scheduled. */
+    suspend fun nextEpisode(aniListId: Int): Pair<Int, Long>? =
+        AniListClient.nextEpisode(aniListId)?.let { it.episode to it.airingAt * 1000 }
 
     fun applyAudioFilter(items: List<AniDramaItem>, filter: AnimeAudioFilter): List<AniDramaItem> = when (filter) {
         AnimeAudioFilter.Both -> items
@@ -139,6 +163,13 @@ internal object AnimeRepository {
             description = description?.stripHtml(),
             genres = genres,
             hasEnglishDub = idMal != null && idMal in dubbed,
+            matchIds = buildSet {
+                add("anilist:$id")
+                idMal?.let { add("mal:$it") }
+                ids?.kitsu?.let { add("kitsu:$it") }
+                ids?.imdb?.let { add(it) }
+                ids?.tmdb?.let { add("tmdb:$it") }
+            },
         )
     }
 

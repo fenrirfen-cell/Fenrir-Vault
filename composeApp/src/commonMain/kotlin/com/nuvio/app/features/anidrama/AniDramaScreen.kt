@@ -88,28 +88,19 @@ fun AniDramaScreen(
     val longPressItem: (AniDramaItem) -> Unit = { item -> onPosterLongClick?.invoke(item.toMetaPreview()) }
 
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Spacer(Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        // Room for the Watch / Ani-drama / Read switch drawn above this screen.
+        if (com.nuvio.app.readmode.ReadModeBridge.isAvailable) {
+            Spacer(Modifier.height(com.nuvio.app.readmode.modeBarHeight()))
+        } else {
+            Spacer(Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp))
             Text(
                 text = AniDramaBridge.TAB_LABEL,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
-            if (region == AniDramaRegion.Anime) {
-                AniDramaSegmented(
-                    options = AnimeAudioFilter.entries.map { it.label },
-                    selectedIndex = audioIndex,
-                    onSelect = { audioIndex = it },
-                    compact = true,
-                )
-            }
         }
-        Spacer(Modifier.height(10.dp))
         AniDramaSegmented(
             options = AniDramaRegion.entries.map { it.label },
             selectedIndex = regionIndex,
@@ -130,6 +121,19 @@ fun AniDramaScreen(
                 if (region == AniDramaRegion.Anime) animeChipIndex = index else dramaChipIndex = index
             },
         )
+        if (region == AniDramaRegion.Anime) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                AniDramaSegmented(
+                    options = AnimeAudioFilter.entries.map { it.label },
+                    selectedIndex = audioIndex,
+                    onSelect = { audioIndex = it },
+                    compact = true,
+                )
+            }
+        }
         Spacer(Modifier.height(6.dp))
 
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -217,9 +221,9 @@ private fun AnimeContent(
         AnimeChip.Upcoming -> AnimeGrid(AniListClient.MediaQuery(sort = "POPULARITY_DESC", status = "NOT_YET_RELEASED"), audio, onItemClick = onItemClick, onItemLongClick = onItemLongClick)
         AnimeChip.Seasons -> AnimeSeasons(audio, onItemClick, onItemLongClick)
         AnimeChip.Genres -> AnimeGenres(audio, onItemClick, onItemLongClick)
-        AnimeChip.Schedule -> AniDramaScheduleView(
-            key = "anime-schedule",
-            loader = { AnimeRepository.weekSchedule() },
+        AnimeChip.Calendar -> AniDramaCalendarView(
+            key = "anime-calendar",
+            loader = { start, days -> AnimeRepository.schedule(start, days) },
             filter = { AnimeRepository.applyAudioFilter(listOf(it.item), audio).isNotEmpty() },
             showDubBadge = true,
             onItemClick = onItemClick,
@@ -403,12 +407,11 @@ private fun DramaContent(
         )
         DramaChip.Genres -> DramaGenres(region, onItemClick, onItemLongClick)
         DramaChip.Networks -> DramaNetworks(region, onItemClick, onItemLongClick)
-        DramaChip.Schedule -> AniDramaScheduleView(
-            key = "drama-schedule-$region",
-            loader = { DramaRepository.weekSchedule(region) },
+        DramaChip.Calendar -> AniDramaCalendarView(
+            key = "drama-calendar-$region",
+            loader = { start, days -> DramaRepository.schedule(region, start, days) },
             filter = { true },
             showDubBadge = false,
-            showGenreFilter = true,
             onItemClick = onItemClick,
             onItemLongClick = onItemLongClick,
         )

@@ -207,6 +207,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- Fenrir: "Snooze" on Ani-drama episode reminders. -->
+        <receiver
+            android:name="com.nuvio.app.features.anidrama.AniDramaReminderSnoozeReceiver"
+            android:exported="false" />
+
         <!-- Read mode: both appcompat and Tsundoku declare this service; keep Tsundoku's setting. -->
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

@@ -48,6 +48,12 @@ internal class ReadModeController(
         activity.startActivity(intent, fade(activity))
     }
 
+    /** From the Read side's switch: go to the Watch side and open the Ani-drama tab. */
+    fun openAniDrama(activity: Activity) {
+        com.nuvio.app.features.anidrama.AniDramaBridge.requestOpen()
+        openWatch(activity)
+    }
+
     /**
      * Called at the start of Nuvio's MainActivity. On a launch from the home screen icon, when Read
      * was the last mode used, opens Read instead and returns true (MainActivity then finishes).

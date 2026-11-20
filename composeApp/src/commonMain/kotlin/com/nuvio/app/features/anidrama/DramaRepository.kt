@@ -87,7 +87,7 @@ internal object DramaRepository {
             "sort_by" to "popularity.desc",
         )
         when (filter.chip) {
-            DramaChip.AiringNow, DramaChip.Schedule -> {
+            DramaChip.AiringNow, DramaChip.Calendar -> {
                 query["air_date.gte"] = AniDramaTime.addDays(today, -7)
                 query["air_date.lte"] = AniDramaTime.addDays(today, 7)
             }
@@ -145,36 +145,114 @@ internal object DramaRepository {
             .take(14)
             .map { (id, list) -> AniDramaNamedId(id, list.first().name) }
 
-    /** Episodes airing this week (Monday to Sunday), newest information from TMDB. */
-    suspend fun weekSchedule(region: AniDramaRegion): List<AniDramaScheduleEntry> {
-        val weekStart = AniDramaTime.mondayOfThisWeek()
-        val startDay = AniDramaTime.epochDay(weekStart) ?: return emptyList()
-        return airingDetails(region).flatMap { show ->
-            listOfNotNull(show.lastEpisode, show.nextEpisode)
-                .distinctBy { "${it.seasonNumber}x${it.episodeNumber}" }
-                .mapNotNull { episode ->
-                    val day = episode.airDate?.let(AniDramaTime::epochDay) ?: return@mapNotNull null
-                    val offset = (day - startDay).toInt()
-                    if (offset !in 0..6) return@mapNotNull null
-                    val network = show.networks.firstOrNull()?.name
-                    val item = show.toItem(
-                        badge = network,
-                        caption = "EP ${episode.episodeNumber} · ${AniDramaTime.weekdayShort[offset]}",
-                    )
-                    AniDramaScheduleEntry(
-                        item = item,
-                        weekday = offset,
-                        timeLabel = null,
-                        episodeLabel = listOfNotNull(
-                            "EP ${episode.episodeNumber}",
-                            network,
-                            show.genres.firstOrNull()?.name,
-                        ).joinToString(" · "),
-                        sortKey = day * 1000 + (1000 - (show.popularity ?: 0.0).coerceAtMost(999.0).roundToInt()),
-                        genres = show.genres.map { it.name },
-                    )
-                }
+    /** Episodes airing this week (Monday to Sunday). */
+    suspend fun weekSchedule(region: AniDramaRegion): List<AniDramaScheduleEntry> =
+        schedule(region, AniDramaTime.mondayOfThisWeek(), 7)
+
+    private val scheduleMutex = Mutex()
+    private val scheduleCache = HashMap<String, List<AniDramaScheduleEntry>>()
+    private val seasonCache = HashMap<String, List<Episode>>()
+
+    /**
+     * Episodes over [days] days from [startIso]: every show with an episode in that range (most
+     * popular first) plus shows premiering in it, with dates from each show's season list.
+     */
+    suspend fun schedule(region: AniDramaRegion, startIso: String, days: Int): List<AniDramaScheduleEntry> =
+        scheduleMutex.withLock {
+            val cacheKey = "$region|$startIso|$days|${language()}"
+            scheduleCache[cacheKey]?.let { return@withLock it }
+            val startDay = AniDramaTime.epochDay(startIso) ?: return@withLock emptyList()
+            val endIso = AniDramaTime.addDays(startIso, days - 1)
+            val base = linkedMapOf(
+                "language" to language(),
+                "include_adult" to "false",
+                "with_origin_country" to region.country,
+                "with_original_language" to region.languageCode,
+                "without_genres" to EXCLUDED_GENRES,
+                "sort_by" to "popularity.desc",
+            )
+            val airingIds = (1..3).flatMap { page ->
+                fetch<DiscoverResponse>(
+                    "discover/tv",
+                    base + mapOf("page" to "$page", "air_date.gte" to startIso, "air_date.lte" to endIso),
+                )?.results.orEmpty()
+            }.map { it.id }
+            val premiereIds = (1..2).flatMap { page ->
+                fetch<DiscoverResponse>(
+                    "discover/tv",
+                    base + mapOf("page" to "$page", "first_air_date.gte" to startIso, "first_air_date.lte" to endIso),
+                )?.results.orEmpty()
+            }.map { it.id }
+            val ids = (airingIds + premiereIds).distinct().take(70)
+            val permits = Semaphore(6)
+            val shows = coroutineScope {
+                ids.map { id -> async { permits.withPermit { details(id) } } }.awaitAll()
+            }.filterNotNull()
+            val entries = coroutineScope {
+                shows.map { show ->
+                    async {
+                        permits.withPermit {
+                            val seasons = listOfNotNull(show.lastEpisode?.seasonNumber, show.nextEpisode?.seasonNumber)
+                                .ifEmpty { listOf(1) }
+                                .distinct()
+                            seasons.flatMap { season -> seasonEpisodes(show.id, season) }
+                                .mapNotNull { episode -> show.entryFor(episode, startDay, days) }
+                        }
+                    }
+                }.awaitAll().flatten()
+            }
+            if (entries.isNotEmpty()) scheduleCache[cacheKey] = entries
+            entries
         }
+
+    /** The next episode (number, local noon of its air date in epoch ms) of a show, or null. */
+    suspend fun nextEpisode(tmdbId: Int): Pair<Int, Long>? {
+        detailCache.remove(tmdbId)
+        val next = details(tmdbId)?.nextEpisode ?: return null
+        val date = next.airDate ?: return null
+        return next.episodeNumber to (AniDramaTime.localStartOfDayMs(date) + NOON_MS)
+    }
+
+    private const val NOON_MS = 12 * 60 * 60 * 1000L
+
+    private fun TvDetails.entryFor(episode: Episode, startDay: Long, days: Int): AniDramaScheduleEntry? {
+        val date = episode.airDate ?: return null
+        val day = AniDramaTime.epochDay(date) ?: return null
+        val offset = (day - startDay).toInt()
+        if (offset !in 0 until days) return null
+        val network = networks.firstOrNull()?.name
+        val premiere = episode.episodeNumber == 1
+        val item = toItem(
+            badge = network,
+            caption = "EP ${episode.episodeNumber} · ${AniDramaTime.weekdayShort[AniDramaTime.weekdayOfEpochDay(day)]}",
+        )
+        return AniDramaScheduleEntry(
+            item = item,
+            weekday = AniDramaTime.weekdayOfEpochDay(day),
+            dateIso = date,
+            episode = episode.episodeNumber,
+            isPremiere = premiere,
+            airEpochMs = AniDramaTime.localStartOfDayMs(date) + NOON_MS,
+            network = network,
+            timeLabel = null,
+            episodeLabel = listOfNotNull(
+                if (premiere) "Premiere" else null,
+                "EP ${episode.episodeNumber}",
+                network,
+                genres.firstOrNull()?.name,
+            ).joinToString(" · "),
+            sortKey = day * 1000 + (1000 - (popularity ?: 0.0).coerceAtMost(999.0).roundToInt()),
+            genres = genres.map { it.name },
+        )
+    }
+
+    private suspend fun seasonEpisodes(showId: Int, season: Int): List<Episode> {
+        val key = "$showId/$season"
+        seasonCache[key]?.let { return it }
+        val episodes = fetch<SeasonDetails>("tv/$showId/season/$season", mapOf("language" to language()))
+            ?.episodes.orEmpty()
+        if (episodes.isNotEmpty()) seasonCache[key] = episodes
+        return episodes
     }
 
     /** Details (network, episodes) for the ~60 most popular shows airing around this week. */
@@ -193,7 +271,8 @@ internal object DramaRepository {
 
     private suspend fun details(id: Int): TvDetails? {
         detailCache[id]?.let { return it }
-        val result = fetch<TvDetails>("tv/$id", mapOf("language" to language())) ?: return null
+        val result = fetch<TvDetails>("tv/$id", mapOf("language" to language(), "append_to_response" to "external_ids"))
+            ?: return null
         detailCache[id] = result
         return result
     }
@@ -238,6 +317,7 @@ internal object DramaRepository {
         year = firstAirDate?.take(4),
         description = overview,
         genres = genreNames,
+        matchIds = setOf("tmdb:$id"),
     )
 
     private fun TvDetails.toItem(badge: String?, caption: String?): AniDramaItem = AniDramaItem(
@@ -251,6 +331,7 @@ internal object DramaRepository {
         year = firstAirDate?.take(4),
         description = overview,
         genres = genres.map { it.name },
+        matchIds = setOfNotNull("tmdb:$id", externalIds?.imdbId?.takeIf { it.startsWith("tt") }),
     )
 
     private val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -293,7 +374,14 @@ internal object DramaRepository {
         val genres: List<Named> = emptyList(),
         @SerialName("last_episode_to_air") val lastEpisode: Episode? = null,
         @SerialName("next_episode_to_air") val nextEpisode: Episode? = null,
+        @SerialName("external_ids") val externalIds: ExternalIds? = null,
     )
+
+    @Serializable
+    private data class ExternalIds(@SerialName("imdb_id") val imdbId: String? = null)
+
+    @Serializable
+    private data class SeasonDetails(val episodes: List<Episode> = emptyList())
 
     @Serializable
     private data class Episode(

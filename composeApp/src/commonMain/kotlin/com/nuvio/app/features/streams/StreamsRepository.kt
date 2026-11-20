@@ -22,7 +22,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 
 object StreamsRepository {
     private val log = Logger.withTag("StreamsRepo")
@@ -250,6 +252,34 @@ object StreamsRepository {
             showDirectAutoPlayOverlay = isDirectAutoPlayFlow,
         )
 
+        // Fenrir: Aniyomi / CloudStream plugins look the show up by name and add their own groups.
+        val fenrirHosts = com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources }
+        val fenrirQuery = com.nuvio.app.readmode.FenrirPlugins
+            .titleFor(parentMetaId ?: videoId.substringBefore(':'))
+            ?.let { (name, year) ->
+                com.nuvio.app.readmode.FenrirStreamQuery(
+                    title = name,
+                    year = year,
+                    isMovie = type == "movie",
+                    season = season,
+                    episode = episode,
+                )
+            }
+            ?.takeIf { fenrirHosts.isNotEmpty() }
+        if (fenrirQuery != null) {
+            val loadingGroups = fenrirHosts.map { host ->
+                AddonStreamGroup(addonName = host.groupName(), addonId = host.groupId(), streams = emptyList(), isLoading = true)
+            }
+            _uiState.update { current ->
+                current.copy(
+                    groups = current.groups + loadingGroups,
+                    activeAddonIds = current.activeAddonIds + loadingGroups.map { it.addonId },
+                    isAnyLoading = true,
+                    emptyStateReason = null,
+                )
+            }
+        }
+
         activeJob = scope.launch {
             val pluginRemainingByAddonId = pluginProviderGroups
                 .associate { it.addonId to it.scrapers.size }
@@ -432,6 +462,36 @@ object StreamsRepository {
                 null
             }
 
+            val fenrirJobs = if (fenrirQuery == null) emptyList() else fenrirHosts.map { host ->
+                launch {
+                    val lock = kotlinx.coroutines.sync.Mutex()
+                    val collected = mutableListOf<StreamItem>()
+                    runCatching {
+                        host.findStreams(fenrirQuery) { _, found ->
+                            val snapshot = lock.withLock {
+                                collected += found.map { it.toFenrirStreamItem(host) }
+                                collected.toList()
+                            }
+                            if (snapshot.isNotEmpty()) {
+                                publishAddonGroup(
+                                    AddonStreamGroup(host.groupName(), host.groupId(), snapshot, isLoading = true),
+                                )
+                            }
+                        }
+                    }
+                    val final = lock.withLock { collected.toList() }
+                    publishAddonGroup(
+                        AddonStreamGroup(
+                            addonName = host.groupName(),
+                            addonId = host.groupId(),
+                            streams = final,
+                            isLoading = false,
+                            error = if (final.isEmpty()) "Not found in your ${host.title.lowercase()}" else null,
+                        ),
+                    )
+                }
+            }
+
             StreamSearchSessions.search(
                 profileId = ProfileRepository.activeProfileId,
                 targets = searchTargets,
@@ -490,6 +550,7 @@ object StreamsRepository {
                 }
             }
 
+            fenrirJobs.joinAll()
             // A search dropped before it finished leaves its remaining sources without a result.
             _uiState.update { it.withoutPendingGroups() }
 
@@ -597,3 +658,28 @@ object StreamsRepository {
         _uiState.update { it.copy(showDirectAutoPlayOverlay = visible, overlayMessage = message) }
     }
 }
+
+private fun com.nuvio.app.readmode.FenrirPluginHost.groupId(): String = "fenrir:$id"
+
+private fun com.nuvio.app.readmode.FenrirPluginHost.groupName(): String = when (id) {
+    "aniyomi" -> "Aniyomi"
+    "cloudstream" -> "CloudStream"
+    else -> title
+}
+
+private fun com.nuvio.app.readmode.FenrirPluginStream.toFenrirStreamItem(
+    host: com.nuvio.app.readmode.FenrirPluginHost,
+): StreamItem = StreamItem(
+    name = label,
+    title = "$sourceName · $detail",
+    description = "$sourceName · $detail",
+    url = url,
+    sourceName = sourceName,
+    addonName = host.groupName(),
+    addonId = host.groupId(),
+    behaviorHints = StreamBehaviorHints(
+        notWebReady = true,
+        proxyHeaders = if (headers.isEmpty()) null else StreamProxyHeaders(request = headers),
+    ),
+    externalSubtitles = subtitles.map { (subUrl, lang) -> StreamSubtitle(url = subUrl, language = lang) },
+)

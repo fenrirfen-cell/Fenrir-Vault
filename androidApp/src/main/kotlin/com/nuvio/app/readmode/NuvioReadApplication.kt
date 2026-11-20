@@ -59,6 +59,9 @@ class NuvioReadApplication : App() {
         FenrirSources.openReadExtensions = modes::openReadExtensions
         FenrirSources.mangaExtensionCount = EmbeddedHost::mangaExtensionCount
         FenrirSources.novelPluginCount = EmbeddedHost::novelPluginCount
+
+        // Aniyomi extensions (anime plugins from the user's own repositories).
+        FenrirPlugins.aniyomi = AniyomiPluginHost(this)
     }
 
     private companion object {

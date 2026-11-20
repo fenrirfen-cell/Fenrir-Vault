@@ -6,6 +6,9 @@ import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.rounded.AutoStories
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Movie
+import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -185,6 +188,10 @@ private fun FenrirSourcesGroup(isTablet: Boolean, onPageClick: (SettingsPage) ->
                 isTablet = isTablet,
                 onClick = { onPageClick(SettingsPage.Addons) },
             )
+            com.nuvio.app.readmode.FenrirPlugins.all.forEach { host ->
+                SettingsGroupDivider(isTablet = isTablet)
+                FenrirPluginHostRow(host = host, isTablet = isTablet)
+            }
             SettingsGroupDivider(isTablet = isTablet)
             SettingsNavigationRow(
                 title = "Manga extensions",
@@ -202,5 +209,27 @@ private fun FenrirSourcesGroup(isTablet: Boolean, onPageClick: (SettingsPage) ->
                 onClick = { sources.openReadExtensions?.invoke() },
             )
         }
+    }
+}
+
+
+@Composable
+private fun FenrirPluginHostRow(host: com.nuvio.app.readmode.FenrirPluginHost, isTablet: Boolean) {
+    val state by host.state.collectAsStateWithLifecycle()
+    var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val count = state.installed.count { !it.needsTrust }
+    SettingsNavigationRow(
+        title = host.title,
+        description = listOfNotNull(
+            host.subtitle,
+            if (count == 1) "1 installed" else "$count installed",
+            state.installed.count { it.hasUpdate }.takeIf { it > 0 }?.let { "$it update(s)" },
+        ).joinToString(" · "),
+        icon = if (host.id == "cloudstream") Icons.Rounded.Cloud else Icons.Rounded.Movie,
+        isTablet = isTablet,
+        onClick = { open = true },
+    )
+    if (open) {
+        com.nuvio.app.readmode.FenrirPluginManagerDialog(host = host, onDismiss = { open = false })
     }
 }

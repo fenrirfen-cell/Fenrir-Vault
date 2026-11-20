@@ -695,6 +695,31 @@ internal fun MainAppContent(
     var resumePromptItem by remember { mutableStateOf<ContinueWatchingItem?>(null) }
     var lastExternalPlayerLaunch by remember { mutableStateOf<PlayerLaunch?>(null) }
     val activePlaybackProfileId = activeProfileIndex ?: ProfileRepository.activeProfileId
+    // Fenrir: a link picked while browsing an Aniyomi / CloudStream plugin opens in the player.
+    val fenrirPluginPlay by com.nuvio.app.readmode.FenrirPluginPlayback.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(fenrirPluginPlay) {
+        val request = com.nuvio.app.readmode.FenrirPluginPlayback.consume() ?: return@LaunchedEffect
+        val stream = request.stream
+        val launch = PlayerLaunch(
+            profileId = activePlaybackProfileId,
+            title = request.showTitle.ifBlank { stream.sourceName },
+            sourceUrl = stream.url,
+            sourceHeaders = stream.headers,
+            externalSubtitles = stream.subtitles.map { (url, lang) ->
+                com.nuvio.app.features.streams.StreamSubtitle(url = url, language = lang)
+            },
+            episodeTitle = request.episodeName.ifBlank { null },
+            streamTitle = stream.label,
+            streamSubtitle = stream.sourceName,
+            providerName = stream.sourceName,
+            providerAddonId = "fenrir:${request.hostId}",
+            contentType = "series",
+            parentMetaId = "fenrir:${request.hostId}:${request.showTitle}",
+            parentMetaType = "series",
+        )
+        val launchId = PlayerLaunchStore.put(launch)
+        navController.navigate(PlayerRoute(launchId = launchId, title = launch.title))
+    }
     val launchExternalPlayer = rememberExternalPlayerLauncher { result ->
         if (result != null) {
             val fallbackSession = lastExternalPlayerLaunch?.externalPlaybackSession()

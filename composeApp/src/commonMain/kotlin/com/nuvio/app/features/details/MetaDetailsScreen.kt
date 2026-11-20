@@ -839,6 +839,11 @@ fun MetaDetailsScreen(
                     else -> null
                 }
                 androidx.compose.runtime.SideEffect {
+                    com.nuvio.app.readmode.FenrirPlugins.rememberTitle(
+                        metaId = meta.id,
+                        name = meta.name,
+                        year = meta.releaseInfo?.let { Regex("\\d{4}").find(it)?.value?.toIntOrNull() },
+                    )
                     if (foundInTarget == null) FenrirFoundIn.targets.remove(meta.id)
                     else if (FenrirFoundIn.targets[meta.id] != foundInTarget) FenrirFoundIn.targets[meta.id] = foundInTarget
                 }

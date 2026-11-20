@@ -195,7 +195,9 @@ androidComponents {
         variant.applicationId.set("com.nuviodebug.com")
     }
     onVariants(selector().withBuildType("fast")) { variant ->
-        variant.applicationId.set("com.nuviodebug.com")
+        // Fenrir Read's own app ID. Phones remember an app's icon by its ID (even across
+        // reinstalls), and com.nuviodebug.com was already tied to Nuvio's icon.
+        variant.applicationId.set("com.fenrirread.app")
     }
     onVariants { variant ->
         val buildType = variant.buildType.orEmpty()

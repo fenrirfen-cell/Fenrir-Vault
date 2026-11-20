@@ -1,19 +1,22 @@
 name: Fenrir Read build
 
-# Every day: pull in official Nuvio updates, build Fenrir Read, publish the APK as a release
-# that Obtainium on the phone picks up. Can also be started by hand from the Actions tab.
+# Every day: pull in official Nuvio and Tsundoku updates, build Fenrir Read, publish the APK as a
+# release (the app's own updater and Obtainium pick it up). Can also be started by hand.
+# If an official update clashes with Fenrir's changes, it is skipped, the rest still builds, and an
+# issue is opened so the clash can be fixed by hand.
 on:
   schedule:
     - cron: "17 9 * * *"   # daily, 09:17 UTC (about 4 AM New York)
   workflow_dispatch:
     inputs:
       force:
-        description: "Build even if there is no new official Nuvio update"
+        description: "Build even if there is no new official Nuvio or Tsundoku update"
         type: boolean
         default: true
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: fenrir-build
@@ -21,6 +24,7 @@ concurrency:
 
 env:
   UPSTREAM: https://github.com/NuvioMedia/NuvioMobile.git
+  TSUNDOKU_UPSTREAM: https://github.com/tsundoku-otaku/tsundoku.git
   BRANCH: read-mode
 
 jobs:
@@ -40,6 +44,8 @@ jobs:
 
       - name: Merge official Nuvio updates
         id: merge
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "fenrir-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -49,20 +55,70 @@ jobs:
           if git merge-base --is-ancestor FETCH_HEAD HEAD; then
             echo "No new official Nuvio changes."
             echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            if ! git merge --no-edit -m "Merge official Nuvio updates ($UP_BRANCH)" FETCH_HEAD; then
-              echo "Clashing files:"; git diff --name-only --diff-filter=U
-              git merge --abort
-              echo "::error::The official Nuvio update clashes with Fenrir's changes. It needs a manual merge - nothing was built or changed."
-              exit 1
-            fi
+          elif git merge --no-edit -m "Merge official Nuvio updates ($UP_BRANCH)" FETCH_HEAD; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            FILES=$(git diff --name-only --diff-filter=U)
+            git merge --abort
+            echo "::warning::The official Nuvio update clashes with Fenrir's changes; building without it."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            TITLE="Official Nuvio update needs a manual merge"
+            if [ -z "$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number')" ]; then
+              gh issue create --title "$TITLE" --body "$(printf 'The daily build could not merge the latest official Nuvio update (%s) because these files clash with Fenrir'"'"'s changes:\n\n%s\n\nFenrir Read keeps building without that update until the clash is fixed.' "$(git rev-parse --short FETCH_HEAD)" "$FILES")"
+            fi
+          fi
+
+      - name: Merge official Tsundoku updates
+        id: tsundoku
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TSUNDOKU_PUSH_TOKEN: ${{ secrets.TSUNDOKU_PUSH_TOKEN }}
+        run: |
+          cd tsundoku
+          git config user.name "fenrir-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B nuvio-embed
+          T_BRANCH=$(git ls-remote --symref "$TSUNDOKU_UPSTREAM" HEAD | awk '/^ref:/ {sub("refs/heads/","",$2); print $2}')
+          echo "Official Tsundoku branch: $T_BRANCH"
+          git fetch --no-tags "$TSUNDOKU_UPSTREAM" "$T_BRANCH"
+          if git merge-base --is-ancestor FETCH_HEAD HEAD; then
+            echo "No new official Tsundoku changes."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          elif git merge --no-edit -m "Merge official Tsundoku updates ($T_BRANCH)" FETCH_HEAD; then
+            # Only count it as new once: remember which official Tsundoku version was last built.
+            NEW=$(git rev-parse FETCH_HEAD)
+            OLD=$(cat ../.github/fenrir/tsundoku-upstream.txt 2>/dev/null || true)
+            if [ "$NEW" != "$OLD" ]; then
+              mkdir -p ../.github/fenrir && echo "$NEW" > ../.github/fenrir/tsundoku-upstream.txt
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Official Tsundoku update was already built; merged again for this build."
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+            fi
+            # Save the merge to the Read-side repository when a token for it is set up.
+            if [ -n "$TSUNDOKU_PUSH_TOKEN" ]; then
+              git push "https://x-access-token:${TSUNDOKU_PUSH_TOKEN}@github.com/fenrirfen-cell/tsundoku1.0.0.git" HEAD:nuvio-embed \
+                && echo "saved=true" >> "$GITHUB_OUTPUT" \
+                || echo "::warning::Couldn't save the Tsundoku merge; it is still used for this build."
+            else
+              echo "Merged for this build only (add a TSUNDOKU_PUSH_TOKEN secret to save it)."
+            fi
+          else
+            FILES=$(git diff --name-only --diff-filter=U)
+            git merge --abort
+            echo "::warning::The official Tsundoku update clashes with Fenrir's changes; building without it."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            cd ..
+            TITLE="Official Tsundoku update needs a manual merge"
+            if [ -z "$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number')" ]; then
+              gh issue create --title "$TITLE" --body "$(printf 'The daily build could not merge the latest official Tsundoku update (%s) because these files clash with Fenrir'"'"'s Read-side changes:\n\n%s\n\nFenrir Read keeps building without that update until the clash is fixed.' "$(git -C tsundoku rev-parse --short FETCH_HEAD)" "$FILES")"
+            fi
           fi
 
       - name: Decide whether to build
         id: go
         run: |
-          if [ "${{ steps.merge.outputs.changed }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ steps.merge.outputs.changed }}" = "true" ] || [ "${{ steps.tsundoku.outputs.changed }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "build=true" >> "$GITHUB_OUTPUT"
           else
             echo "build=false" >> "$GITHUB_OUTPUT"
@@ -111,11 +167,17 @@ jobs:
           ./gradlew :androidApp:assembleFullFast --stacktrace
 
       - name: Save merged code
-        if: steps.go.outputs.build == 'true' && steps.merge.outputs.changed == 'true'
+        if: steps.go.outputs.build == 'true' && (steps.merge.outputs.changed == 'true' || steps.tsundoku.outputs.changed == 'true')
         # Can't save when the official update touches Nuvio's own workflow files (GitHub blocks
         # that for this token). The APK is still published; tomorrow's run merges again.
         continue-on-error: true
-        run: git push origin "HEAD:$BRANCH"
+        run: |
+          if [ "${{ steps.tsundoku.outputs.saved }}" = "true" ]; then
+            git add tsundoku
+          fi
+          git add .github/fenrir/tsundoku-upstream.txt 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "Read side: official Tsundoku updates"
+          git push origin "HEAD:$BRANCH"
 
       - name: Check app icon (Android's own tool)
         if: steps.go.outputs.build == 'true'
@@ -136,7 +198,7 @@ jobs:
           TAG="fenrir-${VER}-r${GITHUB_RUN_NUMBER}"
           APK=$(ls androidApp/build/outputs/apk/full/fast/*.apk | head -n1)
           cp "$APK" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk"
-          NOTES="Fenrir Read built from official Nuvio ${VER} with Read mode. Commit: $(git rev-parse --short HEAD)"
+          NOTES="Fenrir Read built from official Nuvio ${VER} and Tsundoku $(git -C tsundoku rev-parse --short HEAD). Commit: $(git rev-parse --short HEAD)"
           gh release create "$TAG" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk" \
             --title "Fenrir Read ${VER} (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --target "$(git rev-parse HEAD)"
           # keep only the 5 newest Fenrir releases

@@ -1,7 +1,8 @@
 name: Fenrir Read build
 
-# Every day: pull in official Nuvio and Tsundoku updates, build Fenrir Read, publish the APK as a
-# release (the app's own updater and Obtainium pick it up). Can also be started by hand.
+# Every day: check for a new official Nuvio or Tsundoku *release*. Only when there is one, merge it,
+# build Fenrir Read and publish the APK (the app's own updater and Obtainium pick it up).
+# Can also be started by hand.
 # If an official update clashes with Fenrir's changes, it is skipped, the rest still builds, and an
 # issue is opened so the clash can be fixed by hand.
 on:
@@ -49,13 +50,16 @@ jobs:
         run: |
           git config user.name "fenrir-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          UP_BRANCH=$(git ls-remote --symref "$UPSTREAM" HEAD | awk '/^ref:/ {sub("refs/heads/","",$2); print $2}')
-          echo "Official Nuvio branch: $UP_BRANCH"
-          git fetch --no-tags "$UPSTREAM" "$UP_BRANCH"
+          # Follow official Nuvio *releases* (version tags), not every day's code changes.
+          UP_BRANCH=$(git ls-remote --tags "$UPSTREAM" | grep -v '\^{}' | awk '{sub("refs/tags/","",$2); print $2}' \
+            | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' \
+            | awk '{k=$0; sub(/^v/,"",k); sub(/-/,"~",k); print k" "$0}' | sort -V -k1,1 | tail -n1 | cut -d' ' -f2)
+          echo "Latest official Nuvio release: $UP_BRANCH"
+          git fetch --no-tags "$UPSTREAM" "refs/tags/$UP_BRANCH"
           if git merge-base --is-ancestor FETCH_HEAD HEAD; then
-            echo "No new official Nuvio changes."
+            echo "No new official Nuvio release."
             echo "changed=false" >> "$GITHUB_OUTPUT"
-          elif git merge --no-edit -m "Merge official Nuvio updates ($UP_BRANCH)" FETCH_HEAD; then
+          elif git merge --no-edit -m "Merge official Nuvio release $UP_BRANCH" FETCH_HEAD; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             FILES=$(git diff --name-only --diff-filter=U)
@@ -78,13 +82,16 @@ jobs:
           git config user.name "fenrir-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B nuvio-embed
-          T_BRANCH=$(git ls-remote --symref "$TSUNDOKU_UPSTREAM" HEAD | awk '/^ref:/ {sub("refs/heads/","",$2); print $2}')
-          echo "Official Tsundoku branch: $T_BRANCH"
-          git fetch --no-tags "$TSUNDOKU_UPSTREAM" "$T_BRANCH"
+          # Follow official Tsundoku *releases* (version tags), not every code change.
+          T_BRANCH=$(git ls-remote --tags "$TSUNDOKU_UPSTREAM" | grep -v '\^{}' | awk '{sub("refs/tags/","",$2); print $2}' \
+            | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' \
+            | awk '{k=$0; sub(/^v/,"",k); sub(/-/,"~",k); print k" "$0}' | sort -V -k1,1 | tail -n1 | cut -d' ' -f2)
+          echo "Latest official Tsundoku release: $T_BRANCH"
+          git fetch --no-tags "$TSUNDOKU_UPSTREAM" "refs/tags/$T_BRANCH"
           if git merge-base --is-ancestor FETCH_HEAD HEAD; then
-            echo "No new official Tsundoku changes."
+            echo "No new official Tsundoku release."
             echo "changed=false" >> "$GITHUB_OUTPUT"
-          elif git merge --no-edit -m "Merge official Tsundoku updates ($T_BRANCH)" FETCH_HEAD; then
+          elif git merge --no-edit -m "Merge official Tsundoku release $T_BRANCH" FETCH_HEAD; then
             # Only count it as new once: remember which official Tsundoku version was last built.
             NEW=$(git rev-parse FETCH_HEAD)
             OLD=$(cat ../.github/fenrir/tsundoku-upstream.txt 2>/dev/null || true)

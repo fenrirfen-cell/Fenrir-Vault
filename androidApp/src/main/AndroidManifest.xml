@@ -114,7 +114,7 @@
         <activity
             android:name="com.nuvio.app.launcher.AppIconDefault"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
-            android:enabled="true"
+            android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_fenrir"
             android:label="Fenrir Read"

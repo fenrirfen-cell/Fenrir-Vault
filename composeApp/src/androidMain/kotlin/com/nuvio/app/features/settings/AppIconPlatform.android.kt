@@ -15,6 +15,30 @@ internal actual object AppIconPlatform {
 
     private var context: Context? = null
 
+    private fun hasFenrirLauncher(context: Context): Boolean = runCatching {
+        context.packageManager.getActivityInfo(component(context, "$launcherPackage.FenrirLauncher"), 0)
+    }.isSuccess
+
+    /**
+     * Fenrir Read: turn the old Nuvio launcher entries off for good, so home screens drop the tile
+     * (and the Nuvio icon they cached for it) and only show Fenrir's own entry.
+     */
+    private fun retireNuvioEntries(context: Context) {
+        val packageManager = context.packageManager
+        launcherComponents.forEach { (_, className) ->
+            val name = component(context, className)
+            if (packageManager.getComponentEnabledSetting(name) != PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
+                runCatching {
+                    packageManager.setComponentEnabledSetting(
+                        name,
+                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                        PackageManager.DONT_KILL_APP,
+                    )
+                }
+            }
+        }
+    }
+
     actual fun loadSelectedIconKey(): String? =
         context?.getSharedPreferences("app_icon_settings", Context.MODE_PRIVATE)
             ?.getString("selected_app_icon", null)
@@ -29,6 +53,10 @@ internal actual object AppIconPlatform {
     fun initialize(context: Context) {
         val appContext = context.applicationContext
         this.context = appContext
+        if (hasFenrirLauncher(appContext)) {
+            retireNuvioEntries(appContext)
+            return
+        }
         restoreDefaultIfNeeded(appContext)
     }
 
@@ -54,9 +82,7 @@ internal actual object AppIconPlatform {
 
     fun currentLauncherComponent(context: Context): ComponentName {
         // Fenrir Read: one fixed home-screen entry (see the androidApp manifest).
-        val fenrir = component(context, "$launcherPackage.FenrirLauncher")
-        val hasFenrir = runCatching { context.packageManager.getActivityInfo(fenrir, 0) }.isSuccess
-        if (hasFenrir) return fenrir
+        if (hasFenrirLauncher(context)) return component(context, "$launcherPackage.FenrirLauncher")
         val currentName = currentIconName(context)
         val className = launcherComponents.first { it.first == currentName }.second
         return component(context, className)
@@ -95,6 +121,7 @@ internal actual object AppIconPlatform {
 
     actual suspend fun activateIcon(name: String?): Boolean {
         val appContext = context ?: return false
+        if (hasFenrirLauncher(appContext)) return true
         val selectedClass = launcherComponents.firstOrNull { it.first == name }?.second ?: return false
         val packageManager = appContext.packageManager
 

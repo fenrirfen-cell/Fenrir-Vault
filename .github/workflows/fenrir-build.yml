@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 150
     steps:
       - name: Get Fenrir code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.BRANCH }}
           fetch-depth: 0
@@ -71,7 +71,7 @@ jobs:
 
       - name: Set up Java 25
         if: steps.go.outputs.build == 'true'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "25"
@@ -90,10 +90,18 @@ jobs:
             echo "::error::Secrets LOCAL_PROPERTIES and DEBUG_KEYSTORE_B64 must be set (Settings > Secrets and variables > Actions)."
             exit 1
           fi
-          printf '%s\n' "$LOCAL_PROPERTIES" | grep -v '^sdk.dir' > local.properties
+          # Strip Windows line endings / stray spaces picked up when pasting
+          printf '%s\n' "$LOCAL_PROPERTIES" | tr -d '\r' | sed 's/^[[:space:]]*//' | grep -v '^sdk.dir' > local.properties
           echo "sdk.dir=$ANDROID_HOME" >> local.properties
+          echo "Keys file has $(grep -c '=' local.properties) settings."
           mkdir -p "$HOME/.android"
-          echo "$DEBUG_KEYSTORE_B64" | base64 -d > "$HOME/.android/debug.keystore"
+          printf '%s' "$DEBUG_KEYSTORE_B64" | tr -d '\r\n\t \"' > /tmp/ks.b64
+          if ! base64 -d /tmp/ks.b64 > "$HOME/.android/debug.keystore" 2>/dev/null; then
+            echo "::error::DEBUG_KEYSTORE_B64 is not valid. It should be one long line of letters/numbers starting with something like MIIK or /u3+7Q. Re-copy it with the PowerShell command and paste it again."
+            echo "It starts with: $(head -c 6 /tmp/ks.b64)... and is $(wc -c < /tmp/ks.b64) characters long."
+            exit 1
+          fi
+          echo "Signing key OK ($(wc -c < "$HOME/.android/debug.keystore") bytes)."
           echo "ANDROID_USER_HOME=$HOME/.android" >> "$GITHUB_ENV"
 
       - name: Build Fenrir Read

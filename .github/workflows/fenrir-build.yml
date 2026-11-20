@@ -1,0 +1,124 @@
+name: Fenrir Read build
+
+# Every day: pull in official Nuvio updates, build Fenrir Read, publish the APK as a release
+# that Obtainium on the phone picks up. Can also be started by hand from the Actions tab.
+on:
+  schedule:
+    - cron: "17 9 * * *"   # daily, 09:17 UTC (about 4 AM New York)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Build even if there is no new official Nuvio update"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fenrir-build
+  cancel-in-progress: false
+
+env:
+  UPSTREAM: https://github.com/NuvioMedia/NuvioMobile.git
+  BRANCH: read-mode
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - name: Get Fenrir code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH }}
+          fetch-depth: 0
+          submodules: false
+
+      - name: Get Read side (Tsundoku)
+        run: git submodule update --init tsundoku
+
+      - name: Merge official Nuvio updates
+        id: merge
+        run: |
+          git config user.name "fenrir-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          UP_BRANCH=$(git ls-remote --symref "$UPSTREAM" HEAD | awk '/^ref:/ {sub("refs/heads/","",$2); print $2}')
+          echo "Official Nuvio branch: $UP_BRANCH"
+          git fetch --no-tags "$UPSTREAM" "$UP_BRANCH"
+          if git merge-base --is-ancestor FETCH_HEAD HEAD; then
+            echo "No new official Nuvio changes."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            if ! git merge --no-edit -m "Merge official Nuvio updates ($UP_BRANCH)" FETCH_HEAD; then
+              echo "Clashing files:"; git diff --name-only --diff-filter=U
+              git merge --abort
+              echo "::error::The official Nuvio update clashes with Fenrir's changes. It needs a manual merge - nothing was built or changed."
+              exit 1
+            fi
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Decide whether to build
+        id: go
+        run: |
+          if [ "${{ steps.merge.outputs.changed }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "Nothing new - skipping build."
+          fi
+
+      - name: Set up Java 25
+        if: steps.go.outputs.build == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        if: steps.go.outputs.build == 'true'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Keys and signing key
+        if: steps.go.outputs.build == 'true'
+        env:
+          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+          DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$LOCAL_PROPERTIES" ] || [ -z "$DEBUG_KEYSTORE_B64" ]; then
+            echo "::error::Secrets LOCAL_PROPERTIES and DEBUG_KEYSTORE_B64 must be set (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          printf '%s\n' "$LOCAL_PROPERTIES" | grep -v '^sdk.dir' > local.properties
+          echo "sdk.dir=$ANDROID_HOME" >> local.properties
+          mkdir -p "$HOME/.android"
+          echo "$DEBUG_KEYSTORE_B64" | base64 -d > "$HOME/.android/debug.keystore"
+          echo "ANDROID_USER_HOME=$HOME/.android" >> "$GITHUB_ENV"
+
+      - name: Build Fenrir Read
+        if: steps.go.outputs.build == 'true'
+        run: |
+          chmod +x gradlew
+          ./gradlew :androidApp:assembleFullFast --stacktrace
+
+      - name: Save merged code
+        if: steps.go.outputs.build == 'true' && steps.merge.outputs.changed == 'true'
+        run: git push origin "HEAD:$BRANCH"
+
+      - name: Publish release
+        if: steps.go.outputs.build == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(grep -m1 '^MARKETING_VERSION' iosApp/Configuration/Version.xcconfig | cut -d= -f2 | tr -d ' \r')
+          [ -z "$VER" ] && VER=build
+          TAG="fenrir-${VER}-r${GITHUB_RUN_NUMBER}"
+          APK=$(ls androidApp/build/outputs/apk/full/fast/*.apk | head -n1)
+          cp "$APK" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk"
+          NOTES="Fenrir Read built from official Nuvio ${VER} with Read mode. Commit: $(git rev-parse --short HEAD)"
+          gh release create "$TAG" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk" \
+            --title "Fenrir Read ${VER} (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --target "$(git rev-parse HEAD)"
+          # keep only the 5 newest Fenrir releases
+          gh release list --limit 100 --json tagName --jq '.[].tagName' | grep '^fenrir-' | tail -n +6 | \
+            while read -r old; do gh release delete "$old" --yes --cleanup-tag; done

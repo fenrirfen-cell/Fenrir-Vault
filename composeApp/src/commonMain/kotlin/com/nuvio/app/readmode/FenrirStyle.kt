@@ -1,6 +1,9 @@
 package com.nuvio.app.readmode
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Shape
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.HazeState
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.shadow
@@ -81,6 +84,16 @@ object FenrirStyle {
     val muted = Color(0xFF8E8E99)
 }
 
+/**
+ * Frosted-glass look for the top buttons and the bottom island: blurs what's behind (when a
+ * [hazeState] is given), a see-through dark tint and a thin light edge.
+ */
+fun Modifier.fenrirGlass(hazeState: HazeState?, shape: Shape = CircleShape): Modifier = this
+    .clip(shape)
+    .then(if (hazeState != null) Modifier.hazeEffect(state = hazeState) { blurRadius = 24.dp } else Modifier)
+    .background(FenrirStyle.pill.copy(alpha = if (hazeState != null) 0.55f else 0.92f))
+    .border(0.5.dp, Color.White.copy(alpha = 0.16f), shape)
+
 /** "FENRIR" wordmark on the left and the Watch / Ani-drama / Read pill on the right. */
 @Composable
 fun FenrirTopBar(
@@ -89,20 +102,22 @@ fun FenrirTopBar(
     onAniDrama: (() -> Unit)?,
     modifier: Modifier = Modifier,
     onSearch: (() -> Unit)? = null,
+    hazeState: HazeState? = null,
 ) {
     val openRead = ReadModeBridge.openRead
     Row(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        // Fixed height so the wordmark and the subtitle under it stay put whatever the buttons' size.
+        modifier = modifier.fillMaxWidth().height(46.dp).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Tap FENRIR READ to pick what Home shows: Nuvio's home or a CloudStream source's home.
         Box(modifier = Modifier.weight(1f)) {
             FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
         }
-        FenrirModePill(selected, onWatch, onAniDrama, openRead)
+        FenrirModePill(selected, onWatch, onAniDrama, openRead, hazeState)
         if (onSearch != null) {
             Spacer(Modifier.width(8.dp))
-            FenrirSearchButton(onSearch)
+            FenrirSearchButton(onSearch, hazeState)
         }
     }
 }
@@ -112,13 +127,11 @@ fun FenrirTopBar(
  * only that source; otherwise it opens the normal Search screen ([onSearch]).
  */
 @Composable
-fun FenrirSearchButton(onSearch: () -> Unit) {
+fun FenrirSearchButton(onSearch: () -> Unit, hazeState: HazeState? = null) {
     Box(
         modifier = Modifier
-            .size(46.dp)
-            .shadow(10.dp, CircleShape)
-            .clip(CircleShape)
-            .background(FenrirStyle.pill)
+            .size(40.dp)
+            .fenrirGlass(hazeState)
             .clickable(role = Role.Button) {
                 if (FenrirSourceHome.selected.value != null) {
                     FenrirSourceHomeUi.searching.value = true
@@ -129,7 +142,7 @@ fun FenrirSearchButton(onSearch: () -> Unit) {
             .semantics { contentDescription = "Search" },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Rounded.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+        Icon(Icons.Rounded.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -165,6 +178,7 @@ fun FenrirModePill(
     onWatch: () -> Unit,
     onAniDrama: (() -> Unit)?,
     onRead: (() -> Unit)?,
+    hazeState: HazeState? = null,
 ) {
     var open by remember { mutableStateOf(false) }
     val label = when (selected) {
@@ -175,15 +189,15 @@ fun FenrirModePill(
     Box {
         Row(
             modifier = Modifier
-                .clip(CircleShape)
-                .background(FenrirStyle.pill)
+                .height(40.dp)
+                .fenrirGlass(hazeState)
                 .clickable(role = Role.Button) { open = true }
-                .padding(start = 18.dp, end = 12.dp, top = 11.dp, bottom = 11.dp),
+                .padding(start = 15.dp, end = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            Spacer(Modifier.width(6.dp))
-            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Switch side", tint = Color.White, modifier = Modifier.size(22.dp))
+            Text(label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Spacer(Modifier.width(4.dp))
+            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Switch side", tint = Color.White, modifier = Modifier.size(20.dp))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             ModeMenuItem(ReadModeBridge.watchLabel, Icons.Rounded.PlayArrow, selected == FenrirMode.Watch) { open = false; onWatch() }
@@ -220,7 +234,7 @@ class FenrirNavItem(
 
 /** Bottom bar: icons with labels; the current tab is red with a soft red pill behind the icon. */
 @Composable
-fun FenrirNavigationBar(items: List<FenrirNavItem>, modifier: Modifier = Modifier) {
+fun FenrirNavigationBar(items: List<FenrirNavItem>, modifier: Modifier = Modifier, hazeState: HazeState? = null) {
     val accent = MaterialTheme.colorScheme.primary
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     // A floating rounded "island" above the content, not a full-width bar.
@@ -228,10 +242,7 @@ fun FenrirNavigationBar(items: List<FenrirNavItem>, modifier: Modifier = Modifie
         modifier = modifier
             .padding(start = 16.dp, end = 16.dp, bottom = 12.dp + bottomInset)
             .fillMaxWidth()
-            .shadow(16.dp, CircleShape)
-            .clip(CircleShape)
-            .background(FenrirStyle.surface.copy(alpha = 0.96f))
-            .border(1.dp, Color(0xFF2A2B36), CircleShape)
+            .fenrirGlass(hazeState)
             .padding(horizontal = 6.dp, vertical = 7.dp),
         horizontalArrangement = Arrangement.SpaceAround,
     ) {

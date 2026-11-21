@@ -49,6 +49,7 @@ import com.nuvio.app.readmode.modeBarHideable
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.graphicsLayer
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import nuvio.composeapp.generated.resources.Res
@@ -238,7 +239,8 @@ internal fun MainTabsDestination(
                         actions = tabActions,
                         modifier = Modifier
                             .fillMaxSize()
-                            .then(if (isTabletLayout || navBarStyleSetting != NavBarStyle.CLASSIC || showModeBar) Modifier.hazeSource(state = navBarHazeState) else Modifier)
+                            .then(if (isTabletLayout || navBarStyleSetting != NavBarStyle.CLASSIC || showModeBar || fenrirBar) Modifier.hazeSource(state = navBarHazeState) else Modifier)
+                            .then(if (fenrirBar) Modifier.nestedScroll(com.nuvio.app.readmode.FenrirBarScroll.connection) else Modifier)
                             .then(if (navBarStyleSetting == NavBarStyle.ADAPTIVE) Modifier.nestedScroll(navBarScrollState.nestedScrollConnection) else Modifier)
                             .padding(innerPadding)
                             .then(if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) Modifier.nestedScroll(ModeBarScroll.connection) else Modifier),
@@ -258,6 +260,7 @@ internal fun MainTabsDestination(
                                 { onTabSelected(AppScreenTab.AniDrama) }
                             } else null,
                             onSearch = { onTabSelected(AppScreenTab.Search) },
+                            hazeState = navBarHazeState,
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
@@ -326,9 +329,22 @@ internal fun MainTabsDestination(
                 }
 
                 if (fenrirBar) {
+                    androidx.compose.runtime.LaunchedEffect(selectedTab) { com.nuvio.app.readmode.FenrirBarScroll.reset() }
+                    // Slides down out of sight while scrolling down; back when scrolling up.
+                    val islandHidden by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (com.nuvio.app.readmode.FenrirBarScroll.visible) 0f else 1f,
+                        animationSpec = androidx.compose.animation.core.tween(260),
+                        label = "fenrirIslandHidden",
+                    )
                     com.nuvio.app.readmode.FenrirNavigationBar(
                         fenrirNavItems,
-                        modifier = Modifier.align(Alignment.BottomCenter),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .graphicsLayer {
+                                translationY = islandHidden * 140.dp.toPx()
+                                alpha = 1f - islandHidden
+                            },
+                        hazeState = navBarHazeState,
                     )
                 }
 

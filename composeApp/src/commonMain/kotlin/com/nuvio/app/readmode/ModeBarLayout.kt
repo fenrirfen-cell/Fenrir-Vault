@@ -60,6 +60,38 @@ object ModeBarScroll {
     }
 }
 
+/**
+ * The floating bottom island: slides away while scrolling down, comes back when scrolling up
+ * (and on every tab change).
+ */
+object FenrirBarScroll {
+    var visible by mutableStateOf(true)
+        private set
+    private var pendingDown = 0f
+
+    fun reset() {
+        visible = true
+        pendingDown = 0f
+    }
+
+    val connection: NestedScrollConnection = object : NestedScrollConnection {
+        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            val dy = available.y
+            if (dy < -0.5f) {
+                pendingDown += dy
+                if (pendingDown < -24f) {
+                    visible = false
+                    pendingDown = 0f
+                }
+            } else if (dy > 0.5f) {
+                pendingDown = 0f
+                visible = true
+            }
+            return Offset.Zero
+        }
+    }
+}
+
 @Composable
 fun modeBarHeight(): Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + ModeBarContentHeight
 

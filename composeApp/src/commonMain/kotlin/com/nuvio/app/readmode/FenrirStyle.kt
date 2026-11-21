@@ -87,30 +87,44 @@ object FenrirStyle {
 }
 
 /**
- * iPhone-style glass for the top buttons and the bottom island: a strong blur of what's behind
- * (when a [hazeState] is given), a light see-through white tint, a soft sheen at the top and a
- * bright edge that fades down the sides, plus a soft shadow so it floats.
+ * iPhone "Liquid Glass" look for the top buttons and the bottom island: clear glass that lets
+ * the colours behind show through (light blur, barely any tint), a soft sheen across the top
+ * and a glowing rim that is brightest at the top-left and bottom-right corners, plus a soft
+ * shadow so it floats. Phones without blur get a dark see-through fill.
  */
 fun Modifier.fenrirGlass(hazeState: HazeState?, shape: Shape = CircleShape): Modifier = this
-    .shadow(14.dp, shape, ambientColor = Color.Black.copy(alpha = 0.35f), spotColor = Color.Black.copy(alpha = 0.35f))
+    .shadow(10.dp, shape, ambientColor = Color.Black.copy(alpha = 0.25f), spotColor = Color.Black.copy(alpha = 0.25f))
     .clip(shape)
     .then(
         if (hazeState != null) {
             Modifier.hazeEffect(hazeState) {
-                blurRadius = 32.dp
+                blurRadius = 14.dp
                 backgroundColor = Color(0xFF0B0B0F)
-                tints = listOf(HazeTint(Color.White.copy(alpha = 0.10f)))
-                fallbackTint = HazeTint(Color(0xFF2A2B33).copy(alpha = 0.92f))
+                tints = listOf(HazeTint(Color.White.copy(alpha = 0.06f)))
+                fallbackTint = HazeTint(Color(0xFF2A2B33).copy(alpha = 0.88f))
                 noiseFactor = 0f
             }
         } else {
-            Modifier.background(Color(0xFF2A2B33).copy(alpha = 0.92f))
+            Modifier.background(Color(0xFF2A2B33).copy(alpha = 0.88f))
         },
     )
-    .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.12f), Color.Transparent)))
+    // Sheen: light catching the top half of the glass.
+    .background(
+        Brush.verticalGradient(
+            0f to Color.White.copy(alpha = 0.14f),
+            0.5f to Color.White.copy(alpha = 0.03f),
+            1f to Color.Transparent,
+        ),
+    )
+    // Glowing rim: bright at top-left and bottom-right, fading along the sides.
     .border(
-        1.dp,
-        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.08f), Color.White.copy(alpha = 0.16f))),
+        1.2.dp,
+        Brush.linearGradient(
+            0f to Color.White.copy(alpha = 0.75f),
+            0.35f to Color.White.copy(alpha = 0.10f),
+            0.65f to Color.White.copy(alpha = 0.08f),
+            1f to Color.White.copy(alpha = 0.45f),
+        ),
         shape,
     )
 

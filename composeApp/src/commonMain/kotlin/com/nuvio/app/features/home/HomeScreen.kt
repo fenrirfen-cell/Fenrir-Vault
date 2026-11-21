@@ -1074,7 +1074,9 @@ fun HomeScreen(
         NuvioScreen(
             modifier = Modifier.fillMaxSize().then(heroStretchModifier),
             horizontalPadding = 0.dp,
-            topPadding = if (showHeroSlot) 0.dp else null,
+            // With a CloudStream source picked, the mode-bar spacer already leaves room for the top
+            // bar, so no extra top padding: the source pill sits right under FENRIR READ.
+            topPadding = if (showHeroSlot || (com.nuvio.app.readmode.ReadModeBridge.isAvailable && fenrirSourceId != null)) 0.dp else null,
             listState = homeListState,
         ) {
             // Fenrir: room for the Watch / Read switch, scrolling with the page.

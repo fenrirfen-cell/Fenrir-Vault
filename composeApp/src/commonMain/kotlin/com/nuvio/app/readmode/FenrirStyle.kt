@@ -1,6 +1,8 @@
 package com.nuvio.app.readmode
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Brush
+import dev.chrisbanes.haze.HazeTint
 import androidx.compose.ui.graphics.Shape
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.HazeState
@@ -85,14 +87,32 @@ object FenrirStyle {
 }
 
 /**
- * Frosted-glass look for the top buttons and the bottom island: blurs what's behind (when a
- * [hazeState] is given), a see-through dark tint and a thin light edge.
+ * iPhone-style glass for the top buttons and the bottom island: a strong blur of what's behind
+ * (when a [hazeState] is given), a light see-through white tint, a soft sheen at the top and a
+ * bright edge that fades down the sides, plus a soft shadow so it floats.
  */
 fun Modifier.fenrirGlass(hazeState: HazeState?, shape: Shape = CircleShape): Modifier = this
+    .shadow(14.dp, shape, ambientColor = Color.Black.copy(alpha = 0.35f), spotColor = Color.Black.copy(alpha = 0.35f))
     .clip(shape)
-    .then(if (hazeState != null) Modifier.hazeEffect(state = hazeState) { blurRadius = 24.dp } else Modifier)
-    .background(FenrirStyle.pill.copy(alpha = if (hazeState != null) 0.55f else 0.92f))
-    .border(0.5.dp, Color.White.copy(alpha = 0.16f), shape)
+    .then(
+        if (hazeState != null) {
+            Modifier.hazeEffect(hazeState) {
+                blurRadius = 32.dp
+                backgroundColor = Color(0xFF0B0B0F)
+                tints = listOf(HazeTint(Color.White.copy(alpha = 0.10f)))
+                fallbackTint = HazeTint(Color(0xFF2A2B33).copy(alpha = 0.92f))
+                noiseFactor = 0f
+            }
+        } else {
+            Modifier.background(Color(0xFF2A2B33).copy(alpha = 0.92f))
+        },
+    )
+    .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.12f), Color.Transparent)))
+    .border(
+        1.dp,
+        Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.08f), Color.White.copy(alpha = 0.16f))),
+        shape,
+    )
 
 /** "FENRIR" wordmark on the left and the Watch / Ani-drama / Read pill on the right. */
 @Composable

@@ -128,6 +128,35 @@ internal fun MainTabsDestination(
                 icon = Icons.Rounded.Settings,
             ),
         )
+        // Fenrir: Home, Assistant, My list, Settings (Search lives at the top of Home).
+        val fenrirFloatingItems = listOfNotNull(
+            FloatingNavigationItem(
+                selected = selectedTab == AppScreenTab.Home || selectedTab == AppScreenTab.AniDrama,
+                onClick = { onTabSelected(AppScreenTab.Home) },
+                icon = Icons.Filled.Home,
+                label = stringResource(Res.string.compose_nav_home),
+            ),
+            if (ReadModeBridge.isAvailable) {
+                FloatingNavigationItem(
+                    selected = assistantOpen,
+                    onClick = { com.nuvio.app.assistant.AssistantController.show() },
+                    icon = Icons.Rounded.AutoAwesome,
+                    label = "Assistant",
+                )
+            } else null,
+            FloatingNavigationItem(
+                selected = selectedTab == AppScreenTab.Library,
+                onClick = { onTabSelected(AppScreenTab.Library) },
+                drawable = Res.drawable.sidebar_library,
+                label = "My list",
+            ),
+            FloatingNavigationItem(
+                selected = selectedTab == AppScreenTab.Settings,
+                onClick = { onTabSelected(AppScreenTab.Settings) },
+                icon = Icons.Rounded.Settings,
+                label = "Settings",
+            ),
+        )
         val floatingNavigationItems = listOfNotNull(
             FloatingNavigationItem(
                 selected = selectedTab == AppScreenTab.Home,
@@ -229,7 +258,7 @@ internal fun MainTabsDestination(
                 (selectedTab == AppScreenTab.Home || selectedTab == AppScreenTab.AniDrama)
             Box(modifier = Modifier.fillMaxSize()) {
                 CompositionLocalProvider(
-                    LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (fenrirBar) 84.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
+                    LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (fenrirBar) 72.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
                     LocalNuvioNavBarScrollState provides navBarScrollState,
                 ) {
                     AppTabHost(
@@ -345,16 +374,21 @@ internal fun MainTabsDestination(
                         animationSpec = androidx.compose.animation.core.tween(260),
                         label = "fenrirIslandHidden",
                     )
-                    com.nuvio.app.readmode.FenrirNavigationBar(
-                        fenrirNavItems,
+                    // Nuvio's own glass bar (refracted glass + glowing jelly pill), with Fenrir's tabs.
+                    Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .graphicsLayer {
                                 translationY = islandHidden * 140.dp.toPx()
                                 alpha = 1f - islandHidden
                             },
-                        hazeState = navBarHazeState,
-                    )
+                    ) {
+                        FloatingNavigationBar(
+                            items = fenrirFloatingItems,
+                            hazeState = navBarHazeState,
+                            glowEnabled = navBarGlowEnabled,
+                        )
+                    }
                 }
 
                 // Fenrir assistant panel (drawn above everything else).

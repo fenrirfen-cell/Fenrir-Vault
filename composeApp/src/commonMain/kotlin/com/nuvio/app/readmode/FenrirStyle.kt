@@ -1,6 +1,8 @@
 package com.nuvio.app.readmode
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.Brush
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.HazeInputScale
@@ -170,8 +172,9 @@ fun FenrirTopBar(
 fun FenrirSearchButton(onSearch: () -> Unit, hazeState: HazeState? = null) {
     Box(
         modifier = Modifier
-            .size(40.dp)
-            .fenrirGlass(hazeState)
+            .size(42.dp)
+            .shadow(12.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.4f), spotColor = Color.Black.copy(alpha = 0.4f))
+            .clip(CircleShape)
             .clickable(role = Role.Button) {
                 if (FenrirSourceHome.selected.value != null) {
                     FenrirSourceHomeUi.searching.value = true
@@ -182,7 +185,8 @@ fun FenrirSearchButton(onSearch: () -> Unit, hazeState: HazeState? = null) {
             .semantics { contentDescription = "Search" },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Rounded.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+        FenrirLiquidGlassBackground(hazeState, Modifier.matchParentSize())
+        Icon(Icons.Rounded.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
     }
 }
 
@@ -227,19 +231,38 @@ fun FenrirModePill(
         FenrirMode.Read -> ReadModeBridge.readLabel
     }
     Box {
-        Row(
+        // Same liquid glass as the bottom bar.
+        Box(
             modifier = Modifier
-                .height(40.dp)
-                .fenrirGlass(hazeState)
-                .clickable(role = Role.Button) { open = true }
-                .padding(start = 15.dp, end = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .height(42.dp)
+                .shadow(12.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.4f), spotColor = Color.Black.copy(alpha = 0.4f))
+                .clip(CircleShape)
+                .clickable(role = Role.Button) { open = true },
         ) {
-            Text(label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            Spacer(Modifier.width(4.dp))
-            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Switch side", tint = Color.White, modifier = Modifier.size(20.dp))
+            FenrirLiquidGlassBackground(hazeState, Modifier.matchParentSize())
+            Row(
+                modifier = Modifier.height(42.dp).padding(start = 16.dp, end = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Switch side", tint = Color.White, modifier = Modifier.size(20.dp))
+            }
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        // Zangetsu-style glass menu: dark see-through panel, rounded, light rim.
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier.width(224.dp).padding(horizontal = 6.dp),
+            shape = RoundedCornerShape(26.dp),
+            containerColor = Color(0xFF1C1C22).copy(alpha = 0.96f),
+            tonalElevation = 0.dp,
+            shadowElevation = 18.dp,
+            border = BorderStroke(
+                0.8.dp,
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.32f), Color.White.copy(alpha = 0.05f), Color.White.copy(alpha = 0.12f))),
+            ),
+        ) {
             ModeMenuItem(ReadModeBridge.watchLabel, Icons.Rounded.PlayArrow, selected == FenrirMode.Watch) { open = false; onWatch() }
             if (onAniDrama != null) {
                 ModeMenuItem("Ani-drama", Icons.Rounded.Tv, selected == FenrirMode.AniDrama) { open = false; onAniDrama() }
@@ -253,13 +276,19 @@ fun FenrirModePill(
 
 @Composable
 private fun ModeMenuItem(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
+    val accent = MaterialTheme.colorScheme.primary
     DropdownMenuItem(
-        text = { Text(label, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal) },
-        leadingIcon = { Icon(icon, contentDescription = null, tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface) },
+        text = { Text(label, color = Color.White, fontSize = 15.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium) },
+        leadingIcon = { Icon(icon, contentDescription = null, tint = if (selected) accent else Color.White) },
         trailingIcon = if (selected) {
-            { Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+            { Icon(Icons.Rounded.Check, contentDescription = null, tint = accent) }
         } else null,
         onClick = onClick,
+        modifier = Modifier
+            .padding(vertical = 2.dp)
+            .height(48.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (selected) accent.copy(alpha = 0.14f) else Color.Transparent),
     )
 }
 

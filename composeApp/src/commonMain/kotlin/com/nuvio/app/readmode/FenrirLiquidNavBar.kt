@@ -57,7 +57,7 @@ internal expect fun FenrirLiquidGlassBackground(hazeState: HazeState?, modifier:
 private val SecondaryText = Color(0xFFA7A7B2)
 
 /**
- * Zangetsu-style floating tab bar: a 60dp clear glass capsule, centred and a little narrower
+ * Zangetsu-style floating tab bar: a 68dp clear glass capsule, centred and a little narrower
  * than the screen; the selected tab sits in a red-tinted glass pill that slides between tabs,
  * with a red, slightly enlarged icon and a white label; other tabs have white icons and grey
  * labels.
@@ -70,14 +70,14 @@ fun FenrirLiquidNavBar(items: List<FenrirNavItem>, modifier: Modifier = Modifier
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 44.dp, end = 44.dp, bottom = bottomInset + 12.dp),
+            .padding(start = 32.dp, end = 32.dp, bottom = bottomInset + 12.dp),
         contentAlignment = Alignment.BottomCenter,
     ) {
         BoxWithConstraints(
             modifier = Modifier
-                .widthIn(max = 420.dp)
+                .widthIn(max = 440.dp)
                 .fillMaxWidth()
-                .height(60.dp)
+                .height(68.dp)
                 .shadow(18.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.4f), spotColor = Color.Black.copy(alpha = 0.4f))
                 .clip(CircleShape),
         ) {
@@ -146,17 +146,17 @@ private fun LiquidTab(item: FenrirNavItem, accent: Color, modifier: Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(Modifier.size(24.dp).scale(grow), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(27.dp).scale(grow), contentAlignment = Alignment.Center) {
             when {
-                item.icon != null -> Icon(item.icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(22.dp))
-                item.painter != null -> Icon(item.painter, contentDescription = null, tint = iconColor, modifier = Modifier.size(22.dp))
+                item.icon != null -> Icon(item.icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(25.dp))
+                item.painter != null -> Icon(item.painter, contentDescription = null, tint = iconColor, modifier = Modifier.size(25.dp))
             }
         }
         Spacer(Modifier.height(4.dp))
         Text(
             item.label,
             color = labelColor,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = if (item.selected) FontWeight.SemiBold else FontWeight.Medium,
             maxLines = 1,
         )

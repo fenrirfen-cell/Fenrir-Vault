@@ -48,7 +48,8 @@ half4 main(float2 position) {
 
     // Lens: near the rim, look further inward so what's behind bends toward the edge.
     float bend = exp(-depth / 9.0);
-    half3 color = backdrop.eval(position - normal * density * 18.0 * bend).rgb;
+    float lens = min(18.0, radius / density * 0.55);
+    half3 color = backdrop.eval(position - normal * density * lens * bend).rgb;
 
     half luminance = dot(color, half3(0.2126, 0.7152, 0.0722));
     color = clamp(mix(half3(luminance), color, 1.15), 0.0, 1.0);

@@ -253,6 +253,15 @@ internal fun MainTabsDestination(
                     // Soft fade behind the switch; Home content scrolls underneath it.
                     ModeBarBackground()
                     if (fenrirStyleOn) {
+                        val fenrirSourcePicked by com.nuvio.app.readmode.FenrirSourceHome.selected.collectAsStateWithLifecycle()
+                        com.nuvio.app.readmode.FenrirTopBackdrop(
+                            withSourceLine = selectedTab == AppScreenTab.Home && fenrirSourcePicked != null,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .modeBarHideable(modeBarHiddenFraction(), modeBarHeight()),
+                        )
+                    }
+                    if (fenrirStyleOn) {
                         com.nuvio.app.readmode.FenrirTopBar(
                             selected = if (selectedTab == AppScreenTab.AniDrama) FenrirMode.AniDrama else FenrirMode.Watch,
                             onWatch = { onTabSelected(AppScreenTab.Home) },

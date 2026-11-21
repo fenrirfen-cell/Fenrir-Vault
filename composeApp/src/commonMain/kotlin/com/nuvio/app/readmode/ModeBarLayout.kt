@@ -40,7 +40,14 @@ object ModeBarScroll {
     fun reset() {
         visible = true
         pendingDown = 0f
+        scrolledPx = 0f
+        scrolled = false
     }
+
+    /** True once the page has moved away from the very top (content is under the top bar). */
+    var scrolled by mutableStateOf(false)
+        private set
+    private var scrolledPx = 0f
 
     val connection: NestedScrollConnection = object : NestedScrollConnection {
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -55,6 +62,15 @@ object ModeBarScroll {
                 pendingDown = 0f
                 visible = true
             }
+            return Offset.Zero
+        }
+
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            // How far the list has scrolled (consumed is negative going down); back at the top
+            // the list stops consuming and an upward pull (available > 0) means we're at 0.
+            scrolledPx = (scrolledPx + consumed.y).coerceAtMost(0f)
+            if (available.y > 0.5f) scrolledPx = 0f
+            scrolled = scrolledPx < -4f
             return Offset.Zero
         }
     }
@@ -120,6 +136,38 @@ fun ModeBarBackground(modifier: Modifier = Modifier) {
                 Brush.verticalGradient(
                     0f to Color.Black.copy(alpha = 0.55f),
                     0.6f to Color.Black.copy(alpha = 0.35f),
+                    1f to Color.Transparent,
+                ),
+            ),
+    )
+}
+
+/**
+ * Fenrir: a dark backdrop behind the whole top area (wordmark, buttons and the source line) that
+ * fades into the content, shown only once the page is scrolled so posters don't show through
+ * the wordmark. At the very top Home's banner still shows behind the bar.
+ */
+@Composable
+fun FenrirTopBackdrop(withSourceLine: Boolean, modifier: Modifier = Modifier) {
+    val shown by animateFloatAsState(
+        targetValue = if (ModeBarScroll.scrolled) 1f else 0f,
+        animationSpec = tween(200),
+        label = "fenrirTopBackdrop",
+    )
+    if (shown <= 0f) return
+    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val solid = statusBar + 14.dp + 46.dp + (if (withSourceLine) 24.dp else 6.dp)
+    val fade = 28.dp
+    val bg = Color(0xFF0B0B0F)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(solid + fade)
+            .graphicsLayer { alpha = shown }
+            .background(
+                Brush.verticalGradient(
+                    0f to bg,
+                    (solid / (solid + fade)) to bg.copy(alpha = 0.96f),
                     1f to Color.Transparent,
                 ),
             ),

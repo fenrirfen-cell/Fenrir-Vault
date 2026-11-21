@@ -258,7 +258,7 @@ internal fun MainTabsDestination(
                 (selectedTab == AppScreenTab.Home || selectedTab == AppScreenTab.AniDrama)
             Box(modifier = Modifier.fillMaxSize()) {
                 CompositionLocalProvider(
-                    LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (fenrirBar) 72.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
+                    LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (fenrirBar) 80.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
                     LocalNuvioNavBarScrollState provides navBarScrollState,
                 ) {
                     AppTabHost(
@@ -374,7 +374,7 @@ internal fun MainTabsDestination(
                         animationSpec = androidx.compose.animation.core.tween(260),
                         label = "fenrirIslandHidden",
                     )
-                    // Nuvio's own glass bar (refracted glass + glowing jelly pill), with Fenrir's tabs.
+                    // Zangetsu-style liquid glass bar with Fenrir's tabs.
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -383,10 +383,9 @@ internal fun MainTabsDestination(
                                 alpha = 1f - islandHidden
                             },
                     ) {
-                        FloatingNavigationBar(
-                            items = fenrirFloatingItems,
+                        com.nuvio.app.readmode.FenrirLiquidNavBar(
+                            items = fenrirNavItems,
                             hazeState = navBarHazeState,
-                            glowEnabled = navBarGlowEnabled,
                         )
                     }
                 }

@@ -1023,6 +1023,8 @@ fun HomeScreen(
         val fenrirRefreshScope = rememberCoroutineScope()
         val fenrirPullState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
         val fenrirPullEnabled = com.nuvio.app.readmode.ReadModeBridge.isAvailable
+        val homeMaxWidth = maxWidth
+        val homeMaxHeight = maxHeight
         androidx.compose.material3.pulltorefresh.PullToRefreshBox(
             isRefreshing = fenrirRefreshing,
             onRefresh = {
@@ -1082,13 +1084,13 @@ fun HomeScreen(
                         when {
                             isLoading -> HomeSkeletonHero(
                                 modifier = Modifier,
-                                viewportHeight = maxHeight,
+                                viewportHeight = homeMaxHeight,
                                 mobileBelowSectionHeightHint = mobileHeroBelowSectionHeightHint,
                             )
 
-                            homeUiState.heroItems.isNotEmpty() && fenrirStyleOn && maxWidth < 600.dp -> FenrirHeroCard(
+                            homeUiState.heroItems.isNotEmpty() && fenrirStyleOn && homeMaxWidth < 600.dp -> FenrirHeroCard(
                                 items = homeHeroState.items,
-                                height = (maxHeight * 0.58f).coerceIn(380.dp, 520.dp),
+                                height = (homeMaxHeight * 0.58f).coerceIn(380.dp, 520.dp),
                                 onOpen = { onPosterClick?.invoke(it) },
                                 modifier = Modifier.padding(top = 4.dp),
                             )
@@ -1096,7 +1098,7 @@ fun HomeScreen(
                             homeUiState.heroItems.isNotEmpty() -> HomeHeroSection(
                                 items = homeHeroState.items,
                                 modifier = Modifier,
-                                viewportHeight = maxHeight,
+                                viewportHeight = homeMaxHeight,
                                 mobileBelowSectionHeightHint = mobileHeroBelowSectionHeightHint,
                                 listState = homeListState,
                                 stretchPx = { heroStretchState.stretchPx },
@@ -1107,7 +1109,7 @@ fun HomeScreen(
 
                             else -> HomeHeroReservedSpace(
                                 modifier = Modifier,
-                                viewportHeight = maxHeight,
+                                viewportHeight = homeMaxHeight,
                                 mobileBelowSectionHeightHint = mobileHeroBelowSectionHeightHint,
                             )
                         }

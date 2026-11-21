@@ -266,19 +266,34 @@ fun LazyListScope.fenrirSourceHomeItems(
     horizontalPadding: androidx.compose.ui.unit.Dp,
 ) {
     item(key = "fenrir_source_header", contentType = "fenrir_source_header") {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SourceIcon(source?.iconUrl, sourceId.take(1).uppercase(), 64.dp)
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(sourceId, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Tag("CLOUDSTREAM")
-                    source?.subtitle?.substringAfterLast(" · ", "")?.takeIf { it.isNotBlank() }?.let { Tag(it) }
+        // A small "showing: [icon] Anikage · CloudStream" pill instead of a big header block.
+        Row(Modifier.fillMaxWidth().padding(start = horizontalPadding, end = horizontalPadding, top = 6.dp, bottom = 2.dp)) {
+            Row(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Tile)
+                    .padding(start = 6.dp, end = 14.dp, top = 5.dp, bottom = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(24.dp).clip(CircleShape)) {
+                    SourceIcon(source?.iconUrl, sourceId.take(1).uppercase(), 24.dp)
                 }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    sourceId,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Text(
+                    "  ·  CloudStream",
+                    color = Muted,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                )
             }
         }
     }
@@ -324,18 +339,6 @@ fun LazyListScope.fenrirSourceHomeItems(
             }
         }
     }
-}
-
-@Composable
-private fun Tag(text: String) {
-    Text(
-        text.uppercase(),
-        color = Color(0xFFD3D1C7),
-        fontSize = 12.sp,
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.5.sp,
-        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Tile).padding(horizontal = 10.dp, vertical = 4.dp),
-    )
 }
 
 @Composable

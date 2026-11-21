@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import com.nuvio.app.readmode.fenrirSourceHomeHeader
 import com.nuvio.app.readmode.fenrirSourceHomeItems
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -1129,7 +1130,7 @@ fun HomeScreen(
 
             when {
                 fenrirSourceId != null -> {
-                    com.nuvio.app.readmode.fenrirSourceHomeHeader(
+                    fenrirSourceHomeHeader(
                         source = com.nuvio.app.readmode.FenrirPlugins.cloudStream?.homeSources()?.firstOrNull { it.id == fenrirSourceId },
                         sourceId = fenrirSourceId.orEmpty(),
                         horizontalPadding = homeSectionPadding,

@@ -1129,6 +1129,11 @@ fun HomeScreen(
 
             when {
                 fenrirSourceId != null -> {
+                    com.nuvio.app.readmode.fenrirSourceHomeHeader(
+                        source = com.nuvio.app.readmode.FenrirPlugins.cloudStream?.homeSources()?.firstOrNull { it.id == fenrirSourceId },
+                        sourceId = fenrirSourceId.orEmpty(),
+                        horizontalPadding = homeSectionPadding,
+                    )
                     homeContinueWatchingSections(
                         preferences = continueWatchingPreferences,
                         continueWatchingItems = continueWatchingItems,

@@ -259,8 +259,8 @@ private fun SourceIcon(iconUrl: String?, letter: String?, size: androidx.compose
 // ---------------------------------------------------------------------------- home rows
 
 /** The picked source's home: a header like the source page, then one row per category. */
-fun LazyListScope.fenrirSourceHomeItems(
-    state: FenrirSourceHomeState,
+/** The small "icon · name · CloudStream" pill; Home puts it at the top, above Continue watching. */
+fun LazyListScope.fenrirSourceHomeHeader(
     source: FenrirHomeSource?,
     sourceId: String,
     horizontalPadding: androidx.compose.ui.unit.Dp,
@@ -297,6 +297,14 @@ fun LazyListScope.fenrirSourceHomeItems(
             }
         }
     }
+}
+
+fun LazyListScope.fenrirSourceHomeItems(
+    state: FenrirSourceHomeState,
+    source: FenrirHomeSource?,
+    sourceId: String,
+    horizontalPadding: androidx.compose.ui.unit.Dp,
+) {
     when {
         state.rows.isEmpty() && state.loading -> {
             items(3, key = { "fenrir_source_skeleton_$it" }) { SkeletonRow(horizontalPadding) }

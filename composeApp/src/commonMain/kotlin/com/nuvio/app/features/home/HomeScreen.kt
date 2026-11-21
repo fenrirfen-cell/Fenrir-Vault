@@ -1030,16 +1030,26 @@ fun HomeScreen(
             onRefresh = {
                 if (fenrirPullEnabled && !fenrirRefreshing) {
                     fenrirRefreshing = true
+                    // Fetch every catalog fresh (new releases show up), plus the picked
+                    // CloudStream source's rows when one is picked.
+                    NetworkStatusRepository.requestRefresh(force = true)
+                    HomeRepository.refresh(AddonRepository.uiState.value.addons.enabledAddons(), force = true)
                     val sourceId = fenrirSourceId
                     if (sourceId != null) {
                         com.nuvio.app.readmode.FenrirSourceHome.load(sourceId, force = true)
-                    } else {
-                        NetworkStatusRepository.requestRefresh(force = true)
-                        HomeRepository.refresh(AddonRepository.uiState.value.addons.enabledAddons(), force = true)
                     }
                     com.nuvio.app.readmode.FenrirPullRefresh.checkForUpdates?.invoke()
                     fenrirRefreshScope.launch {
-                        kotlinx.coroutines.delay(1_200)
+                        // Keep the spinner until the rows have reloaded (at most 15 seconds).
+                        kotlinx.coroutines.delay(600)
+                        kotlinx.coroutines.withTimeoutOrNull(15_000) {
+                            while (
+                                HomeRepository.uiState.value.isLoading ||
+                                (sourceId != null && com.nuvio.app.readmode.FenrirSourceHome.state.value.loading)
+                            ) {
+                                kotlinx.coroutines.delay(250)
+                            }
+                        }
                         fenrirRefreshing = false
                     }
                 }

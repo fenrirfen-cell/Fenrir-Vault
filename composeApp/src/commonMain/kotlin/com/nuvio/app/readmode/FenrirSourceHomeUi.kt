@@ -270,7 +270,7 @@ fun LazyListScope.fenrirSourceHomeHeader(
     horizontalPadding: androidx.compose.ui.unit.Dp,
 ) {
     item(key = "fenrir_source_header", contentType = "fenrir_source_header") {
-        Spacer(Modifier.fillMaxWidth().height(30.dp))
+        Spacer(Modifier.fillMaxWidth().height(14.dp))
     }
 }
 

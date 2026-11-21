@@ -133,37 +133,28 @@ fun FenrirSearchButton(onSearch: () -> Unit) {
     }
 }
 
-/** "FENRIR" with a smaller red "READ" beside it, both on the same baseline. */
+/** "FENRIR" with a smaller red "READ" beside it, both sitting on the same baseline. */
 @Composable
 fun FenrirWordmark(modifier: Modifier = Modifier, scale: Float = 1f) {
-    // Trim the font's built-in top/bottom space so the wordmark centres exactly beside buttons.
-    val trimmed = androidx.compose.ui.text.TextStyle(
-        lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
-            alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
-            trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.Both,
-        ),
-    )
-    Row(modifier = modifier, verticalAlignment = Alignment.Bottom) {
+    Row(modifier = modifier) {
         Text(
             text = "FENRIR",
             color = Color.White,
             fontSize = (22 * scale).sp,
-            lineHeight = (22 * scale).sp,
             letterSpacing = (5 * scale).sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
-            style = trimmed,
+            modifier = Modifier.alignByBaseline(),
         )
         Spacer(Modifier.width((6 * scale).dp))
         Text(
             text = "READ",
             color = Color(0xFFFF4D57),
             fontSize = (13 * scale).sp,
-            lineHeight = (13 * scale).sp,
             letterSpacing = (4 * scale).sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
-            style = trimmed,
+            modifier = Modifier.alignByBaseline(),
         )
     }
 }

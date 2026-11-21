@@ -1041,14 +1041,17 @@ fun HomeScreen(
                     }
                     com.nuvio.app.readmode.FenrirPullRefresh.checkForUpdates?.invoke()
                     fenrirRefreshScope.launch {
-                        // Keep the spinner until the rows have reloaded (at most 15 seconds).
-                        kotlinx.coroutines.delay(600)
-                        kotlinx.coroutines.withTimeoutOrNull(15_000) {
+                        // A short spinner only: it goes once the first fresh rows are in (or after
+                        // 2.5 seconds, or as soon as you scroll); the rest keeps loading quietly.
+                        val before = HomeRepository.uiState.value
+                        kotlinx.coroutines.delay(500)
+                        kotlinx.coroutines.withTimeoutOrNull(2_000) {
                             while (
-                                HomeRepository.uiState.value.isLoading ||
-                                (sourceId != null && com.nuvio.app.readmode.FenrirSourceHome.state.value.loading)
+                                HomeRepository.uiState.value === before ||
+                                (HomeRepository.uiState.value.isLoading && HomeRepository.uiState.value.sections.isEmpty())
                             ) {
-                                kotlinx.coroutines.delay(250)
+                                if (homeListState.firstVisibleItemIndex > 0) break
+                                kotlinx.coroutines.delay(150)
                             }
                         }
                         fenrirRefreshing = false

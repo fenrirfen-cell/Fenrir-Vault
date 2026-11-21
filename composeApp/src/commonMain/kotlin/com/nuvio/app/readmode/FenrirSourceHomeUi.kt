@@ -259,43 +259,47 @@ private fun SourceIcon(iconUrl: String?, letter: String?, size: androidx.compose
 // ---------------------------------------------------------------------------- home rows
 
 /** The picked source's home: a header like the source page, then one row per category. */
-/** The small "icon · name · CloudStream" pill; Home puts it at the top, above Continue watching. */
+/**
+ * Room on Home for the source pill, which is drawn over the top bar (under the FENRIR READ
+ * wordmark) by [FenrirSourcePillOverlay] so the Watch / Search buttons don't move.
+ */
 fun LazyListScope.fenrirSourceHomeHeader(
     source: FenrirHomeSource?,
     sourceId: String,
     horizontalPadding: androidx.compose.ui.unit.Dp,
 ) {
     item(key = "fenrir_source_header", contentType = "fenrir_source_header") {
-        // A small "showing: [icon] Anikage · CloudStream" pill instead of a big header block.
-        Row(Modifier.fillMaxWidth().padding(start = horizontalPadding, end = horizontalPadding, top = 6.dp, bottom = 2.dp)) {
-            Row(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Tile)
-                    .padding(start = 6.dp, end = 14.dp, top = 5.dp, bottom = 5.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(Modifier.size(24.dp).clip(CircleShape)) {
-                    SourceIcon(source?.iconUrl, sourceId.take(1).uppercase(), 24.dp)
-                }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    sourceId,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                Text(
-                    "  ·  CloudStream",
-                    color = Muted,
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                )
-            }
+        Spacer(Modifier.fillMaxWidth().height(30.dp))
+    }
+}
+
+/** The picked source as a small "icon · name · CloudStream" pill, shown under FENRIR READ. */
+@Composable
+fun FenrirSourcePillOverlay(modifier: Modifier = Modifier) {
+    val sourceId by FenrirSourceHome.selected.collectAsStateWithLifecycle()
+    val id = sourceId ?: return
+    val source = remember(id) { FenrirPlugins.cloudStream?.homeSources()?.firstOrNull { it.id == id } }
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(Tile)
+            .padding(start = 6.dp, end = 14.dp, top = 5.dp, bottom = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(24.dp).clip(CircleShape)) {
+            SourceIcon(source?.iconUrl, id.take(1).uppercase(), 24.dp)
         }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            id,
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        Text("  ·  CloudStream", color = Muted, fontSize = 13.sp, maxLines = 1)
     }
 }
 

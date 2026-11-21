@@ -263,6 +263,20 @@ internal fun MainTabsDestination(
                                 .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
                                 .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 14.dp),
                         )
+                        // The picked CloudStream source, tucked under the FENRIR READ wordmark. Drawn
+                        // separately so the top bar keeps its height and its buttons stay put.
+                        if (selectedTab == AppScreenTab.Home) {
+                            com.nuvio.app.readmode.FenrirSourcePillOverlay(
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
+                                    .padding(
+                                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 14.dp + 42.dp,
+                                        start = 16.dp,
+                                        end = 140.dp,
+                                    ),
+                            )
+                        }
                     } else ReadModeSwitch(
                         hazeState = navBarHazeState,
                         selected = if (selectedTab == AppScreenTab.AniDrama) FenrirMode.AniDrama else FenrirMode.Watch,

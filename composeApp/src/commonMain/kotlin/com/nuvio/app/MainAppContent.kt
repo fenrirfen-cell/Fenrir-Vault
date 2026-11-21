@@ -240,6 +240,12 @@ internal fun MainAppContent(
             )
         }
         val appUpdaterController = rememberAppUpdaterController()
+        androidx.compose.runtime.SideEffect {
+            // Fenrir: pulling down on Home also checks for a new version.
+            com.nuvio.app.readmode.FenrirPullRefresh.checkForUpdates = {
+                appUpdaterController.checkForUpdates(force = true, showNoUpdateFeedback = true)
+            }
+        }
         if (ownsAppRuntime) {
             remember {
                 EpisodeReleaseNotificationsRepository.ensureLoaded()

@@ -118,10 +118,17 @@ import kotlin.time.TimeSource
 import com.nuvio.app.features.home.components.continueWatchingHeroViewportReserveHeight
 import com.nuvio.app.features.home.components.homeSectionHorizontalPaddingForWidth
 import com.nuvio.app.features.home.components.rememberContinueWatchingLayout
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.CancellationException
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
@@ -1004,12 +1011,53 @@ fun HomeScreen(
 
         val fenrirStyleOn by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsStateWithLifecycle()
         val heroStretchState = rememberHeroStretchState(homeListState)
-        val heroStretchModifier = if (showHeroSlot) {
+        // Fenrir's hero doesn't stretch; leaving the pull free for pull-to-refresh.
+        val heroStretchModifier = if (showHeroSlot && !fenrirStyleOn) {
             Modifier.nestedScroll(heroStretchState.nestedScrollConnection)
         } else {
             Modifier
         }
 
+        // Fenrir Read: pull down at the top to reload Home and check for a new app version.
+        var fenrirRefreshing by remember { mutableStateOf(false) }
+        val fenrirRefreshScope = rememberCoroutineScope()
+        val fenrirPullState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
+        val fenrirPullEnabled = com.nuvio.app.readmode.ReadModeBridge.isAvailable
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = fenrirRefreshing,
+            onRefresh = {
+                if (fenrirPullEnabled && !fenrirRefreshing) {
+                    fenrirRefreshing = true
+                    val sourceId = fenrirSourceId
+                    if (sourceId != null) {
+                        com.nuvio.app.readmode.FenrirSourceHome.load(sourceId, force = true)
+                    } else {
+                        NetworkStatusRepository.requestRefresh(force = true)
+                        HomeRepository.refresh(AddonRepository.uiState.value.addons.enabledAddons(), force = true)
+                    }
+                    com.nuvio.app.readmode.FenrirPullRefresh.checkForUpdates?.invoke()
+                    fenrirRefreshScope.launch {
+                        kotlinx.coroutines.delay(1_200)
+                        fenrirRefreshing = false
+                    }
+                }
+            },
+            state = fenrirPullState,
+            modifier = Modifier.fillMaxSize(),
+            indicator = {
+                if (fenrirPullEnabled) {
+                    androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator(
+                        state = fenrirPullState,
+                        isRefreshing = fenrirRefreshing,
+                        containerColor = Color(0xFF1C1D26),
+                        color = Color(0xFFFF4D57),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp),
+                    )
+                }
+            },
+        ) {
         NuvioScreen(
             modifier = Modifier.fillMaxSize().then(heroStretchModifier),
             horizontalPadding = 0.dp,
@@ -1263,6 +1311,7 @@ fun HomeScreen(
                     }
                 }
             }
+        }
         }
         // Fenrir Read: poster taps from a CloudStream source's rows, and its "See all" grid.
         com.nuvio.app.readmode.FenrirSourceHomeOverlays(onOpenShowPage = { onPosterClick?.invoke(it) })

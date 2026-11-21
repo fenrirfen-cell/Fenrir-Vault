@@ -156,11 +156,12 @@ fun FenrirTopBar(
         Box(modifier = Modifier.weight(1f)) {
             FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
         }
-        FenrirModePill(selected, onWatch, onAniDrama, openRead, hazeState)
+        // Search first, then the Watch / Ani-drama / Read switch at the far right.
         if (onSearch != null) {
-            Spacer(Modifier.width(8.dp))
             FenrirSearchButton(onSearch, hazeState)
+            Spacer(Modifier.width(10.dp))
         }
+        FenrirModePill(selected, onWatch, onAniDrama, openRead, hazeState)
     }
 }
 
@@ -230,6 +231,11 @@ fun FenrirModePill(
         FenrirMode.AniDrama -> "Ani-drama"
         FenrirMode.Read -> ReadModeBridge.readLabel
     }
+    val modeIcon = when (selected) {
+        FenrirMode.Watch -> Icons.Rounded.PlayArrow
+        FenrirMode.AniDrama -> Icons.Rounded.Tv
+        FenrirMode.Read -> Icons.AutoMirrored.Rounded.MenuBook
+    }
     Box {
         // Same liquid glass as the bottom bar.
         Box(
@@ -241,9 +247,11 @@ fun FenrirModePill(
         ) {
             FenrirLiquidGlassBackground(hazeState, Modifier.matchParentSize())
             Row(
-                modifier = Modifier.height(42.dp).padding(start = 16.dp, end = 11.dp),
+                modifier = Modifier.height(42.dp).padding(start = 12.dp, end = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Icon(modeIcon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
                 Text(label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                 Spacer(Modifier.width(4.dp))
                 Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Switch side", tint = Color.White, modifier = Modifier.size(20.dp))

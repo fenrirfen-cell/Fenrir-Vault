@@ -110,7 +110,8 @@ fun FenrirWordmarkSourceButton(onPicked: () -> Unit, modifier: Modifier = Modifi
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FenrirWordmark()
+        // A little bigger in the top bar, centred on the Watch / Search buttons.
+        FenrirWordmark(scale = 1.15f)
         if (host != null) {
             Spacer(Modifier.width(4.dp))
             Icon(

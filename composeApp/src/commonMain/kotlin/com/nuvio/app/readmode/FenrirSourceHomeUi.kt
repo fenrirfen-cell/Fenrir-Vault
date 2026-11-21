@@ -270,7 +270,7 @@ fun LazyListScope.fenrirSourceHomeHeader(
     horizontalPadding: androidx.compose.ui.unit.Dp,
 ) {
     item(key = "fenrir_source_header", contentType = "fenrir_source_header") {
-        Spacer(Modifier.fillMaxWidth().height(14.dp))
+        Spacer(Modifier.fillMaxWidth().height(32.dp))
     }
 }
 
@@ -282,25 +282,26 @@ fun FenrirSourcePillOverlay(modifier: Modifier = Modifier) {
     val source = remember(id) { FenrirPlugins.cloudStream?.homeSources()?.firstOrNull { it.id == id } }
     Row(
         modifier = modifier
+            .height(30.dp)
             .clip(CircleShape)
             .background(Tile)
-            .padding(start = 6.dp, end = 14.dp, top = 5.dp, bottom = 5.dp),
+            .padding(start = 5.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(24.dp).clip(CircleShape)) {
-            SourceIcon(source?.iconUrl, id.take(1).uppercase(), 24.dp)
+        Box(Modifier.size(20.dp).clip(CircleShape)) {
+            SourceIcon(source?.iconUrl, id.take(1).uppercase(), 20.dp)
         }
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(7.dp))
         Text(
             id,
             color = Color.White,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
-        Text("  ·  CloudStream", color = Muted, fontSize = 13.sp, maxLines = 1)
+        Text("  ·  CloudStream", color = Muted, fontSize = 12.sp, maxLines = 1)
     }
 }
 

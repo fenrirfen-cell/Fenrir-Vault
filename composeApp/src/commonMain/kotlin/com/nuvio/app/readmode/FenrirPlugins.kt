@@ -108,6 +108,10 @@ interface FenrirPluginHost {
     suspend fun findStreams(query: FenrirStreamQuery, onFound: suspend (sourceName: String, streams: List<FenrirPluginStream>) -> Unit)
 
     suspend fun search(query: String): List<FenrirPluginHit>
+
+    /** Searches only [sourceId] (one site, as listed by [homeSources]), not every plugin. */
+    suspend fun searchSource(sourceId: String, query: String): List<FenrirPluginHit> =
+        search(query).filter { it.sourceName == sourceId }
     suspend fun episodes(hit: FenrirPluginHit): List<FenrirPluginEpisode>
     suspend fun streams(episode: FenrirPluginEpisode): List<FenrirPluginStream>
 

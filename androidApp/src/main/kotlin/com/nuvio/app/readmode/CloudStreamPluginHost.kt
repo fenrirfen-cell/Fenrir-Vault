@@ -529,6 +529,17 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
         }.awaitAll().flatten()
     }
 
+    override suspend fun searchSource(sourceId: String, query: String): List<FenrirPluginHit> = withContext(Dispatchers.IO) {
+        val provider = providers().firstOrNull { it.name == sourceId } ?: return@withContext emptyList()
+        withTimeoutOrNull(25_000) {
+            runCatching { provider.search(query) }.getOrNull()
+        }.orEmpty().map { result ->
+            val key = "${provider.name}|${result.url}"
+            synchronized(hits) { hits[key] = provider to result }
+            FenrirPluginHit(key, provider.name, result.name, result.posterUrl)
+        }
+    }
+
     override suspend fun episodes(hit: FenrirPluginHit): List<FenrirPluginEpisode> = withContext(Dispatchers.IO) {
         // After a restart the browse cache is empty: the key itself is "source|url" (Continue watching).
         val (provider, url) = synchronized(hits) { hits[hit.key] }?.let { (p, r) -> p to r.url }

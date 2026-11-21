@@ -1,6 +1,12 @@
 package com.nuvio.app.readmode
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -85,6 +91,8 @@ object FenrirSourceHomeUi {
     val seeAll = MutableStateFlow<FenrirHomeRow?>(null)
     val sheetItem = MutableStateFlow<FenrirHomeItem?>(null)
     val opening = MutableStateFlow<FenrirHomeItem?>(null)
+    /** True while the picked source's own search is open (top Search button). */
+    val searching = MutableStateFlow(false)
 }
 
 // ---------------------------------------------------------------------------- FENRIR READ drop-down
@@ -449,7 +457,11 @@ fun FenrirSourceHomeOverlays(onOpenShowPage: (MetaPreview) -> Unit) {
         val item = opening ?: return@LaunchedEffect
         val match = runCatching { FenrirSourceHome.matchToNuvio(item) }.getOrNull()
         FenrirSourceHomeUi.opening.value = null
-        if (match != null) onOpenShowPage(match) else FenrirSourceHomeUi.sheetItem.value = item
+        if (match != null) {
+            // The show page opens behind the search screen, so close search first.
+            FenrirSourceHomeUi.searching.value = false
+            onOpenShowPage(match)
+        } else FenrirSourceHomeUi.sheetItem.value = item
     }
 
     if (opening != null) {
@@ -471,8 +483,105 @@ fun FenrirSourceHomeOverlays(onOpenShowPage: (MetaPreview) -> Unit) {
         SeeAllDialog(row, sourceId, onDismiss = { FenrirSourceHomeUi.seeAll.value = null })
     }
 
+    val searching by FenrirSourceHomeUi.searching.collectAsStateWithLifecycle()
+    if (searching && sourceId != null) {
+        SourceSearchDialog(sourceId, onDismiss = { FenrirSourceHomeUi.searching.value = false })
+    }
+
     sheetItem?.let { item ->
         TitleSheet(item, onDismiss = { FenrirSourceHomeUi.sheetItem.value = null })
+    }
+}
+
+/** Search inside the picked source only (not the other plugins or addons). */
+@Composable
+private fun SourceSearchDialog(sourceId: String, onDismiss: () -> Unit) {
+    val host = FenrirSourceHome.host
+    var query by remember(sourceId) { mutableStateOf("") }
+    var results by remember(sourceId) { mutableStateOf<List<FenrirHomeItem>>(emptyList()) }
+    var loading by remember(sourceId) { mutableStateOf(false) }
+    var searched by remember(sourceId) { mutableStateOf(false) }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+
+    LaunchedEffect(query, sourceId) {
+        val text = query.trim()
+        if (text.isEmpty() || host == null) {
+            results = emptyList(); loading = false; searched = false
+            return@LaunchedEffect
+        }
+        kotlinx.coroutines.delay(400)
+        loading = true
+        val hits = runCatching { host.searchSource(sourceId, text) }.getOrDefault(emptyList())
+        results = hits.distinctBy { it.key }.map { FenrirHomeItem(it) }
+        loading = false
+        searched = true
+    }
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        Column(Modifier.fillMaxSize().background(Color(0xFF0B0B0F))) {
+            Row(
+                Modifier.fillMaxWidth().padding(top = top + 8.dp, start = 8.dp, end = 16.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
+                }
+                Row(
+                    Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(24.dp)).background(Tile).padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.Search, contentDescription = null, tint = Muted, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (query.isEmpty()) Text("Search $sourceId", color = Muted, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        BasicTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            singleLine = true,
+                            textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                            cursorBrush = SolidColor(Red),
+                            modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                        )
+                    }
+                    if (query.isNotEmpty()) {
+                        Box(Modifier.size(32.dp).clip(CircleShape).clickable { query = "" }, contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.Close, contentDescription = "Clear", tint = Muted, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+            }
+            Text(
+                "Only searching CS · $sourceId",
+                color = Muted,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 10.dp),
+            )
+            when {
+                loading && results.isEmpty() -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Red, strokeWidth = 2.5.dp, modifier = Modifier.size(26.dp))
+                }
+                searched && results.isEmpty() -> Text(
+                    "Nothing found in $sourceId",
+                    color = Muted,
+                    fontSize = 15.sp,
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                )
+                else -> LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 108.dp),
+                    contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = bottom + 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(results, key = { it.hit.key }) { item ->
+                        PosterCard(item, Modifier.fillMaxWidth(), wide = false)
+                    }
+                }
+            }
+        }
     }
 }
 

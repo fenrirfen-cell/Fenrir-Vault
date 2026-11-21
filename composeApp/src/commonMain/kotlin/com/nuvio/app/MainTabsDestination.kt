@@ -105,12 +105,7 @@ internal fun MainTabsDestination(
                 onClick = { onTabSelected(AppScreenTab.Home) },
                 icon = Icons.Filled.Home,
             ),
-            com.nuvio.app.readmode.FenrirNavItem(
-                label = stringResource(Res.string.compose_nav_search),
-                selected = selectedTab == AppScreenTab.Search,
-                onClick = { onTabSelected(AppScreenTab.Search) },
-                painter = org.jetbrains.compose.resources.painterResource(Res.drawable.sidebar_search),
-            ),
+            // Search moved to the round button at the top of Home (FenrirTopBar).
             if (ReadModeBridge.isAvailable) {
                 com.nuvio.app.readmode.FenrirNavItem(
                     label = "Assistant",
@@ -184,9 +179,8 @@ internal fun MainTabsDestination(
             containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets(0),
             bottomBar = {
-                if (fenrirBar) {
-                    com.nuvio.app.readmode.FenrirNavigationBar(fenrirNavItems)
-                } else if (!isTabletLayout && !useNativeBottomTabs && navBarStyleSetting == NavBarStyle.CLASSIC) {
+                // Fenrir's bar floats over the content instead (drawn below).
+                if (!fenrirBar && !isTabletLayout && !useNativeBottomTabs && navBarStyleSetting == NavBarStyle.CLASSIC) {
                     NuvioClassicNavigationBar {
                         NavItem(
                             selected = selectedTab == AppScreenTab.Home,
@@ -234,7 +228,7 @@ internal fun MainTabsDestination(
                 (selectedTab == AppScreenTab.Home || selectedTab == AppScreenTab.AniDrama)
             Box(modifier = Modifier.fillMaxSize()) {
                 CompositionLocalProvider(
-                    LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (fenrirBar) 0.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
+                    LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (fenrirBar) 84.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
                     LocalNuvioNavBarScrollState provides navBarScrollState,
                 ) {
                     AppTabHost(
@@ -263,6 +257,7 @@ internal fun MainTabsDestination(
                             onAniDrama = if (aniDramaAvailable) {
                                 { onTabSelected(AppScreenTab.AniDrama) }
                             } else null,
+                            onSearch = { onTabSelected(AppScreenTab.Search) },
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
@@ -313,6 +308,13 @@ internal fun MainTabsDestination(
                         hazeState = navBarHazeState,
                         items = floatingNavigationItems,
                         glowEnabled = navBarGlowEnabled,
+                    )
+                }
+
+                if (fenrirBar) {
+                    com.nuvio.app.readmode.FenrirNavigationBar(
+                        fenrirNavItems,
+                        modifier = Modifier.align(Alignment.BottomCenter),
                     )
                 }
 

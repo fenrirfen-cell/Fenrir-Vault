@@ -1,6 +1,11 @@
 package com.nuvio.app.readmode
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.draw.shadow
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -83,6 +88,7 @@ fun FenrirTopBar(
     onWatch: () -> Unit,
     onAniDrama: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onSearch: (() -> Unit)? = null,
 ) {
     val openRead = ReadModeBridge.openRead
     Row(
@@ -94,6 +100,36 @@ fun FenrirTopBar(
             FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
         }
         FenrirModePill(selected, onWatch, onAniDrama, openRead)
+        if (onSearch != null) {
+            Spacer(Modifier.width(8.dp))
+            FenrirSearchButton(onSearch)
+        }
+    }
+}
+
+/**
+ * Round Search button beside the mode pill. With a CloudStream source picked on Home it searches
+ * only that source; otherwise it opens the normal Search screen ([onSearch]).
+ */
+@Composable
+fun FenrirSearchButton(onSearch: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(46.dp)
+            .shadow(10.dp, CircleShape)
+            .clip(CircleShape)
+            .background(FenrirStyle.pill)
+            .clickable(role = Role.Button) {
+                if (FenrirSourceHome.selected.value != null) {
+                    FenrirSourceHomeUi.searching.value = true
+                } else {
+                    onSearch()
+                }
+            }
+            .semantics { contentDescription = "Search" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(Icons.Rounded.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
     }
 }
 
@@ -186,11 +222,16 @@ class FenrirNavItem(
 fun FenrirNavigationBar(items: List<FenrirNavItem>, modifier: Modifier = Modifier) {
     val accent = MaterialTheme.colorScheme.primary
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    // A floating rounded "island" above the content, not a full-width bar.
     Row(
         modifier = modifier
+            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp + bottomInset)
             .fillMaxWidth()
-            .background(FenrirStyle.surface)
-            .padding(top = 8.dp, bottom = 8.dp + bottomInset),
+            .shadow(16.dp, CircleShape)
+            .clip(CircleShape)
+            .background(FenrirStyle.surface.copy(alpha = 0.96f))
+            .border(1.dp, Color(0xFF2A2B36), CircleShape)
+            .padding(horizontal = 6.dp, vertical = 7.dp),
         horizontalArrangement = Arrangement.SpaceAround,
     ) {
         items.forEach { item ->

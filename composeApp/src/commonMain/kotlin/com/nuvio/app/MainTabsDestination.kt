@@ -263,7 +263,7 @@ internal fun MainTabsDestination(
                                 .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
                                 .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 14.dp),
                         )
-                        // The picked CloudStream source, on its own row just under the top bar. Drawn
+                        // The picked CloudStream source as a subtitle under the FENRIR READ wordmark. Drawn
                         // separately so the top bar keeps its height and its buttons stay put.
                         if (selectedTab == AppScreenTab.Home) {
                             com.nuvio.app.readmode.FenrirSourcePillOverlay(
@@ -271,8 +271,8 @@ internal fun MainTabsDestination(
                                     .align(Alignment.TopStart)
                                     .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
                                     .padding(
-                                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 14.dp + 46.dp + 14.dp,
-                                        start = 16.dp,
+                                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 14.dp + 38.dp,
+                                        start = 18.dp,
                                         end = 140.dp,
                                     ),
                             )

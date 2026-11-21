@@ -512,6 +512,12 @@ private fun SourceSearchDialog(sourceId: String, onDismiss: () -> Unit) {
         }
         kotlinx.coroutines.delay(400)
         loading = true
+        // Plugins load in the background when the app starts; wait for this source briefly.
+        var waited = 0
+        while (host.homeSources().none { it.id == sourceId } && waited < 15_000) {
+            kotlinx.coroutines.delay(500)
+            waited += 500
+        }
         val hits = runCatching { host.searchSource(sourceId, text) }.getOrDefault(emptyList())
         results = hits.distinctBy { it.key }.map { FenrirHomeItem(it) }
         loading = false

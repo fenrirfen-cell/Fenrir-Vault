@@ -396,6 +396,15 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
         return APIHolder.allProviders.filter { it.sourcePlugin == file.absolutePath }.toList()
     }
 
+    /**
+     * Newer plugins only implement the page-based search(query, page); older ones only search(query).
+     * search(query, 1) covers both (its default falls back to search(query)); errors → empty.
+     */
+    private suspend fun MainAPI.searchAny(query: String): List<SearchResponse> =
+        runCatching { search(query, 1)?.items }.getOrNull()
+            ?: runCatching { search(query) }.getOrNull()
+            ?: emptyList()
+
     private fun providers(): List<MainAPI> = synchronized(loaded) { loaded.values.flatMap { it.providers } }
 
     // ------------------------------------------------------------------ finding streams
@@ -447,7 +456,7 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
     }
 
     private suspend fun findIn(provider: MainAPI, query: FenrirStreamQuery): List<FenrirPluginStream> {
-        val results = provider.search(query.title).orEmpty()
+        val results = provider.searchAny(query.title)
         val match = bestMatch(results, query) ?: return emptyList()
         val response = provider.load(match.url) ?: return emptyList()
         val targets: List<Pair<String, String>> = when (response) {
@@ -519,7 +528,7 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
         providers().map { provider ->
             async(Dispatchers.IO) {
                 withTimeoutOrNull(25_000) {
-                    runCatching { provider.search(query) }.getOrNull()
+                    provider.searchAny(query)
                 }.orEmpty().take(12).map { result ->
                     val key = "${provider.name}|${result.url}"
                     synchronized(hits) { hits[key] = provider to result }
@@ -532,7 +541,7 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
     override suspend fun searchSource(sourceId: String, query: String): List<FenrirPluginHit> = withContext(Dispatchers.IO) {
         val provider = providers().firstOrNull { it.name == sourceId } ?: return@withContext emptyList()
         withTimeoutOrNull(25_000) {
-            runCatching { provider.search(query) }.getOrNull()
+            provider.searchAny(query)
         }.orEmpty().map { result ->
             val key = "${provider.name}|${result.url}"
             synchronized(hits) { hits[key] = provider to result }

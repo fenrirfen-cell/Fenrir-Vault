@@ -3,6 +3,7 @@ package com.nuvio.app.readmode
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Brush
 import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.HazeInputScale
 import androidx.compose.ui.graphics.Shape
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.HazeState
@@ -88,7 +89,7 @@ object FenrirStyle {
 
 /**
  * iPhone "Liquid Glass" look for the top buttons and the bottom island: clear glass that lets
- * the colours behind show through (light blur, barely any tint), a soft sheen across the top
+ * the colours behind show through (smooth strong blur, light tint), a soft sheen across the top
  * and a glowing rim that is brightest at the top-left and bottom-right corners, plus a soft
  * shadow so it floats. Phones without blur get a dark see-through fill.
  */
@@ -98,9 +99,14 @@ fun Modifier.fenrirGlass(hazeState: HazeState?, shape: Shape = CircleShape): Mod
     .then(
         if (hazeState != null) {
             Modifier.hazeEffect(hazeState) {
-                blurRadius = 14.dp
+                // Strong, full-quality blur: smooth frosted colours instead of smudged posters.
+                blurRadius = 30.dp
+                inputScale = HazeInputScale.None
                 backgroundColor = Color(0xFF0B0B0F)
-                tints = listOf(HazeTint(Color.White.copy(alpha = 0.06f)))
+                tints = listOf(
+                    HazeTint(Color(0xFF15151B).copy(alpha = 0.28f)),
+                    HazeTint(Color.White.copy(alpha = 0.05f)),
+                )
                 fallbackTint = HazeTint(Color(0xFF2A2B33).copy(alpha = 0.88f))
                 noiseFactor = 0f
             }

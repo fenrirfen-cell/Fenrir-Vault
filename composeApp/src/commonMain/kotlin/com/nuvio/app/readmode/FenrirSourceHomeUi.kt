@@ -175,9 +175,10 @@ private fun FenrirSourcePickerPanel(
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss),
         ) {
             // A floating glass card under the wordmark, like the preview: compact rows.
+            val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             Column(
                 Modifier
-                    .padding(top = top + 62.dp, start = 12.dp, end = 40.dp)
+                    .padding(top = top + 62.dp, start = 12.dp, end = 40.dp, bottom = bottomInset + 24.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(26.dp))
                     .background(Color(0xF71C1C22))
@@ -185,7 +186,10 @@ private fun FenrirSourcePickerPanel(
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
                     .padding(8.dp),
             ) {
-                LazyColumn(Modifier.heightIn(max = 430.dp)) {
+                // Groups fold up so the list stays short and the buttons always show.
+                var csOpen by remember { mutableStateOf(false) }
+                var ayOpen by remember { mutableStateOf(false) }
+                LazyColumn(Modifier.weight(1f, fill = false)) {
                     item { GroupLabel("Show on home") }
                     item {
                         MenuRow(
@@ -198,8 +202,10 @@ private fun FenrirSourcePickerPanel(
                         )
                     }
                     if (csEntries.isNotEmpty()) {
-                        item { GroupLabel("CloudStream") }
-                        items(csEntries, key = { "cs-" + it.source.id }) { e ->
+                        item(key = "cs-head") {
+                            GroupHeader("CloudStream", csEntries.size, csEntries.firstOrNull { it.source.id == selected }?.source?.name, csOpen) { csOpen = !csOpen }
+                        }
+                        if (csOpen) items(csEntries, key = { "cs-" + it.source.id }) { e ->
                             MenuRow(
                                 name = e.source.name,
                                 subtitle = if (e.pinned) "Pinned · CloudStream" else "CloudStream",
@@ -211,8 +217,10 @@ private fun FenrirSourcePickerPanel(
                         }
                     }
                     if (ayEntries.isNotEmpty()) {
-                        item { GroupLabel("Aniyomi") }
-                        items(ayEntries, key = { "ay-" + it.source.id }) { e ->
+                        item(key = "ay-head") {
+                            GroupHeader("Aniyomi", ayEntries.size, ayEntries.firstOrNull { it.source.id == selected }?.source?.name, ayOpen) { ayOpen = !ayOpen }
+                        }
+                        if (ayOpen) items(ayEntries, key = { "ay-" + it.source.id }) { e ->
                             MenuRow(
                                 name = e.source.name,
                                 subtitle = if (e.pinned) "Pinned · Aniyomi" else "Aniyomi",
@@ -259,13 +267,14 @@ private fun FenrirSourcePickerPanel(
                     }
                     Box(
                         Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(22.dp))
                             .background(Red)
                             .clickable { onDismiss(); FenrirSourcesHub.openAdd() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("+", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                        Text("+ Add extensions", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
                 }
             }
@@ -302,6 +311,39 @@ private fun MenuRow(
             Text(subtitle, color = Color(0xFF9A9AA6), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (selected) Icon(Icons.Rounded.Check, contentDescription = null, tint = Red, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** "CLOUDSTREAM · 12 ▾": tap to show or hide that group's sources. */
+@Composable
+private fun GroupHeader(title: String, count: Int, pickedName: String?, open: Boolean, onToggle: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+            .height(46.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (open) Color(0xFF24242C) else Color.Transparent)
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title.uppercase(), color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(
+                pickedName?.let { "On home now: $it" } ?: if (count == 1) "1 source" else "$count sources",
+                color = if (pickedName != null) Red else Color(0xFF9A9AA6),
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Icon(
+            if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
+            contentDescription = if (open) "Hide" else "Show",
+            tint = Color(0xFFD3D1C7),
+            modifier = Modifier.size(22.dp),
+        )
     }
 }
 

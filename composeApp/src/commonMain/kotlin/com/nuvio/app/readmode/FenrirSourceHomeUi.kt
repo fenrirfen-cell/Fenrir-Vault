@@ -38,6 +38,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -47,6 +48,8 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -150,18 +153,21 @@ private fun FenrirSourcePickerPanel(
     val flags by FenrirSourceFlags.flags.collectAsStateWithLifecycle()
     val pinOrder by FenrirSourceFlags.pinOrder.collectAsStateWithLifecycle()
 
-    fun entries(host: FenrirPluginHost?, aniyomi: Boolean): List<PickerEntry> =
+    fun entries(host: FenrirPluginHost?, aniyomi: Boolean, hidden: Boolean = false): List<PickerEntry> =
         host?.homeSources().orEmpty().mapNotNull { src ->
             val key = FenrirSourceFlags.key(host!!.id, src.name)
             val f = flags[key] ?: FenrirSourceFlags.get(key)
             // The picked one always shows, so it can be seen and switched off.
-            if (!f.home && src.id != selected) null else PickerEntry(src, key, f.pinned, aniyomi)
+            val shown = f.home || src.id == selected
+            if (shown == hidden) null else PickerEntry(src, key, f.pinned, aniyomi)
         }.sortedWith(
             compareBy<PickerEntry>({ !it.pinned }, { pinOrder.indexOf(it.key).let { i -> if (i < 0) Int.MAX_VALUE else i } }, { it.source.name.lowercase() }),
         )
 
     val csEntries = remember(csState, flags, pinOrder, selected) { entries(cs, false) }
     val ayEntries = remember(ayState, flags, pinOrder, selected) { entries(ay, true) }
+    val csHidden = remember(csState, flags, selected) { entries(cs, false, hidden = true) }
+    val ayHidden = remember(ayState, flags, selected) { entries(ay, true, hidden = true) }
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     Popup(
         alignment = Alignment.TopStart,
@@ -189,6 +195,8 @@ private fun FenrirSourcePickerPanel(
                 // Groups fold up so the list stays short and the buttons always show.
                 var csOpen by remember { mutableStateOf(false) }
                 var ayOpen by remember { mutableStateOf(false) }
+                var csShowHidden by remember { mutableStateOf(false) }
+                var ayShowHidden by remember { mutableStateOf(false) }
                 LazyColumn(Modifier.weight(1f, fill = false)) {
                     item { GroupLabel("Show on home") }
                     item {
@@ -201,37 +209,31 @@ private fun FenrirSourcePickerPanel(
                             onClick = { onPick(null) },
                         )
                     }
-                    if (csEntries.isNotEmpty()) {
-                        item(key = "cs-head") {
-                            GroupHeader("CloudStream", csEntries.size, csEntries.firstOrNull { it.source.id == selected }?.source?.name, csOpen) { csOpen = !csOpen }
-                        }
-                        if (csOpen) items(csEntries, key = { "cs-" + it.source.id }) { e ->
-                            MenuRow(
-                                name = e.source.name,
-                                subtitle = if (e.pinned) "Pinned · CloudStream" else "CloudStream",
-                                iconUrl = e.source.iconUrl,
-                                letter = e.source.name.take(1).uppercase(),
-                                selected = selected == e.source.id,
-                                onClick = { onPick(e.source.id) },
-                            )
-                        }
-                    }
-                    if (ayEntries.isNotEmpty()) {
-                        item(key = "ay-head") {
-                            GroupHeader("Aniyomi", ayEntries.size, ayEntries.firstOrNull { it.source.id == selected }?.source?.name, ayOpen) { ayOpen = !ayOpen }
-                        }
-                        if (ayOpen) items(ayEntries, key = { "ay-" + it.source.id }) { e ->
-                            MenuRow(
-                                name = e.source.name,
-                                subtitle = if (e.pinned) "Pinned · Aniyomi" else "Aniyomi",
-                                iconUrl = e.source.iconUrl,
-                                letter = e.source.name.take(1).uppercase(),
-                                selected = selected == e.source.id,
-                                onClick = { onPick(e.source.id) },
-                            )
-                        }
-                    }
-                    if (csEntries.isEmpty() && ayEntries.isEmpty()) {
+                    sourceGroup(
+                        prefix = "cs",
+                        title = "CloudStream",
+                        shown = csEntries,
+                        hidden = csHidden,
+                        selected = selected,
+                        open = csOpen,
+                        onToggle = { csOpen = !csOpen },
+                        showHidden = csShowHidden,
+                        onToggleHidden = { csShowHidden = !csShowHidden },
+                        onPick = onPick,
+                    )
+                    sourceGroup(
+                        prefix = "ay",
+                        title = "Aniyomi",
+                        shown = ayEntries,
+                        hidden = ayHidden,
+                        selected = selected,
+                        open = ayOpen,
+                        onToggle = { ayOpen = !ayOpen },
+                        showHidden = ayShowHidden,
+                        onToggleHidden = { ayShowHidden = !ayShowHidden },
+                        onPick = onPick,
+                    )
+                    if (csEntries.isEmpty() && ayEntries.isEmpty() && csHidden.isEmpty() && ayHidden.isEmpty()) {
                         item {
                             val anything = csState?.installed.orEmpty().isNotEmpty() || ayState?.installed.orEmpty().isNotEmpty()
                             Text(
@@ -291,6 +293,7 @@ private fun MenuRow(
     letter: String?,
     selected: Boolean,
     onClick: () -> Unit,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -311,12 +314,126 @@ private fun MenuRow(
             Text(subtitle, color = Color(0xFF9A9AA6), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (selected) Icon(Icons.Rounded.Check, contentDescription = null, tint = Red, modifier = Modifier.size(20.dp))
+        trailing?.invoke()
+    }
+}
+
+/**
+ * One group of the menu (CloudStream or Aniyomi): folded header; when open, its sources with a
+ * hide button each, then "Show hidden (N)" to bring hidden ones back.
+ */
+private fun androidx.compose.foundation.lazy.LazyListScope.sourceGroup(
+    prefix: String,
+    title: String,
+    shown: List<PickerEntry>,
+    hidden: List<PickerEntry>,
+    selected: String?,
+    open: Boolean,
+    onToggle: () -> Unit,
+    showHidden: Boolean,
+    onToggleHidden: () -> Unit,
+    onPick: (String?) -> Unit,
+) {
+    if (shown.isEmpty() && hidden.isEmpty()) return
+    item(key = "$prefix-head") {
+        GroupHeader(
+            title,
+            shown.size,
+            shown.firstOrNull { it.source.id == selected }?.source?.name,
+            open,
+            onToggle,
+            hiddenCount = hidden.size,
+        )
+    }
+    if (!open) return
+    items(shown, key = { "$prefix-" + it.source.id }) { e ->
+        MenuRow(
+            name = e.source.name,
+            subtitle = if (e.pinned) "Pinned · $title" else title,
+            iconUrl = e.source.iconUrl,
+            letter = e.source.name.take(1).uppercase(),
+            selected = selected == e.source.id,
+            onClick = { onPick(e.source.id) },
+            trailing = {
+                Icon(
+                    Icons.Rounded.VisibilityOff,
+                    contentDescription = "Hide from this menu",
+                    tint = Color(0xFF8E8E99),
+                    modifier = Modifier
+                        .padding(start = 6.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            if (selected == e.source.id) onPick(null)
+                            FenrirSourceFlags.setHome(e.key, false)
+                        }
+                        .padding(7.dp)
+                        .size(18.dp),
+                )
+            },
+        )
+    }
+    if (hidden.isNotEmpty()) {
+        item(key = "$prefix-hidden-toggle") {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable(onClick = onToggleHidden)
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.Visibility, contentDescription = null, tint = Red, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    if (showHidden) "Hide the hidden ones" else "Show hidden (${hidden.size})",
+                    color = Red,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+        if (showHidden) {
+            items(hidden, key = { "$prefix-h-" + it.source.id }) { e ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(46.dp)
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(26.dp).clip(RoundedCornerShape(7.dp)).graphicsLayer { alpha = 0.5f }) {
+                        SourceIcon(e.source.iconUrl, e.source.name.take(1).uppercase(), 26.dp)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        e.source.name,
+                        color = Color(0xFF9A9AA6),
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "Show",
+                        color = Color.White,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(Red)
+                            .clickable { FenrirSourceFlags.setHome(e.key, true) }
+                            .padding(horizontal = 12.dp, vertical = 5.dp),
+                    )
+                }
+            }
+        }
     }
 }
 
 /** "CLOUDSTREAM · 12 ▾": tap to show or hide that group's sources. */
 @Composable
-private fun GroupHeader(title: String, count: Int, pickedName: String?, open: Boolean, onToggle: () -> Unit) {
+private fun GroupHeader(title: String, count: Int, pickedName: String?, open: Boolean, onToggle: () -> Unit, hiddenCount: Int = 0) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -331,7 +448,8 @@ private fun GroupHeader(title: String, count: Int, pickedName: String?, open: Bo
         Column(Modifier.weight(1f)) {
             Text(title.uppercase(), color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Text(
-                pickedName?.let { "On home now: $it" } ?: if (count == 1) "1 source" else "$count sources",
+                pickedName?.let { "On home now: $it" }
+                    ?: ((if (count == 1) "1 source" else "$count sources") + if (hiddenCount > 0) " · $hiddenCount hidden" else ""),
                 color = if (pickedName != null) Red else Color(0xFF9A9AA6),
                 fontSize = 12.sp,
                 maxLines = 1,

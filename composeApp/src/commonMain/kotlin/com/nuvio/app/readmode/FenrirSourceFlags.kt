@@ -32,7 +32,8 @@ object FenrirSourceFlags {
     fun key(hostId: String, sourceName: String) = "$hostId:$sourceName"
 
     /** CloudStream sources were all in the menu before, so they stay on Home unless turned off. */
-    private fun defaults(key: String) = Flags(home = key.startsWith("cloudstream:"))
+    /** New sources (CloudStream and Aniyomi) show on Home right away; hide them from the menu. */
+    private fun defaults(key: String) = Flags(home = true)
 
     fun get(key: String): Flags = _flags.value[key] ?: defaults(key)
     fun get(hostId: String, sourceName: String): Flags = get(key(hostId, sourceName))
@@ -51,6 +52,11 @@ object FenrirSourceFlags {
     fun setPinOrder(keys: List<String>) {
         _pinOrder.value = keys
         save()
+    }
+
+    fun setHome(key: String, home: Boolean) {
+        val f = get(key)
+        set(key, f.copy(home = home, pinned = if (home) f.pinned else false))
     }
 
     fun usedInSearch(hostId: String, sourceName: String) = get(hostId, sourceName).search

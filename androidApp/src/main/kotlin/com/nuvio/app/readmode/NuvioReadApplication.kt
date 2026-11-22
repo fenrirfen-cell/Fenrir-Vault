@@ -1,5 +1,7 @@
 package com.nuvio.app.readmode
 
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import android.content.Context
 import coil3.ImageLoader
 import com.nuvio.android.R
@@ -60,6 +62,20 @@ class NuvioReadApplication : App() {
             aniDramaPrefs.edit().putBoolean(KEY_FENRIR_STYLE, on).apply()
         }
         EmbeddedHost.fenrirStyle = { FenrirStyle.enabled.value }
+        // Pull to refresh on the Read side also checks quietly for a new Fenrir Read version.
+        EmbeddedHost.checkAppUpdate = { onFound ->
+            val check = com.nuvio.app.readmode.FenrirPullRefresh.checkForUpdates
+            val state = com.nuvio.app.readmode.FenrirPullRefresh.updaterState
+            if (check != null && state != null) {
+                check()
+                kotlinx.coroutines.MainScope().launch {
+                    kotlinx.coroutines.delay(400)
+                    val done = kotlinx.coroutines.withTimeoutOrNull(20_000) { state.first { !it.isChecking } }
+                    val update = done?.update
+                    if (done != null && done.showDialog && update != null) onFound(update.title.ifBlank { update.tag })
+                }
+            }
+        }
 
         // Settings → Sources: open the Read side's extensions and show how many are installed.
         FenrirSources.openReadExtensions = modes::openReadExtensions

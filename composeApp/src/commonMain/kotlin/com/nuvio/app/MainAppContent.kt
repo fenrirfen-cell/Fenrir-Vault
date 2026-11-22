@@ -246,6 +246,7 @@ internal fun MainAppContent(
             com.nuvio.app.readmode.FenrirPullRefresh.checkForUpdates = {
                 appUpdaterController.checkForUpdates(force = false, showNoUpdateFeedback = false)
             }
+            com.nuvio.app.readmode.FenrirPullRefresh.updaterState = appUpdaterController.uiState
         }
         if (ownsAppRuntime) {
             remember {

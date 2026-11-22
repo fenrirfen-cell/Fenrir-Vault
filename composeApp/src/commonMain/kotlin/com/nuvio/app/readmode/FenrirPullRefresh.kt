@@ -6,4 +6,7 @@ package com.nuvio.app.readmode
  */
 object FenrirPullRefresh {
     var checkForUpdates: (() -> Unit)? = null
+
+    /** The updater's state, so the Read side can tell when a check found a new version. */
+    var updaterState: kotlinx.coroutines.flow.StateFlow<com.nuvio.app.features.updater.AppUpdaterUiState>? = null
 }

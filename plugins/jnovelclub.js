@@ -63,12 +63,11 @@ var JNovelClubPlugin = /** @class */ (function () {
     this.name = "J-Novel Club";
     this.icon = "src/en/jnovelclub/icon.png";
     this.site = SITE;
-    this.version = "1.0.0";
+    this.version = "1.1.0";
     this.filters = {};
     this.pluginSettings = {
       email: { value: "", label: "Email (J-Novel Club account)", type: "Text" },
       password: { value: "", label: "Password", type: "Text" },
-      includeManga: { value: "", label: "Also list manga series", type: "Switch" },
     };
     this._series = null;
     this._seriesTime = 0;
@@ -122,10 +121,9 @@ var JNovelClubPlugin = /** @class */ (function () {
       skip += page.length;
       if (!page.length || (data.pagination && data.pagination.lastPage)) break;
     }
-    var includeManga = String(store().get("includeManga")) === "true";
+    // Light novels only: J-Novel Club's manga series are left out.
     this._series = all.filter(function (s) {
-      var type = String(s.type || "NOVEL").toUpperCase();
-      return includeManga || type !== "MANGA";
+      return String(s.type || "NOVEL").toUpperCase().indexOf("MANGA") === -1;
     });
     this._seriesTime = Date.now();
     return this._series;

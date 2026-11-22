@@ -1,5 +1,6 @@
 package com.nuvio.app.core.ui
 
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -135,6 +136,8 @@ fun NuvioPosterCard(
     isWatched: Boolean = false,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    // Fenrir: IMDb / TMDB score shown as a small ★ badge in the bottom-left corner.
+    rating: Double? = null,
 ) {
     val posterCardStyle = rememberPosterCardStyleUiState()
     val tokens = MaterialTheme.nuvio
@@ -189,6 +192,30 @@ fun NuvioPosterCard(
                     modifier = Modifier.matchParentSize(),
                     contentScale = ContentScale.Crop,
                 )
+                if (rating != null && rating > 0.0 && com.nuvio.app.readmode.ReadModeBridge.isAvailable) {
+                    val ratingColor = when {
+                        rating >= 8.0 -> androidx.compose.ui.graphics.Color(0xFF4CD787)
+                        rating >= 6.5 -> androidx.compose.ui.graphics.Color(0xFFFFB547)
+                        else -> androidx.compose.ui.graphics.Color(0xFFFF8A91)
+                    }
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(6.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(androidx.compose.ui.graphics.Color(0xD10C0C10))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("★", color = ratingColor, fontSize = 11.sp)
+                        Text(
+                            " " + ((rating * 10).toInt() / 10.0).toString(),
+                            color = androidx.compose.ui.graphics.Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                        )
+                    }
+                }
             } else {
                 Text(
                     text = title,

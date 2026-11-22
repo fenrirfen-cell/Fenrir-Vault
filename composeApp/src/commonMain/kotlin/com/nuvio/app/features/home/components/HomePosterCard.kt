@@ -45,6 +45,7 @@ fun HomePosterCard(
         isWatched = isWatched,
         onClick = onClick,
         onLongClick = onLongClick,
+        rating = item.imdbRating?.toDoubleOrNull(),
     )
 }
 

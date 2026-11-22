@@ -159,8 +159,6 @@ fun FenrirTopBar(
         Box(modifier = Modifier.weight(1f)) {
             FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
         }
-        // New version: a round download button with a red dot (Update, then Install).
-        if (FenrirUpdateButton(hazeState)) Spacer(Modifier.width(10.dp))
         // Search, then the Watch / Ani-drama / Read switch at the far right (For you is in the island).
         if (onSearch != null) {
             FenrirSearchButton(onSearch, hazeState)
@@ -253,6 +251,10 @@ fun FenrirModePill(
     hazeState: HazeState? = null,
 ) {
     var open by remember { mutableStateOf(false) }
+    // Fenrir: a new app version shows as a red dot here, with Update at the top of the menu.
+    val updaterFlow = FenrirPullRefresh.updaterState
+    val updater = updaterFlow?.collectAsStateWithLifecycle()?.value
+    val update = updater?.update?.takeIf { updater.showDialog }
     val label = when (selected) {
         FenrirMode.Watch -> ReadModeBridge.watchLabel
         FenrirMode.AniDrama -> "Ani-drama"
@@ -283,6 +285,16 @@ fun FenrirModePill(
                 Spacer(Modifier.width(4.dp))
                 Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Switch side", tint = Color.White, modifier = Modifier.size(20.dp))
             }
+            if (update != null) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 4.dp, end = 6.dp)
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFF4D57)),
+                )
+            }
         }
         // Zangetsu-style glass menu: dark see-through panel, rounded, light rim.
         DropdownMenu(
@@ -298,6 +310,54 @@ fun FenrirModePill(
                 Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.32f), Color.White.copy(alpha = 0.05f), Color.White.copy(alpha = 0.12f))),
             ),
         ) {
+            if (update != null && updater != null) {
+                val red = Color(0xFFFF4D57)
+                val ready = updater.downloadedApkPath != null
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(red.copy(alpha = 0.14f))
+                        .clickable(enabled = !updater.isDownloading) {
+                            if (ready) {
+                                open = false
+                                FenrirPullRefresh.installUpdate?.invoke()
+                            } else {
+                                FenrirPullRefresh.downloadUpdate?.invoke()
+                            }
+                        }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.Download, contentDescription = null, tint = red, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            when {
+                                updater.errorMessage != null -> "Update failed · tap to retry"
+                                updater.isDownloading -> "Downloading ${((updater.downloadProgress ?: 0f) * 100).toInt().coerceIn(0, 100)}%"
+                                ready -> "Install update"
+                                else -> "Update to ${update.tag.substringAfterLast("-")}"
+                            },
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                        )
+                        Text(if (ready) "Ready to install" else "New version ready", color = Color(0xFFB8B8C2), fontSize = 11.sp, maxLines = 1)
+                    }
+                    if (!updater.isDownloading) {
+                        Text(
+                            "✕",
+                            color = Color(0xFF8E8E99),
+                            fontSize = 13.sp,
+                            modifier = Modifier.clip(CircleShape).clickable { open = false; FenrirPullRefresh.dismissUpdate?.invoke() }.padding(6.dp),
+                        )
+                    }
+                }
+                Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
+            }
             ModeMenuItem(ReadModeBridge.watchLabel, Icons.Rounded.PlayArrow, selected == FenrirMode.Watch) { open = false; onWatch() }
             if (onAniDrama != null) {
                 ModeMenuItem("Ani-drama", Icons.Rounded.Tv, selected == FenrirMode.AniDrama) { open = false; onAniDrama() }

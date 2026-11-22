@@ -7,6 +7,12 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +20,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -101,17 +108,19 @@ fun AppUpdaterHost(
     val update = state.update
     val showBanner = state.showDialog && update != null
 
-    Column(modifier = modifier) {
+    // Fenrir: the update shows as a small glass pill floating at the top, not a big bar
+    // that pushes the screen down.
+    Box(modifier = modifier) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            content()
+        }
         AnimatedVisibility(
             visible = showBanner,
-            enter = expandVertically(
-                expandFrom = Alignment.Top,
-                animationSpec = tween(durationMillis = 300),
-            ) + fadeIn(animationSpec = tween(durationMillis = 180)),
-            exit = shrinkVertically(
-                shrinkTowards = Alignment.Top,
-                animationSpec = tween(durationMillis = 240),
-            ) + fadeOut(animationSpec = tween(durationMillis = 150)),
+            modifier = Modifier.align(Alignment.TopCenter),
+            enter = androidx.compose.animation.slideInVertically(tween(durationMillis = 300)) { -it } +
+                fadeIn(animationSpec = tween(durationMillis = 180)),
+            exit = androidx.compose.animation.slideOutVertically(tween(durationMillis = 240)) { -it } +
+                fadeOut(animationSpec = tween(durationMillis = 150)),
         ) {
             update?.let { availableUpdate ->
                 AppUpdateBanner(
@@ -125,20 +134,6 @@ fun AppUpdaterHost(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .then(
-                    if (showBanner) {
-                        Modifier.consumeWindowInsets(WindowInsets.statusBars)
-                    } else {
-                        Modifier
-                    },
-                ),
-        ) {
-            content()
-        }
     }
 
     if (showReleaseNotes && update != null) {
@@ -165,145 +160,103 @@ private fun AppUpdateBanner(
     onShowReleaseNotes: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val tokens = MaterialTheme.nuvio
-    val targetProgress = when {
-        state.isDownloading -> state.downloadProgress ?: 0f
-        state.isDebugTest && !state.isUpdateAvailable -> 1f
-        else -> 0f
-    }.coerceIn(0f, 1f)
+    val accent = androidx.compose.ui.graphics.Color(0xFFFF4D57)
     val progress by animateFloatAsState(
-        targetValue = targetProgress,
+        targetValue = (if (state.isDownloading) state.downloadProgress ?: 0f else 0f).coerceIn(0f, 1f),
         animationSpec = tween(durationMillis = 180),
-        label = "updateBannerProgress",
+        label = "updatePillProgress",
     )
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    val isWhiteTheme = MaterialTheme.appTheme == AppTheme.WHITE
-    val progressBrush = MaterialTheme.themePalette.accentBrush()
-    val progressAlpha = if (isWhiteTheme) 0.18f else 1f
-    val dividerColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)
-    val debugTestComplete = state.isDebugTest && !state.isDownloading && !state.isUpdateAvailable
-    val subtitle = when {
-        state.errorMessage != null -> state.errorMessage
-        state.isDownloading && state.downloadProgress != null -> stringResource(
-            Res.string.updates_downloading_progress,
-            (state.downloadProgress * 100).toInt().coerceIn(0, 100),
-        )
-        state.isDownloading -> stringResource(Res.string.updates_preparing_download)
-        debugTestComplete -> stringResource(Res.string.updates_debug_test_complete)
-        state.downloadedApkPath != null -> stringResource(Res.string.updates_message_ready)
-        else -> stringResource(Res.string.updates_title_available)
+    val label = when {
+        state.errorMessage != null -> "Update failed"
+        state.isDownloading && state.downloadProgress != null -> "Downloading ${(state.downloadProgress * 100).toInt().coerceIn(0, 100)}%"
+        state.isDownloading -> "Starting download…"
+        state.downloadedApkPath != null -> "Update ready"
+        else -> "Update available"
     }
-    val updateLabel = listOfNotNull(
-        update.tag,
-        update.assetSizeBytes?.let(::formatFileSize),
-    ).joinToString(separator = " • ")
-
-    Box(
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
+    Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(top = 8.dp, start = 16.dp, end = 16.dp)
+            .heightIn(min = 46.dp)
+            .androidx_shadow(shape)
+            .androidx_clip(shape)
             .drawBehind {
-                drawRect(containerColor)
+                drawRect(androidx.compose.ui.graphics.Color(0xF21C1C22))
                 if (progress > 0f) {
-                    drawRect(
-                        brush = progressBrush,
-                        alpha = progressAlpha,
-                        size = Size(width = size.width * progress, height = size.height),
-                    )
+                    drawRect(accent.copy(alpha = 0.35f), size = Size(size.width * progress, size.height))
                 }
-                drawRect(
-                    color = dividerColor,
-                    topLeft = Offset(0f, size.height - 1.dp.toPx()),
-                    size = Size(width = size.width, height = 1.dp.toPx()),
-                )
             }
-            .windowInsetsPadding(WindowInsets.statusBars),
+            .androidx_border(shape)
+            .padding(start = 14.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 68.dp)
-                .padding(horizontal = tokens.spacing.screenHorizontal, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Icon(
+            imageVector = Icons.Rounded.CloudDownload,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(18.dp),
+        )
+        Column(
+            modifier = Modifier.androidx_clickable(update.notes.isNotBlank(), onShowReleaseNotes),
         ) {
-            Icon(
-                imageVector = if (debugTestComplete) Icons.Rounded.CheckCircle else Icons.Rounded.CloudDownload,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(24.dp),
+            Text(
+                text = label,
+                color = androidx.compose.ui.graphics.Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
             )
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = updateLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = when {
-                        state.errorMessage != null -> MaterialTheme.colorScheme.error
-                        state.isDownloading && isWhiteTheme -> MaterialTheme.colorScheme.onSurface
-                        state.isDownloading -> MaterialTheme.colorScheme.onPrimary
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    maxLines = 2,
-                )
-            }
-
-            IconButton(
-                onClick = onShowReleaseNotes,
-                enabled = update.notes.isNotBlank(),
-                modifier = Modifier.size(40.dp),
-            ) {
+            Text(
+                text = state.errorMessage ?: update.tag,
+                color = androidx.compose.ui.graphics.Color(0xFF9A9AA6),
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (!state.isDownloading) {
+            Text(
+                text = when {
+                    state.downloadedApkPath != null -> stringResource(Res.string.action_install)
+                    state.errorMessage != null -> stringResource(Res.string.action_retry)
+                    else -> stringResource(Res.string.action_update)
+                },
+                color = androidx.compose.ui.graphics.Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .androidx_clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(accent)
+                    .androidx_clickable(true, if (state.downloadedApkPath != null) onInstall else onDownload)
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+            )
+            IconButton(onClick = onDismiss, modifier = Modifier.size(34.dp)) {
                 Icon(
-                    imageVector = Icons.Rounded.Info,
-                    contentDescription = stringResource(Res.string.updates_release_notes),
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = stringResource(Res.string.action_close),
+                    tint = androidx.compose.ui.graphics.Color(0xFFC9C9D2),
+                    modifier = Modifier.size(18.dp),
                 )
             }
-
-            if (!state.isDownloading && !debugTestComplete) {
-                Button(
-                    onClick = if (state.downloadedApkPath != null) onInstall else onDownload,
-                    enabled = state.downloadedApkPath != null || state.isUpdateAvailable,
-                    modifier = Modifier.heightIn(min = 40.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                ) {
-                    Text(
-                        if (state.downloadedApkPath != null) {
-                            stringResource(Res.string.action_install)
-                        } else if (state.errorMessage != null) {
-                            stringResource(Res.string.action_retry)
-                        } else {
-                            stringResource(Res.string.action_update)
-                        },
-                    )
-                }
-            }
-
-            if (!state.isDownloading) {
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = stringResource(Res.string.action_close),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
+        } else {
+            Spacer(Modifier.size(10.dp))
         }
     }
 }
+
+private fun Modifier.androidx_shadow(shape: androidx.compose.ui.graphics.Shape) =
+    this.then(Modifier.shadow(12.dp, shape))
+
+private fun Modifier.androidx_clip(shape: androidx.compose.ui.graphics.Shape) =
+    this.then(Modifier.clip(shape))
+
+private fun Modifier.androidx_border(shape: androidx.compose.ui.graphics.Shape) =
+    this.then(Modifier.border(1.dp, androidx.compose.ui.graphics.Color.White.copy(alpha = 0.22f), shape))
+
+private fun Modifier.androidx_clickable(enabled: Boolean, onClick: () -> Unit) =
+    this.then(Modifier.clickable(enabled = enabled, onClick = onClick))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

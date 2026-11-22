@@ -63,18 +63,48 @@ class NuvioReadApplication : App() {
         }
         EmbeddedHost.fenrirStyle = { FenrirStyle.enabled.value }
         // Pull to refresh on the Read side also checks quietly for a new Fenrir Read version.
+        // When there is one, the Read side shows a small pill with an Update button.
+        val updateScope = kotlinx.coroutines.MainScope()
+        var mirrorJob: kotlinx.coroutines.Job? = null
         EmbeddedHost.checkAppUpdate = { onFound ->
             val check = com.nuvio.app.readmode.FenrirPullRefresh.checkForUpdates
             val state = com.nuvio.app.readmode.FenrirPullRefresh.updaterState
             if (check != null && state != null) {
                 check()
-                kotlinx.coroutines.MainScope().launch {
+                mirrorJob?.cancel()
+                mirrorJob = updateScope.launch {
                     kotlinx.coroutines.delay(400)
-                    val done = kotlinx.coroutines.withTimeoutOrNull(20_000) { state.first { !it.isChecking } }
-                    val update = done?.update
-                    if (done != null && done.showDialog && update != null) onFound(update.title.ifBlank { update.tag })
+                    kotlinx.coroutines.withTimeoutOrNull(20_000) { state.first { !it.isChecking } } ?: return@launch
+                    // Mirror the updater into the Read side until the pill is closed.
+                    state.collect { s ->
+                        val update = s.update
+                        EmbeddedHost.appUpdate.value = if (s.showDialog && update != null) {
+                            EmbeddedHost.AppUpdateInfo(
+                                version = update.tag,
+                                progress = s.downloadProgress,
+                                downloading = s.isDownloading,
+                                ready = s.downloadedApkPath != null,
+                                error = s.errorMessage,
+                            )
+                        } else {
+                            null
+                        }
+                        if (s.showDialog && update != null && !s.isDownloading) onFound(update.tag)
+                    }
                 }
             }
+        }
+        EmbeddedHost.startAppUpdate = {
+            val ready = EmbeddedHost.appUpdate.value?.ready == true
+            if (ready) {
+                com.nuvio.app.readmode.FenrirPullRefresh.installUpdate?.invoke()
+            } else {
+                com.nuvio.app.readmode.FenrirPullRefresh.downloadUpdate?.invoke()
+            }
+        }
+        EmbeddedHost.dismissAppUpdate = {
+            com.nuvio.app.readmode.FenrirPullRefresh.dismissUpdate?.invoke()
+            EmbeddedHost.appUpdate.value = null
         }
 
         // Settings → Sources: open the Read side's extensions and show how many are installed.

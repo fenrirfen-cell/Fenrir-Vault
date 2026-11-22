@@ -247,6 +247,9 @@ internal fun MainAppContent(
                 appUpdaterController.checkForUpdates(force = false, showNoUpdateFeedback = false)
             }
             com.nuvio.app.readmode.FenrirPullRefresh.updaterState = appUpdaterController.uiState
+            com.nuvio.app.readmode.FenrirPullRefresh.downloadUpdate = appUpdaterController::downloadUpdate
+            com.nuvio.app.readmode.FenrirPullRefresh.installUpdate = appUpdaterController::installDownloadedUpdate
+            com.nuvio.app.readmode.FenrirPullRefresh.dismissUpdate = appUpdaterController::dismissDialog
         }
         if (ownsAppRuntime) {
             remember {

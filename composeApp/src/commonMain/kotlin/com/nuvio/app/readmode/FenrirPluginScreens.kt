@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
@@ -84,9 +86,9 @@ object FenrirPluginPlayback {
     fun consume(): FenrirPluginPlayRequest? = _pending.value.also { _pending.value = null }
 }
 
-private val Bg = Color(0xFF0B0B0F)
-private val Card = Color(0xFF16161C)
-private val Field = Color(0xFF1C1D26)
+internal val Bg = Color(0xFF0B0B0F)
+internal val Card = Color(0xFF16161C)
+internal val Field = Color(0xFF1C1D26)
 private val Muted = Color(0xFF8E8E99)
 
 /** Full-screen plugin manager: Installed / Available / Repositories, plus "Browse". */
@@ -106,7 +108,7 @@ fun FenrirPluginManagerDialog(host: FenrirPluginHost, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun Header(title: String, onBack: () -> Unit, actions: @Composable () -> Unit = {}) {
+internal fun FenrirSheetHeader(title: String, onBack: () -> Unit, actions: @Composable () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -127,7 +129,7 @@ private fun Header(title: String, onBack: () -> Unit, actions: @Composable () ->
 }
 
 @Composable
-private fun Tabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+internal fun FenrirTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -153,7 +155,7 @@ private fun Tabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
 }
 
 @Composable
-private fun PillButton(label: String, filled: Boolean, onClick: () -> Unit) {
+internal fun PillButton(label: String, filled: Boolean, onClick: () -> Unit) {
     val accent = MaterialTheme.colorScheme.primary
     Text(
         text = label,
@@ -172,9 +174,12 @@ private fun PillButton(label: String, filled: Boolean, onClick: () -> Unit) {
 private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBrowse: () -> Unit) {
     val state by host.state.collectAsStateWithLifecycle()
     var tab by remember { mutableIntStateOf(if (state.installed.isEmpty()) 2 else 0) }
+    val flags by FenrirSourceFlags.flags.collectAsStateWithLifecycle()
+    var whereFor by remember { mutableStateOf<FenrirPluginItem?>(null) }
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     Column(Modifier.fillMaxSize().background(Bg)) {
-        Header(host.title, onBack) {
+        FenrirSheetHeader(host.title, onBack) {
             if (state.busy) {
                 CircularProgressIndicator(modifier = Modifier.size(22.dp).padding(2.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(10.dp))
@@ -186,7 +191,7 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
                 modifier = Modifier.clip(CircleShape).clickable { host.refresh() }.padding(8.dp).size(22.dp),
             )
         }
-        Tabs(listOf("Installed", "Available", "Repositories"), tab) { tab = it }
+        FenrirTabs(listOf("Installed", "Available", "Repositories"), tab) { tab = it }
         state.message?.let { message ->
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(Card).padding(12.dp),
@@ -221,7 +226,19 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
                         item(key = "empty-installed") { EmptyNote("Nothing installed yet. Add your repository under Repositories, then install from Available.") }
                     }
                     items(state.installed, key = { "i-${it.id}" }) { plugin ->
-                        PluginRow(plugin) {
+                        PluginRow(plugin, onClick = { whereFor = plugin }) {
+                            val names = host.sourceNamesOf(plugin.id)
+                            if (names.isNotEmpty() && !plugin.needsTrust) {
+                                // flags is read so the chip updates as soon as it changes
+                                val onHome = flags.let { names.any { FenrirSourceFlags.get(host.id, it).home } }
+                                HomeChip(onHome) {
+                                    names.forEach { n ->
+                                        val key = FenrirSourceFlags.key(host.id, n)
+                                        FenrirSourceFlags.set(key, FenrirSourceFlags.get(key).copy(home = !onHome))
+                                    }
+                                }
+                                Spacer(Modifier.width(6.dp))
+                            }
                             when {
                                 plugin.needsTrust -> PillButton("Trust", filled = true) { host.trust(plugin.id) }
                                 plugin.hasUpdate -> PillButton("Update", filled = false) { host.install(plugin.id) }
@@ -248,13 +265,23 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
                     }
                 }
                 else -> {
-                    item(key = "add-repo") { AddRepoField(onAdd = host::addRepo) }
+                    item(key = "add-repo") { AddRepoField(placeholder = "Add by link: paste a repository link or code", onAdd = host::addRepo) }
+                    if (state.repos.size > 1) {
+                        item(key = "copy-all") {
+                            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp), horizontalArrangement = Arrangement.End) {
+                                PillButton("Copy all links", filled = false) {
+                                    clipboard.setText(androidx.compose.ui.text.AnnotatedString(state.repos.joinToString("\n")))
+                                }
+                            }
+                        }
+                    }
                     items(state.repos, key = { "r-$it" }) { repo ->
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(Card).padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(repo, color = Color.White, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            CopyButton { clipboard.setText(androidx.compose.ui.text.AnnotatedString(repo)) }
                             Icon(
                                 Icons.Rounded.Delete,
                                 contentDescription = "Remove repository",
@@ -279,17 +306,145 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
             }
         }
     }
+    whereFor?.let { plugin -> FenrirWhereToUseDialog(host, plugin) { whereFor = null } }
 }
 
 @Composable
-private fun EmptyNote(text: String) {
+internal fun CopyButton(onCopy: () -> Unit) {
+    var copied by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(copied) {
+        if (copied) { kotlinx.coroutines.delay(1500); copied = false }
+    }
+    Text(
+        if (copied) "Copied" else "Copy",
+        color = if (copied) Color(0xFF7BD88F) else Color(0xFFFF6B73),
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.clip(CircleShape).clickable { onCopy(); copied = true }.padding(horizontal = 10.dp, vertical = 8.dp),
+    )
+}
+
+@Composable
+private fun HomeChip(onHome: Boolean, onToggle: () -> Unit) {
+    val accent = MaterialTheme.colorScheme.primary
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(if (onHome) accent.copy(alpha = 0.22f) else Field)
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Rounded.Home,
+            contentDescription = null,
+            tint = if (onHome) Color(0xFFFF6B73) else Muted,
+            modifier = Modifier.size(15.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(if (onHome) "Home" else "Off", color = if (onHome) Color.White else Muted, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+/** "Where to use it": for each site the plugin adds, Home / Pinned / Search / Streams. */
+@Composable
+internal fun FenrirWhereToUseDialog(host: FenrirPluginHost, plugin: FenrirPluginItem, onDismiss: () -> Unit) {
+    val flags by FenrirSourceFlags.flags.collectAsStateWithLifecycle()
+    val names = remember(plugin.id) { host.sourceNamesOf(plugin.id) }
+    val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(onClick = onDismiss),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
+                    .background(Color(0xFF15151B))
+                    .clickable(enabled = false) {}
+                    .padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = bottom + 16.dp),
+            ) {
+                Box(Modifier.align(Alignment.CenterHorizontally).size(width = 40.dp, height = 4.dp).clip(CircleShape).background(Color(0xFF3A3A44)))
+                Spacer(Modifier.height(12.dp))
+                Text(plugin.name, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("Where to use it", color = Muted, style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(8.dp))
+                if (names.isEmpty()) {
+                    Text(
+                        if (plugin.needsTrust) "Trust this plugin first." else "This plugin is still loading or has no sites.",
+                        color = Muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 12.dp),
+                    )
+                }
+                LazyColumn(Modifier.heightIn(max = 460.dp)) {
+                    items(names, key = { it }) { name ->
+                        val key = FenrirSourceFlags.key(host.id, name)
+                        val f = flags[key] ?: FenrirSourceFlags.get(key)
+                        Column(Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(16.dp)).background(Card).padding(horizontal = 14.dp, vertical = 6.dp)) {
+                            if (names.size > 1) Text(name, color = Color.White, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp, bottom = 2.dp))
+                            FlagRow("On Home", "Listed in the FENRIR READ ▾ menu", f.home) { FenrirSourceFlags.set(key, f.copy(home = it, pinned = if (!it) false else f.pinned)) }
+                            FlagRow("Pinned", "At the top of that menu", f.pinned) { FenrirSourceFlags.set(key, f.copy(pinned = it, home = if (it) true else f.home)) }
+                            FlagRow("In Search", "Its results show when you search", f.search) { FenrirSourceFlags.set(key, f.copy(search = it)) }
+                            FlagRow("For streams", "Used to find links on show pages", f.streams) { FenrirSourceFlags.set(key, f.copy(streams = it)) }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.weight(1f)) {
+                        WideButton("Turn off", filled = false) {
+                            names.forEach { FenrirSourceFlags.set(FenrirSourceFlags.key(host.id, it), FenrirSourceFlags.Flags(home = false, pinned = false, search = false, streams = false)) }
+                            onDismiss()
+                        }
+                    }
+                    Box(Modifier.weight(1f)) {
+                        WideButton("Remove", filled = true) {
+                            host.uninstall(plugin.id)
+                            onDismiss()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FlagRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, color = Muted, style = MaterialTheme.typography.bodySmall)
+        }
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+@Composable
+internal fun WideButton(label: String, filled: Boolean, onClick: () -> Unit) {
+    val accent = MaterialTheme.colorScheme.primary
+    Box(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+            .background(if (filled) accent else accent.copy(alpha = 0.16f))
+            .clickable(onClick = onClick)
+            .padding(vertical = 13.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, color = if (filled) Color.White else Color(0xFFFF6B73), fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+internal fun EmptyNote(text: String) {
     Text(text, color = Muted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp))
 }
 
 @Composable
-private fun PluginRow(plugin: FenrirPluginItem, trailing: @Composable () -> Unit) {
+internal fun PluginRow(plugin: FenrirPluginItem, onClick: (() -> Unit)? = null, trailing: @Composable () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF22232C))) {
@@ -315,13 +470,13 @@ private fun PluginRow(plugin: FenrirPluginItem, trailing: @Composable () -> Unit
 }
 
 @Composable
-private fun AddRepoField(onAdd: (String) -> Unit) {
+internal fun AddRepoField(placeholder: String = "Paste your repository link", onAdd: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth().padding(12.dp)) {
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
-            placeholder = { Text("Paste your repository link") },
+            placeholder = { Text(placeholder) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
@@ -362,7 +517,7 @@ private fun FenrirPluginBrowse(host: FenrirPluginHost, onBack: () -> Unit, onPla
     }
 
     Column(Modifier.fillMaxSize().background(Bg)) {
-        Header(openEpisode?.name ?: openHit?.title ?: "Browse ${host.title.lowercase()}", { back() })
+        FenrirSheetHeader(openEpisode?.name ?: openHit?.title ?: "Browse ${host.title.lowercase()}", { back() })
         if (openHit == null) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(

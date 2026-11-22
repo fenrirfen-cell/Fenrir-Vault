@@ -59,7 +59,30 @@ object FenrirSourceHome {
         _selected.value = selected?.takeIf { it.isNotBlank() }
     }
 
-    val host: FenrirPluginHost? get() = FenrirPlugins.cloudStream
+    /** Aniyomi home ids start with "ay:"; everything else is a CloudStream site name. */
+    fun isAniyomiSource(sourceId: String?): Boolean = sourceId?.startsWith("ay:") == true
+
+    fun hostFor(sourceId: String?): FenrirPluginHost? =
+        if (isAniyomiSource(sourceId)) FenrirPlugins.aniyomi else FenrirPlugins.cloudStream
+
+    /** The host of the picked source. */
+    val host: FenrirPluginHost? get() = hostFor(_selected.value)
+
+    /** The picked source's name and icon, from whichever host has it. */
+    fun sourceInfo(sourceId: String?): FenrirHomeSource? =
+        sourceId?.let { id -> hostFor(id)?.homeSources()?.firstOrNull { it.id == id } }
+
+    /** Continue watching keys are "<site>|<url>"; Aniyomi sites are numbers. */
+    private fun hostForKey(key: String): FenrirPluginHost? {
+        val site = key.substringBefore("|")
+        return if (site.isNotEmpty() && site.all { it.isDigit() || it == '-' }) FenrirPlugins.aniyomi ?: FenrirPlugins.cloudStream
+        else FenrirPlugins.cloudStream
+    }
+
+    private fun homeIdForKey(key: String): String {
+        val site = key.substringBefore("|")
+        return if (hostForKey(key) === FenrirPlugins.aniyomi) "ay:$site" else site
+    }
 
     fun select(sourceId: String?) {
         _selected.value = sourceId
@@ -79,7 +102,7 @@ object FenrirSourceHome {
         loadJob?.cancel()
         _state.value = FenrirSourceHomeState(sourceId, loading = true, rows = cached.orEmpty())
         loadJob = scope.launch {
-            val host = host
+            val host = hostFor(sourceId)
             // Plugins load in the background when the app starts; wait for this source briefly.
             var waited = 0
             while (host != null && host.homeSources().none { it.id == sourceId } && waited < 15_000) {
@@ -106,20 +129,24 @@ object FenrirSourceHome {
 
     /** "fenrircs:Kisskh|https://…" → "Kisskh". */
     fun sourceOf(parentMetaId: String?): String? =
-        parentMetaId?.takeIf { isCloudStreamId(it) }?.removePrefix(ID_PREFIX)?.substringBefore("|")?.takeIf { it.isNotBlank() }
+        parentMetaId?.takeIf { isCloudStreamId(it) }?.removePrefix(ID_PREFIX)?.let { key ->
+            val site = key.substringBefore("|").takeIf { it.isNotBlank() } ?: return@let null
+            if (hostForKey(key) === FenrirPlugins.aniyomi) sourceInfo("ay:$site")?.name ?: site else site
+        }
 
     /**
      * Gets a fresh link for the saved episode from the same source and plays it from where it was
      * left. Returns the title to show in the episode sheet instead when that isn't possible.
      */
     suspend fun resume(target: FenrirResumeTarget): FenrirHomeItem? {
-        val host = host ?: return null
         val key = target.parentMetaId.removePrefix(ID_PREFIX)
+        val host = hostForKey(key) ?: return null
+        val homeId = homeIdForKey(key)
         val hit = FenrirPluginHit(key, sourceOf(target.parentMetaId).orEmpty(), target.title, target.poster)
         val fallback = FenrirHomeItem(hit)
         // Plugins load in the background when the app starts; give them a moment.
         var waited = 0
-        while (host.homeSources().none { it.id == hit.sourceName } && waited < 10_000) {
+        while (host.homeSources().none { it.id == homeId } && waited < 10_000) {
             kotlinx.coroutines.delay(500)
             waited += 500
         }

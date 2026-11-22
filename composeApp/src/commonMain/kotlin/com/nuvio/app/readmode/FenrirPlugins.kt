@@ -115,6 +115,9 @@ interface FenrirPluginHost {
     suspend fun episodes(hit: FenrirPluginHit): List<FenrirPluginEpisode>
     suspend fun streams(episode: FenrirPluginEpisode): List<FenrirPluginStream>
 
+    /** The site names a plugin provides (one plugin can add several sites). */
+    fun sourceNamesOf(pluginId: String): List<String> = emptyList()
+
     /** Sites that have their own home page (categories). */
     fun homeSources(): List<FenrirHomeSource> = emptyList()
 

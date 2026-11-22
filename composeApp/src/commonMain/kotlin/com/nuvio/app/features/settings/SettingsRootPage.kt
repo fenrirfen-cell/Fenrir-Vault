@@ -176,60 +176,22 @@ private fun FenrirStyleRow(isTablet: Boolean) {
 private fun FenrirSourcesGroup(isTablet: Boolean, onPageClick: (SettingsPage) -> Unit) {
     val addons by com.nuvio.app.features.addons.AddonRepository.uiState.collectAsStateWithLifecycle()
     val sources = com.nuvio.app.readmode.FenrirSources
-    val mangaCount = remember { runCatching { sources.mangaExtensionCount?.invoke() }.getOrNull() }
-    val novelCount = remember { runCatching { sources.novelPluginCount?.invoke() }.getOrNull() }
-    fun installed(count: Int?) = count?.let { if (it == 1) "1 installed" else "$it installed" }
+    val mangaCount = remember { runCatching { sources.mangaExtensionCount?.invoke() }.getOrNull() ?: 0 }
+    val novelCount = remember { runCatching { sources.novelPluginCount?.invoke() }.getOrNull() ?: 0 }
+    val pluginCount = com.nuvio.app.readmode.FenrirPlugins.all.sumOf { host ->
+        val state by host.state.collectAsStateWithLifecycle()
+        state.installed.size
+    }
+    val total = addons.addons.size + pluginCount + mangaCount + novelCount
     SettingsSection(title = "Sources", isTablet = isTablet) {
         SettingsGroup(isTablet = isTablet) {
             SettingsNavigationRow(
-                title = "Stremio add-ons",
-                description = listOfNotNull("Catalogs and streams", installed(addons.addons.size)).joinToString(" · "),
+                title = "Sources",
+                description = "Stremio · Aniyomi · CloudStream · Manga · Novel" + if (total > 0) " · $total installed" else "",
                 icon = Icons.Default.Extension,
                 isTablet = isTablet,
-                onClick = { onPageClick(SettingsPage.Addons) },
-            )
-            com.nuvio.app.readmode.FenrirPlugins.all.forEach { host ->
-                SettingsGroupDivider(isTablet = isTablet)
-                FenrirPluginHostRow(host = host, isTablet = isTablet)
-            }
-            SettingsGroupDivider(isTablet = isTablet)
-            SettingsNavigationRow(
-                title = "Manga extensions",
-                description = listOfNotNull("Read side", installed(mangaCount)).joinToString(" · "),
-                icon = Icons.AutoMirrored.Rounded.MenuBook,
-                isTablet = isTablet,
-                onClick = { sources.openReadExtensions?.invoke() },
-            )
-            SettingsGroupDivider(isTablet = isTablet)
-            SettingsNavigationRow(
-                title = "Novel plugins",
-                description = listOfNotNull("Read side", installed(novelCount)).joinToString(" · "),
-                icon = Icons.Rounded.AutoStories,
-                isTablet = isTablet,
-                onClick = { sources.openReadExtensions?.invoke() },
+                onClick = { com.nuvio.app.readmode.FenrirSourcesHub.open() },
             )
         }
-    }
-}
-
-
-@Composable
-private fun FenrirPluginHostRow(host: com.nuvio.app.readmode.FenrirPluginHost, isTablet: Boolean) {
-    val state by host.state.collectAsStateWithLifecycle()
-    var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    val count = state.installed.count { !it.needsTrust }
-    SettingsNavigationRow(
-        title = host.title,
-        description = listOfNotNull(
-            host.subtitle,
-            if (count == 1) "1 installed" else "$count installed",
-            state.installed.count { it.hasUpdate }.takeIf { it > 0 }?.let { "$it update(s)" },
-        ).joinToString(" · "),
-        icon = if (host.id == "cloudstream") Icons.Rounded.Cloud else Icons.Rounded.Movie,
-        isTablet = isTablet,
-        onClick = { open = true },
-    )
-    if (open) {
-        com.nuvio.app.readmode.FenrirPluginManagerDialog(host = host, onDismiss = { open = false })
     }
 }

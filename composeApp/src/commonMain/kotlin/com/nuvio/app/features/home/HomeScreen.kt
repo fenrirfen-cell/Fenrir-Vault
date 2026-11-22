@@ -1136,7 +1136,7 @@ fun HomeScreen(
             when {
                 fenrirSourceId != null -> {
                     fenrirSourceHomeHeader(
-                        source = com.nuvio.app.readmode.FenrirPlugins.cloudStream?.homeSources()?.firstOrNull { it.id == fenrirSourceId },
+                        source = com.nuvio.app.readmode.FenrirSourceHome.sourceInfo(fenrirSourceId),
                         sourceId = fenrirSourceId.orEmpty(),
                         horizontalPadding = homeSectionPadding,
                     )
@@ -1157,7 +1157,7 @@ fun HomeScreen(
                     fenrirSourceHomeItems(
                         state = fenrirSourceState.takeIf { it.sourceId == sourceId }
                             ?: com.nuvio.app.readmode.FenrirSourceHomeState(sourceId, loading = true),
-                        source = com.nuvio.app.readmode.FenrirPlugins.cloudStream?.homeSources()?.firstOrNull { it.id == sourceId },
+                        source = com.nuvio.app.readmode.FenrirSourceHome.sourceInfo(sourceId),
                         sourceId = sourceId,
                         horizontalPadding = homeSectionPadding,
                     )

@@ -405,6 +405,9 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
             ?: runCatching { search(query) }.getOrNull()
             ?: emptyList()
 
+    override fun sourceNamesOf(pluginId: String): List<String> =
+        synchronized(loaded) { loaded[pluginId]?.providers?.map { it.name } }.orEmpty()
+
     private fun providers(): List<MainAPI> = synchronized(loaded) { loaded.values.flatMap { it.providers } }
 
     // ------------------------------------------------------------------ finding streams
@@ -414,7 +417,7 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
         onFound: suspend (sourceName: String, streams: List<FenrirPluginStream>) -> Unit,
     ) = coroutineScope {
         val permits = Semaphore(4)
-        providers().map { provider ->
+        providers().filter { FenrirSourceFlags.usedForStreams(id, it.name) }.map { provider ->
             async(Dispatchers.IO) {
                 permits.withPermit {
                     val found = withTimeoutOrNull(35_000) {
@@ -525,7 +528,7 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
     // ------------------------------------------------------------------ browsing
 
     override suspend fun search(query: String): List<FenrirPluginHit> = coroutineScope {
-        providers().map { provider ->
+        providers().filter { FenrirSourceFlags.usedInSearch(id, it.name) }.map { provider ->
             async(Dispatchers.IO) {
                 withTimeoutOrNull(25_000) {
                     provider.searchAny(query)

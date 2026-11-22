@@ -88,19 +88,65 @@ internal class AniyomiPluginHost(app: Application) : FenrirPluginHost {
             isMovie = query.isMovie,
             season = query.season,
             episode = query.episode,
+            include = { FenrirSourceFlags.usedForStreams("aniyomi", it) },
         ) { sourceName, videos ->
             onFound(sourceName, videos.map { it.toStream() })
         }
     }
 
     override suspend fun search(query: String): List<FenrirPluginHit> =
-        AniyomiExtensions.search(query).map { FenrirPluginHit(it.key, it.sourceName, it.title, it.poster) }
+        AniyomiExtensions.search(query) { FenrirSourceFlags.usedInSearch("aniyomi", it) }.map { FenrirPluginHit(it.key, it.sourceName, it.title, it.poster) }
 
     override suspend fun episodes(hit: FenrirPluginHit): List<FenrirPluginEpisode> =
         AniyomiExtensions.episodes(hit.key).map { FenrirPluginEpisode(it.key, it.name) }
 
     override suspend fun streams(episode: FenrirPluginEpisode): List<FenrirPluginStream> =
         AniyomiExtensions.videos(episode.key).map { it.toStream() }
+
+    override fun sourceNamesOf(pluginId: String): List<String> =
+        AniyomiExtensions.state.value.installed.firstOrNull { it.pkg == pluginId }?.sources?.map { it.name }.orEmpty()
+
+    // Home pages: each Aniyomi source can be shown on Home (Popular and Latest rows).
+    override fun homeSources(): List<com.nuvio.app.readmode.FenrirHomeSource> =
+        AniyomiExtensions.homeSources().map {
+            com.nuvio.app.readmode.FenrirHomeSource(
+                id = it.id,
+                name = it.name,
+                subtitle = listOf("Aniyomi", it.lang.uppercase()).filter { p -> p.isNotBlank() }.joinToString(" · "),
+            )
+        }
+
+    override suspend fun homeRows(sourceId: String): List<com.nuvio.app.readmode.FenrirHomeRow> {
+        val supportsLatest = AniyomiExtensions.homeSources().firstOrNull { it.id == sourceId }?.supportsLatest == true
+        val popular = AniyomiExtensions.homePage(sourceId, latest = false, page = 1)
+        val latest = if (supportsLatest) AniyomiExtensions.homePage(sourceId, latest = true, page = 1) else emptyList()
+        return listOfNotNull(
+            latest.takeIf { it.isNotEmpty() }?.let { row("Latest", "latest", it) },
+            popular.takeIf { it.isNotEmpty() }?.let { row("Popular", "popular", it) },
+        )
+    }
+
+    override suspend fun homeRowPage(
+        sourceId: String,
+        categoryName: String,
+        categoryData: String,
+        page: Int,
+    ): List<com.nuvio.app.readmode.FenrirHomeItem> =
+        AniyomiExtensions.homePage(sourceId, latest = categoryData == "latest", page = page).map { it.toItem() }
+
+    override suspend fun searchSource(sourceId: String, query: String): List<FenrirPluginHit> =
+        AniyomiExtensions.searchIn(sourceId, query).map { FenrirPluginHit(it.key, it.sourceName, it.title, it.poster) }
+
+    private fun AniyomiExtensions.Hit.toItem() =
+        com.nuvio.app.readmode.FenrirHomeItem(FenrirPluginHit(key, sourceName, title, poster))
+
+    private fun row(title: String, data: String, hits: List<AniyomiExtensions.Hit>) =
+        com.nuvio.app.readmode.FenrirHomeRow(
+            title = title,
+            categoryName = title,
+            categoryData = data,
+            items = hits.map { it.toItem() },
+        )
 
     private fun AniyomiExtensions.FoundVideo.toStream() = FenrirPluginStream(
         sourceName = sourceName,

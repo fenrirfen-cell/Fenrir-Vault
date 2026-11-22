@@ -100,7 +100,7 @@ object FenrirSourceHomeUi {
 /** "FENRIR READ ▾": tapping it opens the list of sources to show on Home. */
 @Composable
 fun FenrirWordmarkSourceButton(onPicked: () -> Unit, modifier: Modifier = Modifier) {
-    val host = FenrirPlugins.cloudStream
+    val host = FenrirPlugins.cloudStream ?: FenrirPlugins.aniyomi
     var open by remember { mutableStateOf(false) }
     val selected by FenrirSourceHome.selected.collectAsStateWithLifecycle()
     Row(
@@ -124,7 +124,6 @@ fun FenrirWordmarkSourceButton(onPicked: () -> Unit, modifier: Modifier = Modifi
     }
     if (open && host != null) {
         FenrirSourcePickerPanel(
-            host = host,
             selected = selected,
             onPick = { id ->
                 open = false
@@ -136,15 +135,33 @@ fun FenrirWordmarkSourceButton(onPicked: () -> Unit, modifier: Modifier = Modifi
     }
 }
 
+private data class PickerEntry(val source: FenrirHomeSource, val key: String, val pinned: Boolean, val aniyomi: Boolean)
+
 @Composable
 private fun FenrirSourcePickerPanel(
-    host: FenrirPluginHost,
     selected: String?,
     onPick: (String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val pluginState by host.state.collectAsStateWithLifecycle()
-    val sources = remember(pluginState) { host.homeSources() }
+    val cs = FenrirPlugins.cloudStream
+    val ay = FenrirPlugins.aniyomi
+    val csState = cs?.state?.collectAsStateWithLifecycle()?.value
+    val ayState = ay?.state?.collectAsStateWithLifecycle()?.value
+    val flags by FenrirSourceFlags.flags.collectAsStateWithLifecycle()
+    val pinOrder by FenrirSourceFlags.pinOrder.collectAsStateWithLifecycle()
+
+    fun entries(host: FenrirPluginHost?, aniyomi: Boolean): List<PickerEntry> =
+        host?.homeSources().orEmpty().mapNotNull { src ->
+            val key = FenrirSourceFlags.key(host!!.id, src.name)
+            val f = flags[key] ?: FenrirSourceFlags.get(key)
+            // The picked one always shows, so it can be seen and switched off.
+            if (!f.home && src.id != selected) null else PickerEntry(src, key, f.pinned, aniyomi)
+        }.sortedWith(
+            compareBy<PickerEntry>({ !it.pinned }, { pinOrder.indexOf(it.key).let { i -> if (i < 0) Int.MAX_VALUE else i } }, { it.source.name.lowercase() }),
+        )
+
+    val csEntries = remember(csState, flags, pinOrder, selected) { entries(cs, false) }
+    val ayEntries = remember(ayState, flags, pinOrder, selected) { entries(ay, true) }
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     Popup(
         alignment = Alignment.TopStart,
@@ -171,7 +188,7 @@ private fun FenrirSourcePickerPanel(
                     Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Close", tint = Red, modifier = Modifier.size(22.dp))
                 }
                 Text("Show on home", color = Muted, fontSize = 14.sp, modifier = Modifier.padding(top = 14.dp, bottom = 6.dp))
-                LazyColumn(Modifier.heightIn(max = 520.dp)) {
+                LazyColumn(Modifier.heightIn(max = 480.dp)) {
                     item {
                         SourceRow(
                             name = "Nuvio home",
@@ -182,23 +199,40 @@ private fun FenrirSourcePickerPanel(
                             onClick = { onPick(null) },
                         )
                     }
-                    items(sources, key = { it.id }) { source ->
-                        SourceRow(
-                            name = "CS · ${source.name}",
-                            subtitle = source.subtitle.ifBlank { "CloudStream" },
-                            iconUrl = source.iconUrl,
-                            letter = source.name.take(1).uppercase(),
-                            selected = selected == source.id,
-                            onClick = { onPick(source.id) },
-                        )
+                    if (csEntries.isNotEmpty()) {
+                        item { GroupLabel("CloudStream") }
+                        items(csEntries, key = { "cs-" + it.source.id }) { e ->
+                            SourceRow(
+                                name = (if (e.pinned) "📌 " else "") + e.source.name,
+                                subtitle = e.source.subtitle.ifBlank { "CloudStream" },
+                                iconUrl = e.source.iconUrl,
+                                letter = e.source.name.take(1).uppercase(),
+                                selected = selected == e.source.id,
+                                onClick = { onPick(e.source.id) },
+                            )
+                        }
                     }
-                    if (sources.isEmpty()) {
+                    if (ayEntries.isNotEmpty()) {
+                        item { GroupLabel("Aniyomi") }
+                        items(ayEntries, key = { "ay-" + it.source.id }) { e ->
+                            SourceRow(
+                                name = (if (e.pinned) "📌 " else "") + e.source.name,
+                                subtitle = e.source.subtitle.ifBlank { "Aniyomi" },
+                                iconUrl = e.source.iconUrl,
+                                letter = e.source.name.take(1).uppercase(),
+                                selected = selected == e.source.id,
+                                onClick = { onPick(e.source.id) },
+                            )
+                        }
+                    }
+                    if (csEntries.isEmpty() && ayEntries.isEmpty()) {
                         item {
+                            val anything = csState?.installed.orEmpty().isNotEmpty() || ayState?.installed.orEmpty().isNotEmpty()
                             Text(
-                                if (pluginState.installed.isEmpty()) {
-                                    "No CloudStream sources yet. Add them in Settings → CloudStream plugins."
+                                if (anything) {
+                                    "None of your sources are on Home yet, or they're still loading. Turn them on in Manage sources."
                                 } else {
-                                    "Your CloudStream plugins are still loading, or none of them have a home page."
+                                    "No CloudStream or Aniyomi sources yet. Tap + to add some."
                                 },
                                 color = Muted,
                                 fontSize = 14.sp,
@@ -207,9 +241,48 @@ private fun FenrirSourcePickerPanel(
                         }
                     }
                 }
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFF22222A))
+                            .clickable { onDismiss(); FenrirSourcesHub.open() }
+                            .padding(vertical = 13.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("Manage sources", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Box(
+                        Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Red)
+                            .clickable { onDismiss(); FenrirSourcesHub.openAdd() },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("+", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun GroupLabel(text: String) {
+    Text(
+        text.uppercase(),
+        color = Muted,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(start = 10.dp, top = 12.dp, bottom = 4.dp),
+    )
 }
 
 @Composable
@@ -279,15 +352,15 @@ fun LazyListScope.fenrirSourceHomeHeader(
 fun FenrirSourcePillOverlay(modifier: Modifier = Modifier) {
     val sourceId by FenrirSourceHome.selected.collectAsStateWithLifecycle()
     val id = sourceId ?: return
-    val source = remember(id) { FenrirPlugins.cloudStream?.homeSources()?.firstOrNull { it.id == id } }
+    val source = remember(id) { FenrirSourceHome.sourceInfo(id) }
     // A subtitle under the wordmark: tiny icon, name, "· CloudStream". No box around it.
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(16.dp).clip(CircleShape)) {
-            SourceIcon(source?.iconUrl, id.take(1).uppercase(), 16.dp)
+            SourceIcon(source?.iconUrl, (source?.name ?: id).take(1).uppercase(), 16.dp)
         }
         Spacer(Modifier.width(6.dp))
         Text(
-            id,
+            source?.name ?: id.removePrefix("ay:"),
             color = Color(0xFFE4E4EA),
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
@@ -295,7 +368,10 @@ fun FenrirSourcePillOverlay(modifier: Modifier = Modifier) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
-        Text("  ·  CloudStream", color = Muted, fontSize = 12.sp, maxLines = 1)
+        Text(
+            if (FenrirSourceHome.isAniyomiSource(id)) "  ·  Aniyomi" else "  ·  CloudStream",
+            color = Muted, fontSize = 12.sp, maxLines = 1,
+        )
     }
 }
 

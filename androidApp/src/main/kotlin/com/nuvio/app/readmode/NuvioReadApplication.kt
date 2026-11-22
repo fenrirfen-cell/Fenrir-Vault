@@ -52,7 +52,7 @@ class NuvioReadApplication : App() {
         com.nuvio.app.features.anidrama.AniDramaRemindersAndroid.install(this)
 
         // In-app updates come from Fenrir Read's own GitHub releases, compared by build number.
-        FenrirUpdates.repo = "fenrirfen-cell/Fenrir-Read"
+        FenrirUpdates.repo = "fenrirfen-cell/Fenrir_Read"
         FenrirUpdates.currentBuild = runCatching {
             FenrirUpdates.buildOf(packageManager.getPackageInfo(packageName, 0).versionName)
         }.getOrNull()

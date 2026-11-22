@@ -108,32 +108,37 @@ fun AppUpdaterHost(
     val update = state.update
     val showBanner = state.showDialog && update != null
 
-    // Fenrir: the update shows as a small glass pill floating at the top, not a big bar
-    // that pushes the screen down.
-    Box(modifier = modifier) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            content()
-        }
+    // Fenrir: a small glass pill in its own row at the top (pushes the screen down a little
+    // instead of floating over the top bar's buttons).
+    Column(modifier = modifier) {
         AnimatedVisibility(
             visible = showBanner,
-            modifier = Modifier.align(Alignment.TopCenter),
-            enter = androidx.compose.animation.slideInVertically(tween(durationMillis = 300)) { -it } +
+            enter = expandVertically(expandFrom = Alignment.Top, animationSpec = tween(durationMillis = 260)) +
                 fadeIn(animationSpec = tween(durationMillis = 180)),
-            exit = androidx.compose.animation.slideOutVertically(tween(durationMillis = 240)) { -it } +
+            exit = shrinkVertically(shrinkTowards = Alignment.Top, animationSpec = tween(durationMillis = 220)) +
                 fadeOut(animationSpec = tween(durationMillis = 150)),
         ) {
             update?.let { availableUpdate ->
-                AppUpdateBanner(
-                    state = state,
-                    update = availableUpdate,
-                    onDownload = controller::downloadUpdate,
-                    onInstall = controller::installDownloadedUpdate,
-                    onShowReleaseNotes = { showReleaseNotes = true },
-                    onDismiss = controller::dismissDialog,
-                )
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    AppUpdateBanner(
+                        state = state,
+                        update = availableUpdate,
+                        onDownload = controller::downloadUpdate,
+                        onInstall = controller::installDownloadedUpdate,
+                        onShowReleaseNotes = { showReleaseNotes = true },
+                        onDismiss = controller::dismissDialog,
+                    )
+                }
             }
         }
-
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .then(if (showBanner) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier),
+        ) {
+            content()
+        }
     }
 
     if (showReleaseNotes && update != null) {
@@ -177,7 +182,7 @@ private fun AppUpdateBanner(
     Row(
         modifier = Modifier
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(top = 8.dp, start = 16.dp, end = 16.dp)
+            .padding(top = 6.dp, bottom = 6.dp, start = 16.dp, end = 16.dp)
             .heightIn(min = 46.dp)
             .androidx_shadow(shape)
             .androidx_clip(shape)

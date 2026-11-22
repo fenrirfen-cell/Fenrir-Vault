@@ -384,6 +384,7 @@ private fun AddSourceScreen() {
 private fun FoundPlugins(host: FenrirPluginHost, before: Set<String>) {
     val state by host.state.collectAsStateWithLifecycle()
     val installedIds = state.installed.map { it.id }.toSet()
+    val guard = rememberInstallGuard(host)
     val fresh = state.available.filter { it.id !in before }
     val list = (fresh.ifEmpty { state.available }).filter { it.id !in installedIds }
     Column(Modifier.fillMaxWidth().padding(top = 16.dp)) {
@@ -399,7 +400,7 @@ private fun FoundPlugins(host: FenrirPluginHost, before: Set<String>) {
                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 Spacer(Modifier.width(8.dp))
             }
-            if (list.size > 1) PillButton("Install all", filled = false) { list.forEach { host.install(it.id) } }
+            if (list.size > 1) PillButton("Install all", filled = false) { guard.request(list) }
         }
         state.message?.let {
             Text(it, color = HubMuted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 6.dp))
@@ -408,7 +409,7 @@ private fun FoundPlugins(host: FenrirPluginHost, before: Set<String>) {
             Text("Nothing new to install from it.", color = HubMuted, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 10.dp))
         }
         list.forEach { plugin ->
-            PluginRow(plugin) { PillButton("Install", filled = true) { host.install(plugin.id) } }
+            PluginRow(plugin) { PillButton("Install", filled = true) { guard.request(plugin) } }
         }
     }
 }

@@ -31,6 +31,21 @@ object FenrirSourceHealth {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /** What the last check turned off: flag key, name, and its settings before (for Undo). */
+    data class TurnedOff(val key: String, val name: String, val before: FenrirSourceFlags.Flags)
+
+    private val _turnedOff = MutableStateFlow<List<TurnedOff>>(emptyList())
+    val turnedOff: StateFlow<List<TurnedOff>> = _turnedOff.asStateFlow()
+
+    fun undo() {
+        _turnedOff.value.forEach { FenrirSourceFlags.set(it.key, it.before) }
+        _turnedOff.value = emptyList()
+    }
+
+    fun dismiss() {
+        _turnedOff.value = emptyList()
+    }
+
     fun checkAll() {
         if (_running.value) return
         _running.value = true
@@ -42,6 +57,14 @@ object FenrirSourceHealth {
                 targets.map { (host, source) ->
                     async { permits.withPermit { check(host, source) } }
                 }.awaitAll()
+                // Not working: turn it off everywhere (Home, Search, streams); Undo brings it back.
+                val off = targets.filter { _status.value[it.second.id] == Status.Broken }.map { (host, source) ->
+                    val key = FenrirSourceFlags.key(host.id, source.name)
+                    val before = FenrirSourceFlags.get(key)
+                    FenrirSourceFlags.set(key, FenrirSourceFlags.Flags(home = false, pinned = false, search = false, streams = false))
+                    TurnedOff(key, source.name, before)
+                }
+                _turnedOff.value = off
             } finally {
                 _running.value = false
             }

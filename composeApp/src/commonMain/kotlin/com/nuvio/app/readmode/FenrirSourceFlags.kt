@@ -56,7 +56,17 @@ object FenrirSourceFlags {
 
     fun setHome(key: String, home: Boolean) {
         val f = get(key)
-        set(key, f.copy(home = home, pinned = if (home) f.pinned else false))
+        // Turning back on a source that was fully turned off (e.g. by Check sources) restores it everywhere.
+        val revive = home && !f.search && !f.streams
+        set(
+            key,
+            f.copy(
+                home = home,
+                pinned = if (home) f.pinned else false,
+                search = if (revive) true else f.search,
+                streams = if (revive) true else f.streams,
+            ),
+        )
     }
 
     fun usedInSearch(hostId: String, sourceName: String) = get(hostId, sourceName).search

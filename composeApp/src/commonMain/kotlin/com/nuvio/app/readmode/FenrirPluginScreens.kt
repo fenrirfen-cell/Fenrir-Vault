@@ -177,6 +177,7 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
     val flags by FenrirSourceFlags.flags.collectAsStateWithLifecycle()
     var whereFor by remember { mutableStateOf<FenrirPluginItem?>(null) }
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val installGuard = rememberInstallGuard(host)
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     Column(Modifier.fillMaxSize().background(Bg)) {
         FenrirSheetHeader(host.title, onBack) {
@@ -261,7 +262,7 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
                         }
                     }
                     items(notInstalled, key = { "a-${it.id}" }) { plugin ->
-                        PluginRow(plugin) { PillButton("Install", filled = true) { host.install(plugin.id) } }
+                        PluginRow(plugin) { PillButton("Install", filled = true) { installGuard.request(plugin) } }
                     }
                 }
                 else -> {
@@ -619,4 +620,65 @@ private fun FenrirPluginBrowse(host: FenrirPluginHost, onBack: () -> Unit, onPla
             }
         }
     }
+}
+
+
+/** Asks first when a plugin looks broken ("may not work · Install anyway"); otherwise installs. */
+internal class InstallGuard(private val host: FenrirPluginHost) {
+    var pending by androidx.compose.runtime.mutableStateOf<List<FenrirPluginItem>>(emptyList())
+
+    fun request(plugin: FenrirPluginItem) = request(listOf(plugin))
+
+    fun request(plugins: List<FenrirPluginItem>) {
+        val risky = plugins.filter { it.unsupportedReason != null }
+        plugins.filter { it.unsupportedReason == null }.forEach { host.install(it.id) }
+        if (risky.isNotEmpty()) pending = risky
+    }
+
+    fun confirm() {
+        pending.forEach { host.install(it.id) }
+        pending = emptyList()
+    }
+
+    fun cancel() {
+        pending = emptyList()
+    }
+}
+
+@Composable
+internal fun rememberInstallGuard(host: FenrirPluginHost): InstallGuard {
+    val guard = remember(host) { InstallGuard(host) }
+    val list = guard.pending
+    if (list.isNotEmpty()) {
+        FenrirInstallWarningDialog(
+            names = list.map { it.name },
+            reason = list.first().unsupportedReason ?: "",
+            onInstall = guard::confirm,
+            onCancel = guard::cancel,
+        )
+    }
+    return guard
+}
+
+@Composable
+internal fun FenrirInstallWarningDialog(names: List<String>, reason: String, onInstall: () -> Unit, onCancel: () -> Unit) {
+    val title = if (names.size == 1) "${names.first()} may not work" else "${names.size} plugins may not work"
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onCancel,
+        containerColor = Color(0xFF1A1A21),
+        title = { Text(title, color = Color.White, fontWeight = FontWeight.Bold) },
+        text = {
+            Text(
+                (if (names.size > 1) names.joinToString(", ") + ": " else "") +
+                    "$reason. You can still install it, but it probably won't load anything.",
+                color = Color(0xFFB8B8C2),
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onInstall) { Text("Install anyway", color = Color(0xFFFF6B73)) }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onCancel) { Text("Cancel", color = Color.White) }
+        },
+    )
 }

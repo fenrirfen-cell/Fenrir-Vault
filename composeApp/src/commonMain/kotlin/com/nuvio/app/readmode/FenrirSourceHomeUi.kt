@@ -200,6 +200,40 @@ private fun FenrirSourcePickerPanel(
                 var ayShowHidden by remember { mutableStateOf(false) }
                 LazyColumn(Modifier.weight(1f, fill = false)) {
                     item {
+                        val off by FenrirSourceHealth.turnedOff.collectAsStateWithLifecycle()
+                        if (off.isNotEmpty()) {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Red.copy(alpha = 0.14f))
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    "${off.size} not working, turned off (see 👁 hidden)",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    "Undo",
+                                    color = Red,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.clip(CircleShape).clickable { FenrirSourceHealth.undo() }.padding(6.dp),
+                                )
+                                Text(
+                                    "✕",
+                                    color = Muted,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.clip(CircleShape).clickable { FenrirSourceHealth.dismiss() }.padding(6.dp),
+                                )
+                            }
+                        }
+                    }
+                    item {
                         val checking by FenrirSourceHealth.running.collectAsStateWithLifecycle()
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.weight(1f)) { GroupLabel("Show on home") }

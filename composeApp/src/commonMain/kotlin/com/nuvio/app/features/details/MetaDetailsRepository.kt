@@ -451,6 +451,13 @@ object MetaDetailsRepository {
         return enrichedMeta
     }
 
+    /** Fenrir "For you": the title's details and titles like it (same sources as "More like this"). */
+    suspend fun relatedFor(type: String, id: String): Pair<MetaDetails?, List<com.nuvio.app.features.home.MetaPreview>> {
+        val meta = runCatching { fetch(type, id) }.getOrNull() ?: return null to emptyList()
+        val withRelated = runCatching { applyMoreLikeThisSource(meta, id, type) }.getOrDefault(meta)
+        return meta to withRelated.moreLikeThis
+    }
+
     private suspend fun applyMoreLikeThisSource(
         meta: MetaDetails,
         fallbackItemId: String,
@@ -508,7 +515,19 @@ object MetaDetailsRepository {
 
         val tmdbSettings = TmdbSettingsRepository.snapshot()
         if (!tmdbSettings.enabled || !tmdbSettings.useMoreLikeThis) {
-            return meta.copy(moreLikeThis = emptyList(), moreLikeThisSource = null)
+            // Fenrir: nothing set up (no Trakt / TMDB key): still show "More like this" from Simkl.
+            val items = if (supportsMoreLikeThis(meta, fallbackItemType)) {
+                runCatching {
+                    com.nuvio.app.features.simkl.SimklRelatedRepository.getRelated(
+                        meta = meta,
+                        fallbackItemId = fallbackItemId,
+                        fallbackItemType = fallbackItemType,
+                    )
+                }.getOrDefault(emptyList())
+            } else {
+                emptyList()
+            }
+            return meta.copy(moreLikeThis = items, moreLikeThisSource = MoreLikeThisSource.SIMKL.takeIf { items.isNotEmpty() })
         }
 
         return meta.copy(

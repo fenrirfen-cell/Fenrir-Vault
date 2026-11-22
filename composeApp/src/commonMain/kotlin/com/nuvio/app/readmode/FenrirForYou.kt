@@ -1,0 +1,206 @@
+package com.nuvio.app.readmode
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import com.nuvio.app.features.details.MetaDetailsRepository
+import com.nuvio.app.features.home.MetaPreview
+import com.nuvio.app.features.watchprogress.WatchProgressRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+
+/** Watch "For you": rows of titles like the ones you watched most recently. */
+object FenrirForYou {
+    data class ForYouRow(val title: String, val because: String, val items: List<MetaPreview>)
+
+    private val _open = MutableStateFlow(false)
+    val open: StateFlow<Boolean> = _open.asStateFlow()
+    private val _rows = MutableStateFlow<List<ForYouRow>>(emptyList())
+    val rows: StateFlow<List<ForYouRow>> = _rows.asStateFlow()
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+    private var loadedAt = 0L
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    fun show() {
+        _open.value = true
+        load()
+    }
+
+    fun hide() {
+        _open.value = false
+    }
+
+    private fun load() {
+        if (_loading.value) return
+        val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
+        if (_rows.value.isNotEmpty() && now - loadedAt < 30 * 60 * 1000L) return
+        _loading.value = true
+        scope.launch {
+            try {
+                val entries = WatchProgressRepository.uiState.value.entries
+                val watchedIds = entries.map { it.parentMetaId }.toSet()
+                val recent = entries
+                    .sortedByDescending { it.lastUpdatedEpochMs }
+                    .distinctBy { it.parentMetaId }
+                    .filterNot { it.parentMetaId.startsWith("fenrircs:") }
+                    .take(5)
+                val rows = recent.map { entry ->
+                    async {
+                        withTimeoutOrNull(25_000) {
+                            val (meta, related) = MetaDetailsRepository.relatedFor(entry.parentMetaType, entry.parentMetaId)
+                            val items = related.filterNot { it.id in watchedIds }.take(15)
+                            if (items.isEmpty()) {
+                                null
+                            } else {
+                                ForYouRow(
+                                    title = "Because you watched",
+                                    because = meta?.name ?: entry.title,
+                                    items = items,
+                                )
+                            }
+                        }
+                    }
+                }.awaitAll().filterNotNull()
+                _rows.value = rows
+                loadedAt = now
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+}
+
+private val ForYouRed = Color(0xFFFF4D57)
+
+/** The For you panel (Watch). [onOpen] opens a title's page. */
+@Composable
+fun FenrirForYouHost(onOpen: (MetaPreview) -> Unit) {
+    val open by FenrirForYou.open.collectAsStateWithLifecycle()
+    if (!open) return
+    val rows by FenrirForYou.rows.collectAsStateWithLifecycle()
+    val loading by FenrirForYou.loading.collectAsStateWithLifecycle()
+    val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    Dialog(onDismissRequest = { FenrirForYou.hide() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)).clickable { FenrirForYou.hide() }, contentAlignment = Alignment.BottomCenter) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.78f)
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                    .background(Color(0xFF15151B))
+                    .clickable(enabled = false) {}
+                    .padding(top = 12.dp),
+            ) {
+                Box(Modifier.align(Alignment.CenterHorizontally).size(width = 40.dp, height = 4.dp).clip(CircleShape).background(Color(0xFF3A3A44)))
+                Row(Modifier.padding(start = 18.dp, top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = ForYouRed, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("For you", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                }
+                Text(
+                    "Based on what you watched lately",
+                    color = Color(0xFF9A9AA6),
+                    fontSize = 12.5.sp,
+                    modifier = Modifier.padding(start = 18.dp, top = 2.dp, bottom = 10.dp),
+                )
+                when {
+                    loading && rows.isEmpty() -> Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = ForYouRed)
+                    }
+                    rows.isEmpty() -> Text(
+                        "Nothing to suggest yet. Watch a few shows or movies and check back.",
+                        color = Color(0xFFB8B8C2),
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(18.dp),
+                    )
+                    else -> LazyColumn(contentPadding = PaddingValues(bottom = bottom + 20.dp)) {
+                        items(rows, key = { it.because }) { row ->
+                            Column(Modifier.padding(top = 10.dp)) {
+                                Row(Modifier.padding(horizontal = 18.dp)) {
+                                    Text("${row.title} ", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                    Text(row.because, color = ForYouRed, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    items(row.items, key = { it.type + it.id }) { item ->
+                                        Column(Modifier.width(112.dp).clickable { FenrirForYou.hide(); onOpen(item) }) {
+                                            Box(
+                                                Modifier.fillMaxWidth().height(164.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xFF22232C)),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Text(item.name.take(2).uppercase(), color = Color(0xFF55555F), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                                                if (!item.poster.isNullOrBlank()) {
+                                                    AsyncImage(model = item.poster, contentDescription = item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                                }
+                                            }
+                                            Text(item.name, color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
+                                            Text(
+                                                listOfNotNull(if (item.type == "movie") "Movie" else "Series", item.releaseInfo).joinToString(" · "),
+                                                color = Color(0xFF9A9AA6),
+                                                fontSize = 10.5.sp,
+                                                maxLines = 1,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

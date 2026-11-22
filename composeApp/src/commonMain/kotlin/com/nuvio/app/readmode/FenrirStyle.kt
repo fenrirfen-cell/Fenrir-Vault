@@ -1,5 +1,6 @@
 package com.nuvio.app.readmode
 
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
@@ -156,7 +157,15 @@ fun FenrirTopBar(
         Box(modifier = Modifier.weight(1f)) {
             FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
         }
-        // Search first, then the Watch / Ani-drama / Read switch at the far right.
+        // ✨ For you (only on Watch, and only where there's room), then Search, then the mode switch.
+        if (selected == FenrirMode.Watch && onSearch != null) {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            val widthDp = with(density) { androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.width.toDp() }
+            if (widthDp >= 380.dp) {
+                FenrirForYouButton(hazeState)
+                Spacer(Modifier.width(8.dp))
+            }
+        }
         if (onSearch != null) {
             FenrirSearchButton(onSearch, hazeState)
             Spacer(Modifier.width(10.dp))
@@ -188,6 +197,28 @@ fun FenrirSearchButton(onSearch: () -> Unit, hazeState: HazeState? = null) {
     ) {
         FenrirLiquidGlassBackground(hazeState, Modifier.matchParentSize())
         Icon(Icons.Rounded.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
+    }
+}
+
+/** ✨ opens the For you panel (titles like the ones you watched). */
+@Composable
+fun FenrirForYouButton(hazeState: HazeState? = null) {
+    Box(
+        modifier = Modifier
+            .size(42.dp)
+            .shadow(12.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.4f), spotColor = Color.Black.copy(alpha = 0.4f))
+            .clip(CircleShape)
+            .clickable(role = Role.Button) { FenrirForYou.show() }
+            .semantics { contentDescription = "For you" },
+        contentAlignment = Alignment.Center,
+    ) {
+        FenrirLiquidGlassBackground(hazeState, Modifier.matchParentSize())
+        Icon(
+            androidx.compose.material.icons.Icons.Rounded.AutoAwesome,
+            contentDescription = null,
+            tint = Color(0xFFFF6B73),
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

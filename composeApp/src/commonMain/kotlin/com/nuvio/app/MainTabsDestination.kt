@@ -394,6 +394,8 @@ internal fun MainTabsDestination(
                 com.nuvio.app.assistant.AssistantSheetHost()
                 // Settings → Sources and the Home menu's "Manage sources" / "+".
                 com.nuvio.app.readmode.FenrirSourcesHubHost()
+                // ✨ For you panel.
+                com.nuvio.app.readmode.FenrirForYouHost(onOpen = { meta -> tabActions.onPosterClick?.invoke(meta) })
             }
         }
     }

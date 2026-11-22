@@ -252,16 +252,6 @@ private fun FenrirSourcePickerPanel(
                     }
                     item {
                         MenuRow(
-                            name = "✨ For you",
-                            subtitle = "Titles like the ones you watched",
-                            iconUrl = null,
-                            letter = "✨",
-                            selected = false,
-                            onClick = { onDismiss(); FenrirForYou.show() },
-                        )
-                    }
-                    item {
-                        MenuRow(
                             name = "Nuvio home",
                             subtitle = "Stremio add-on catalogs",
                             iconUrl = null,

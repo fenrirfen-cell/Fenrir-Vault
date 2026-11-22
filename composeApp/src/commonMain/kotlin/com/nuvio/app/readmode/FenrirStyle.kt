@@ -157,15 +157,7 @@ fun FenrirTopBar(
         Box(modifier = Modifier.weight(1f)) {
             FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
         }
-        // ✨ For you (only on Watch, and only where there's room), then Search, then the mode switch.
-        if (selected == FenrirMode.Watch && onSearch != null) {
-            val density = androidx.compose.ui.platform.LocalDensity.current
-            val widthDp = with(density) { androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.width.toDp() }
-            if (widthDp >= 380.dp) {
-                FenrirForYouButton(hazeState)
-                Spacer(Modifier.width(8.dp))
-            }
-        }
+        // Search, then the Watch / Ani-drama / Read switch at the far right (For you is in the island).
         if (onSearch != null) {
             FenrirSearchButton(onSearch, hazeState)
             Spacer(Modifier.width(10.dp))

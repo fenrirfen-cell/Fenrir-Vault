@@ -1,5 +1,6 @@
 package com.nuvio.app
 
+import androidx.compose.material.icons.rounded.Recommend
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -99,12 +100,20 @@ internal fun MainTabsDestination(
         val fenrirStyleOn by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsStateWithLifecycle()
         // Fenrir style replaces the phone bottom bars with its own pill bar.
         val fenrirBar = fenrirStyleOn && !isTabletLayout && !useNativeBottomTabs
+        val forYouOpen by com.nuvio.app.readmode.FenrirForYou.open.collectAsStateWithLifecycle()
         val fenrirNavItems = listOfNotNull(
             com.nuvio.app.readmode.FenrirNavItem(
                 label = stringResource(Res.string.compose_nav_home),
                 selected = selectedTab == AppScreenTab.Home || selectedTab == AppScreenTab.AniDrama,
                 onClick = { onTabSelected(AppScreenTab.Home) },
                 icon = Icons.Filled.Home,
+            ),
+            // ✨ For you: opens the suggestions panel.
+            com.nuvio.app.readmode.FenrirNavItem(
+                label = "For you",
+                selected = forYouOpen,
+                onClick = { com.nuvio.app.readmode.FenrirForYou.show() },
+                icon = Icons.Rounded.Recommend,
             ),
             // Search moved to the round button at the top of Home (FenrirTopBar).
             if (ReadModeBridge.isAvailable) {

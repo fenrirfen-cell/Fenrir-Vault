@@ -38,6 +38,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -198,7 +199,23 @@ private fun FenrirSourcePickerPanel(
                 var csShowHidden by remember { mutableStateOf(false) }
                 var ayShowHidden by remember { mutableStateOf(false) }
                 LazyColumn(Modifier.weight(1f, fill = false)) {
-                    item { GroupLabel("Show on home") }
+                    item {
+                        val checking by FenrirSourceHealth.running.collectAsStateWithLifecycle()
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.weight(1f)) { GroupLabel("Show on home") }
+                            Text(
+                                if (checking) "Checking…" else "Check sources",
+                                color = Red,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .padding(top = 6.dp, end = 6.dp)
+                                    .clip(CircleShape)
+                                    .clickable(enabled = !checking) { FenrirSourceHealth.checkAll() }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
                     item {
                         MenuRow(
                             name = "Nuvio home",
@@ -258,25 +275,25 @@ private fun FenrirSourcePickerPanel(
                     Box(
                         Modifier
                             .weight(1f)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(22.dp))
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(20.dp))
                             .background(Color(0xFF22222A))
-                            .border(1.dp, Color(0xFF34343F), RoundedCornerShape(22.dp))
+                            .border(1.dp, Color(0xFF34343F), RoundedCornerShape(20.dp))
                             .clickable { onDismiss(); FenrirSourcesHub.open() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("Manage sources", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Manage sources", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Box(
                         Modifier
                             .weight(1f)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(22.dp))
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(20.dp))
                             .background(Red)
                             .clickable { onDismiss(); FenrirSourcesHub.openAdd() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("+ Add extensions", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        Text("+ Add extensions", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
                 }
             }
@@ -294,26 +311,60 @@ private fun MenuRow(
     selected: Boolean,
     onClick: () -> Unit,
     trailing: (@Composable () -> Unit)? = null,
+    health: FenrirSourceHealth.Status? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(50.dp)
+            .height(42.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(if (selected) Red.copy(alpha = 0.14f) else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp))) {
-            SourceIcon(iconUrl, letter, 30.dp)
+        Box {
+            Box(Modifier.size(26.dp).clip(RoundedCornerShape(7.dp))) {
+                SourceIcon(iconUrl, letter, 26.dp)
+            }
+            if (health != null) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 3.dp, y = 3.dp)
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1C1C22))
+                        .padding(2.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when (health) {
+                                FenrirSourceHealth.Status.Working -> Color(0xFF4CD787)
+                                FenrirSourceHealth.Status.Slow -> Color(0xFFFFB547)
+                                FenrirSourceHealth.Status.Broken -> Color(0xFFFF4D57)
+                                FenrirSourceHealth.Status.Checking -> Color(0xFF6E6E78)
+                            },
+                        ),
+                )
+            }
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(name, color = Color.White, fontSize = 15.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(subtitle, color = Color(0xFF9A9AA6), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(name, color = Color.White, fontSize = 14.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                when (health) {
+                    FenrirSourceHealth.Status.Broken -> "Not working right now"
+                    FenrirSourceHealth.Status.Slow -> "$subtitle · slow"
+                    FenrirSourceHealth.Status.Checking -> "$subtitle · checking…"
+                    else -> subtitle
+                },
+                color = if (health == FenrirSourceHealth.Status.Broken) Color(0xFFFF6B73) else Color(0xFF9A9AA6),
+                fontSize = 10.5.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
-        if (selected) Icon(Icons.Rounded.Check, contentDescription = null, tint = Red, modifier = Modifier.size(20.dp))
+        if (selected) Icon(Icons.Rounded.Check, contentDescription = null, tint = Red, modifier = Modifier.size(18.dp))
         trailing?.invoke()
     }
 }
@@ -336,6 +387,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.sourceGroup(
 ) {
     if (shown.isEmpty() && hidden.isEmpty()) return
     item(key = "$prefix-head") {
+        val health by FenrirSourceHealth.status.collectAsStateWithLifecycle()
         GroupHeader(
             title,
             shown.size,
@@ -343,10 +395,50 @@ private fun androidx.compose.foundation.lazy.LazyListScope.sourceGroup(
             open,
             onToggle,
             hiddenCount = hidden.size,
+            brokenCount = shown.count { health[it.source.id] == FenrirSourceHealth.Status.Broken },
+            showingHidden = showHidden,
+            onToggleHidden = onToggleHidden,
         )
+    }
+    // Hidden ones, right under the header (the header's eye button shows them).
+    if (showHidden && hidden.isNotEmpty()) {
+        items(hidden, key = { "$prefix-h-" + it.source.id }) { e ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .padding(horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(24.dp).clip(RoundedCornerShape(7.dp)).graphicsLayer { alpha = 0.5f }) {
+                    SourceIcon(e.source.iconUrl, e.source.name.take(1).uppercase(), 24.dp)
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    e.source.name,
+                    color = Color(0xFF9A9AA6),
+                    fontSize = 13.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "Unhide",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(Red)
+                        .clickable { FenrirSourceFlags.setHome(e.key, true) }
+                        .padding(horizontal = 11.dp, vertical = 4.dp),
+                )
+            }
+        }
     }
     if (!open) return
     items(shown, key = { "$prefix-" + it.source.id }) { e ->
+        val health by FenrirSourceHealth.status.collectAsStateWithLifecycle()
         MenuRow(
             name = e.source.name,
             subtitle = if (e.pinned) "Pinned · $title" else title,
@@ -354,91 +446,45 @@ private fun androidx.compose.foundation.lazy.LazyListScope.sourceGroup(
             letter = e.source.name.take(1).uppercase(),
             selected = selected == e.source.id,
             onClick = { onPick(e.source.id) },
+            health = health[e.source.id],
             trailing = {
                 Icon(
                     Icons.Rounded.VisibilityOff,
                     contentDescription = "Hide from this menu",
                     tint = Color(0xFF8E8E99),
                     modifier = Modifier
-                        .padding(start = 6.dp)
+                        .padding(start = 4.dp)
                         .clip(CircleShape)
                         .clickable {
                             if (selected == e.source.id) onPick(null)
                             FenrirSourceFlags.setHome(e.key, false)
                         }
                         .padding(7.dp)
-                        .size(18.dp),
+                        .size(16.dp),
                 )
             },
         )
-    }
-    if (hidden.isNotEmpty()) {
-        item(key = "$prefix-hidden-toggle") {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .clickable(onClick = onToggleHidden)
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Rounded.Visibility, contentDescription = null, tint = Red, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (showHidden) "Hide the hidden ones" else "Show hidden (${hidden.size})",
-                    color = Red,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-        if (showHidden) {
-            items(hidden, key = { "$prefix-h-" + it.source.id }) { e ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(46.dp)
-                        .padding(horizontal = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(Modifier.size(26.dp).clip(RoundedCornerShape(7.dp)).graphicsLayer { alpha = 0.5f }) {
-                        SourceIcon(e.source.iconUrl, e.source.name.take(1).uppercase(), 26.dp)
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        e.source.name,
-                        color = Color(0xFF9A9AA6),
-                        fontSize = 14.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        "Show",
-                        color = Color.White,
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(Red)
-                            .clickable { FenrirSourceFlags.setHome(e.key, true) }
-                            .padding(horizontal = 12.dp, vertical = 5.dp),
-                    )
-                }
-            }
-        }
     }
 }
 
 /** "CLOUDSTREAM · 12 ▾": tap to show or hide that group's sources. */
 @Composable
-private fun GroupHeader(title: String, count: Int, pickedName: String?, open: Boolean, onToggle: () -> Unit, hiddenCount: Int = 0) {
+private fun GroupHeader(
+    title: String,
+    count: Int,
+    pickedName: String?,
+    open: Boolean,
+    onToggle: () -> Unit,
+    hiddenCount: Int = 0,
+    brokenCount: Int = 0,
+    showingHidden: Boolean = false,
+    onToggleHidden: () -> Unit = {},
+) {
     Row(
         Modifier
             .fillMaxWidth()
             .padding(top = 4.dp)
-            .height(46.dp)
+            .height(42.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(if (open) Color(0xFF24242C) else Color.Transparent)
             .clickable(onClick = onToggle)
@@ -449,18 +495,34 @@ private fun GroupHeader(title: String, count: Int, pickedName: String?, open: Bo
             Text(title.uppercase(), color = Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Text(
                 pickedName?.let { "On home now: $it" }
-                    ?: ((if (count == 1) "1 source" else "$count sources") + if (hiddenCount > 0) " · $hiddenCount hidden" else ""),
+                    ?: ((if (count == 1) "1 source" else "$count sources") + if (brokenCount > 0) " · $brokenCount not working" else ""),
                 color = if (pickedName != null) Red else Color(0xFF9A9AA6),
-                fontSize = 12.sp,
+                fontSize = 11.5.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        if (hiddenCount > 0) {
+            // Eye button: show the hidden ones right here (no scrolling down).
+            Row(
+                Modifier
+                    .clip(CircleShape)
+                    .background(if (showingHidden) Red else Color(0xFF2A2A33))
+                    .clickable(onClick = onToggleHidden)
+                    .padding(horizontal = 9.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.Visibility, contentDescription = "Show hidden", tint = Color.White, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("$hiddenCount", color = Color.White, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.width(6.dp))
         }
         Icon(
             if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
             contentDescription = if (open) "Hide" else "Show",
             tint = Color(0xFFD3D1C7),
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(20.dp),
         )
     }
 }

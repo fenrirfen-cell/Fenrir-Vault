@@ -1,5 +1,9 @@
 package com.nuvio.app.readmode
 
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -204,15 +208,35 @@ fun FenrirForYouHost(onOpen: (MetaPreview) -> Unit) {
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     Dialog(onDismissRequest = { FenrirForYou.hide() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)).clickable { FenrirForYou.hide() }, contentAlignment = Alignment.BottomCenter) {
+            // Fenrir: swipe the top down to close, up for full screen.
+            var dragY by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            var full by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.78f)
+                    .fillMaxHeight(if (full) 0.95f else 0.78f)
+                    .offset { androidx.compose.ui.unit.IntOffset(0, dragY.coerceAtLeast(0f).toInt()) }
                     .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                     .background(Color(0xFF15151B))
                     .clickable(enabled = false) {}
                     .padding(top = 12.dp),
             ) {
+                Column(
+                    Modifier.fillMaxWidth().pointerInput(Unit) {
+                        detectVerticalDragGestures(
+                            onDragEnd = {
+                                when {
+                                    dragY > 260f -> FenrirForYou.hide()
+                                    dragY > 90f && full -> full = false
+                                    dragY < -90f -> full = true
+                                }
+                                dragY = 0f
+                            },
+                            onDragCancel = { dragY = 0f },
+                            onVerticalDrag = { _, dy -> dragY += dy },
+                        )
+                    },
+                ) {
                 Box(Modifier.align(Alignment.CenterHorizontally).size(width = 40.dp, height = 4.dp).clip(CircleShape).background(Color(0xFF3A3A44)))
                 Row(Modifier.padding(start = 18.dp, top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = ForYouRed, modifier = Modifier.size(22.dp))
@@ -225,6 +249,7 @@ fun FenrirForYouHost(onOpen: (MetaPreview) -> Unit) {
                     fontSize = 12.5.sp,
                     modifier = Modifier.padding(start = 18.dp, top = 2.dp, bottom = 10.dp),
                 )
+                }
                 when {
                     loading && rows.isEmpty() -> Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = ForYouRed)

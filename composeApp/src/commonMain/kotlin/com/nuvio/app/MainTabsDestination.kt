@@ -405,6 +405,8 @@ internal fun MainTabsDestination(
                 com.nuvio.app.readmode.FenrirSourcesHubHost()
                 // ✨ For you panel.
                 com.nuvio.app.readmode.FenrirForYouHost(onOpen = { meta -> tabActions.onPosterClick?.invoke(meta) })
+                // Tap a ★ badge on a poster: why it's rated that way + reviews.
+                com.nuvio.app.readmode.FenrirWatchRatingHost()
             }
         }
     }

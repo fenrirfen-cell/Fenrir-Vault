@@ -138,6 +138,7 @@ fun NuvioPosterCard(
     onLongClick: (() -> Unit)? = null,
     // Fenrir: IMDb / TMDB score shown as a small ★ badge in the bottom-left corner.
     rating: Double? = null,
+    onRatingClick: (() -> Unit)? = null,
 ) {
     val posterCardStyle = rememberPosterCardStyleUiState()
     val tokens = MaterialTheme.nuvio
@@ -204,6 +205,7 @@ fun NuvioPosterCard(
                             .padding(6.dp)
                             .clip(RoundedCornerShape(11.dp))
                             .background(androidx.compose.ui.graphics.Color(0xD10C0C10))
+                            .then(if (onRatingClick != null) Modifier.clickable(onClick = onRatingClick) else Modifier)
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

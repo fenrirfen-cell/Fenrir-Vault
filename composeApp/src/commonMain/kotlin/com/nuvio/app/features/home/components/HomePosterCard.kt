@@ -46,6 +46,7 @@ fun HomePosterCard(
         onClick = onClick,
         onLongClick = onLongClick,
         rating = item.imdbRating?.toDoubleOrNull(),
+        onRatingClick = { com.nuvio.app.readmode.FenrirWatchRating.show(item) },
     )
 }
 

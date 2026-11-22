@@ -14,6 +14,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.shadow
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Download
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -157,6 +159,8 @@ fun FenrirTopBar(
         Box(modifier = Modifier.weight(1f)) {
             FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
         }
+        // New version: a round download button with a red dot (Update, then Install).
+        if (FenrirUpdateButton(hazeState)) Spacer(Modifier.width(10.dp))
         // Search, then the Watch / Ani-drama / Read switch at the far right (For you is in the island).
         if (onSearch != null) {
             FenrirSearchButton(onSearch, hazeState)
@@ -379,4 +383,94 @@ fun FenrirNavigationBar(items: List<FenrirNavItem>, modifier: Modifier = Modifie
             }
         }
     }
+}
+
+
+/**
+ * Round button beside Search when a new Fenrir Read version is out: a red dot, a progress ring
+ * while downloading, and a small menu (Update / Not now). Returns true when it's shown.
+ */
+@Composable
+fun FenrirUpdateButton(hazeState: HazeState? = null): Boolean {
+    val flow = FenrirPullRefresh.updaterState ?: return false
+    val state by flow.collectAsStateWithLifecycle()
+    val update = state.update
+    if (!state.showDialog || update == null) return false
+    val red = Color(0xFFFF4D57)
+    var menu by remember { mutableStateOf(false) }
+    val ready = state.downloadedApkPath != null
+    Box {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .shadow(12.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.4f), spotColor = Color.Black.copy(alpha = 0.4f))
+                .clip(CircleShape)
+                .clickable(role = Role.Button) {
+                    when {
+                        state.isDownloading -> menu = true
+                        ready -> FenrirPullRefresh.installUpdate?.invoke()
+                        else -> menu = true
+                    }
+                }
+                .semantics { contentDescription = "Update available" },
+            contentAlignment = Alignment.Center,
+        ) {
+            FenrirLiquidGlassBackground(hazeState, Modifier.matchParentSize())
+            if (state.isDownloading) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    progress = { (state.downloadProgress ?: 0f).coerceIn(0f, 1f) },
+                    color = red,
+                    trackColor = Color.White.copy(alpha = 0.15f),
+                    strokeWidth = 2.5.dp,
+                    modifier = Modifier.size(34.dp),
+                )
+            }
+            Icon(
+                imageVector = if (ready) Icons.Rounded.Check else Icons.Rounded.Download,
+                contentDescription = null,
+                tint = red,
+                modifier = Modifier.size(20.dp),
+            )
+            if (!state.isDownloading) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 5.dp, end = 5.dp)
+                        .size(9.dp)
+                        .clip(CircleShape)
+                        .background(red),
+                )
+            }
+        }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            Text(
+                text = when {
+                    state.errorMessage != null -> "Update failed"
+                    state.isDownloading -> "Downloading ${((state.downloadProgress ?: 0f) * 100).toInt()}%"
+                    else -> "New version"
+                },
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            )
+            Text(
+                text = state.errorMessage ?: update.tag,
+                color = Color(0xFF9A9AA6),
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 6.dp),
+            )
+            if (!state.isDownloading) {
+                DropdownMenuItem(
+                    text = { Text(if (state.errorMessage != null) "Try again" else "Update now", color = red, fontWeight = FontWeight.SemiBold) },
+                    onClick = { menu = false; FenrirPullRefresh.downloadUpdate?.invoke() },
+                )
+                DropdownMenuItem(
+                    text = { Text("Not now") },
+                    onClick = { menu = false; FenrirPullRefresh.dismissUpdate?.invoke() },
+                )
+            }
+        }
+    }
+    return true
 }

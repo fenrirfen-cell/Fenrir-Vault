@@ -98,8 +98,8 @@ internal fun MainTabsDestination(
         val aniDramaAvailable by AniDramaBridge.isAvailable.collectAsStateWithLifecycle()
         val assistantOpen by com.nuvio.app.assistant.AssistantController.open.collectAsStateWithLifecycle()
         val fenrirStyleOn by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsStateWithLifecycle()
-        // Fenrir style replaces the phone bottom bars with its own pill bar.
-        val fenrirBar = fenrirStyleOn && !isTabletLayout && !useNativeBottomTabs
+        // Fenrir style replaces the bottom bars with its own island, on phones, folds and tablets alike.
+        val fenrirBar = fenrirStyleOn && !useNativeBottomTabs
         val forYouOpen by com.nuvio.app.readmode.FenrirForYou.open.collectAsStateWithLifecycle()
         val fenrirNavItems = listOfNotNull(
             com.nuvio.app.readmode.FenrirNavItem(
@@ -344,7 +344,7 @@ internal fun MainTabsDestination(
                     )
                 }
 
-                if (isTabletLayout && !useNativeBottomTabs) {
+                if (isTabletLayout && !useNativeBottomTabs && !fenrirBar) {
                     val tabletNavBarScrollState = remember { NuvioNavBarScrollState().apply { collapse() } }
                     FloatingNavigationBar(
                         modifier = Modifier.align(Alignment.TopCenter).widthIn(max = 416.dp),

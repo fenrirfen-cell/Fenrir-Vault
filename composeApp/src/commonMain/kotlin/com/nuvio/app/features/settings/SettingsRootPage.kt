@@ -26,9 +26,8 @@ internal fun LazyListScope.settingsRootContent(
     category: SettingsCategory? = null,
 ) {
     // Fenrir: all sources in one place (Stremio add-ons here, manga and novel sources on the Read side).
-    if (com.nuvio.app.readmode.FenrirSources.openReadExtensions != null &&
-        (category == null || category == SettingsCategory.Watch)
-    ) {
+    // Shown at the top of every settings group (phones, folds and tablets), so it's always one tap away.
+    if (com.nuvio.app.readmode.FenrirSources.openReadExtensions != null) {
         item(key = "fenrir-sources") {
             FenrirSourcesGroup(isTablet = isTablet, onPageClick = onPageClick)
         }

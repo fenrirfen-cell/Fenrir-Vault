@@ -81,6 +81,8 @@ object FenrirForYou {
         _open.value = false
     }
 
+    private data class Seed(val id: String, val type: String, val title: String, val at: Long)
+
     private fun load() {
         if (_loading.value) return
         val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
@@ -88,35 +90,103 @@ object FenrirForYou {
         _loading.value = true
         scope.launch {
             try {
-                val entries = WatchProgressRepository.uiState.value.entries
-                val watchedIds = entries.map { it.parentMetaId }.toSet()
-                val recent = entries
-                    .sortedByDescending { it.lastUpdatedEpochMs }
-                    .distinctBy { it.parentMetaId }
-                    .filterNot { it.parentMetaId.startsWith("fenrircs:") }
-                    .take(5)
-                val rows = recent.map { entry ->
+                // Everything you've watched or saved: Continue watching, watched history and My list,
+                // including CloudStream and Aniyomi titles (matched by name below).
+                val progress = WatchProgressRepository.uiState.value.entries.map {
+                    Seed(it.parentMetaId, it.parentMetaType, it.title, it.lastUpdatedEpochMs)
+                }
+                val watched = runCatching { com.nuvio.app.features.watched.WatchedRepository.uiState.value.items }
+                    .getOrDefault(emptyList())
+                    .map { Seed(it.id, it.type, it.name, it.markedAtEpochMs) }
+                val saved = runCatching { com.nuvio.app.features.library.LibraryRepository.uiState.value.items }
+                    .getOrDefault(emptyList())
+                    .map { Seed(it.id, it.type, it.name, it.savedAtEpochMs / 2) } // saved counts less than watched
+                val all = (progress + watched + saved).filter { it.title.isNotBlank() }
+                val seen = all.map { it.id }.toSet()
+                val seenTitles = all.map { titleKey(it.title) }.toSet()
+                val seeds = all
+                    .sortedByDescending { it.at }
+                    .distinctBy { titleKey(it.title) }
+                    .take(8)
+                _seedCount.value = all.distinctBy { titleKey(it.title) }.size
+
+                val rows = seeds.map { seed ->
                     async {
                         withTimeoutOrNull(25_000) {
-                            val (meta, related) = MetaDetailsRepository.relatedFor(entry.parentMetaType, entry.parentMetaId)
-                            val items = related.filterNot { it.id in watchedIds }.take(15)
-                            if (items.isEmpty()) {
-                                null
-                            } else {
-                                ForYouRow(
-                                    title = "Because you watched",
-                                    because = meta?.name ?: entry.title,
-                                    items = items,
-                                )
-                            }
+                            val (type, id) = resolve(seed) ?: return@withTimeoutOrNull null
+                            val (meta, related) = MetaDetailsRepository.relatedFor(type, id)
+                            val items = related
+                                .filterNot { it.id in seen || titleKey(it.name) in seenTitles }
+                                .take(15)
+                            if (items.isEmpty()) null else ForYouRow(
+                                title = "Because you watched",
+                                because = meta?.name ?: seed.title,
+                                items = items,
+                            )
                         }
                     }
-                }.awaitAll().filterNotNull()
-                _rows.value = rows
+                }.awaitAll().filterNotNull().distinctBy { it.because }
+
+                // Top picks: titles that come up for several things you watched.
+                val counts = rows.flatMap { row -> row.items.distinctBy { it.id } }.groupingBy { it.id }.eachCount()
+                val byId = rows.flatMap { it.items }.associateBy { it.id }
+                val top = counts.entries
+                    .filter { it.value >= 2 }
+                    .sortedByDescending { it.value }
+                    .mapNotNull { byId[it.key] }
+                    .take(15)
+                _rows.value = buildList {
+                    if (top.size >= 3) add(ForYouRow(title = "Top picks", because = "for you", items = top))
+                    addAll(rows)
+                }
                 loadedAt = now
             } finally {
                 _loading.value = false
             }
+        }
+    }
+
+    private val _seedCount = MutableStateFlow(0)
+    /** How many different titles the suggestions are based on. */
+    val seedCount: StateFlow<Int> = _seedCount.asStateFlow()
+
+    private fun titleKey(title: String) = title.lowercase().filter { it.isLetterOrDigit() }
+
+    /**
+     * IMDb / TMDB titles are used as they are. Anything else (CloudStream, Aniyomi…) is matched by
+     * name on Cinemeta to find the same show or movie.
+     */
+    private suspend fun resolve(seed: Seed): Pair<String, String>? {
+        val type = if (seed.type == "movie") "movie" else "series"
+        if (seed.id.startsWith("tt") || seed.id.startsWith("tmdb:")) return type to seed.id
+        val name = seed.title.substringBefore(" (").trim()
+        if (name.isBlank()) return null
+        val types = if (seed.type == "movie") listOf("movie", "series") else listOf("series", "movie")
+        for (t in types) {
+            val url = "https://v3-cinemeta.strem.io/catalog/$t/top/search=" + encode(name) + ".json"
+            val id = runCatching {
+                val root = kotlinx.serialization.json.Json.parseToJsonElement(
+                    com.nuvio.app.features.addons.httpGetText(url),
+                ) as? kotlinx.serialization.json.JsonObject
+                val metas = root?.get("metas") as? kotlinx.serialization.json.JsonArray
+                metas?.firstNotNullOfOrNull { el ->
+                    val o = el as? kotlinx.serialization.json.JsonObject ?: return@firstNotNullOfOrNull null
+                    val metaName = (o["name"] as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty()
+                    val metaId = (o["id"] as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty()
+                    metaId.takeIf { it.startsWith("tt") && titleKey(metaName) == titleKey(name) }
+                } ?: (metas?.firstOrNull() as? kotlinx.serialization.json.JsonObject)
+                    ?.get("id")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                    ?.takeIf { it.startsWith("tt") }
+            }.getOrNull()
+            if (id != null) return t to id
+        }
+        return null
+    }
+
+    private fun encode(text: String): String = buildString {
+        text.encodeToByteArray().forEach { b ->
+            val c = b.toInt().toChar()
+            if (c.isLetterOrDigit() && b >= 0) append(c) else append('%' + (b.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0'))
         }
     }
 }
@@ -130,6 +200,7 @@ fun FenrirForYouHost(onOpen: (MetaPreview) -> Unit) {
     if (!open) return
     val rows by FenrirForYou.rows.collectAsStateWithLifecycle()
     val loading by FenrirForYou.loading.collectAsStateWithLifecycle()
+    val seedCount by FenrirForYou.seedCount.collectAsStateWithLifecycle()
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     Dialog(onDismissRequest = { FenrirForYou.hide() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)).clickable { FenrirForYou.hide() }, contentAlignment = Alignment.BottomCenter) {
@@ -149,7 +220,7 @@ fun FenrirForYouHost(onOpen: (MetaPreview) -> Unit) {
                     Text("For you", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
                 }
                 Text(
-                    "Based on what you watched lately",
+                    if (seedCount > 0) "From $seedCount shows and movies you've watched or saved, including CloudStream and Aniyomi" else "Based on what you watch",
                     color = Color(0xFF9A9AA6),
                     fontSize = 12.5.sp,
                     modifier = Modifier.padding(start = 18.dp, top = 2.dp, bottom = 10.dp),
@@ -165,7 +236,7 @@ fun FenrirForYouHost(onOpen: (MetaPreview) -> Unit) {
                         modifier = Modifier.padding(18.dp),
                     )
                     else -> LazyColumn(contentPadding = PaddingValues(bottom = bottom + 20.dp)) {
-                        items(rows, key = { it.because }) { row ->
+                        items(rows, key = { it.title + it.because }) { row ->
                             Column(Modifier.padding(top = 10.dp)) {
                                 Row(Modifier.padding(horizontal = 18.dp)) {
                                     Text("${row.title} ", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)

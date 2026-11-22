@@ -44,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -107,7 +108,10 @@ fun AppUpdaterHost(
     }
 
     val update = state.update
-    val showBanner = state.showDialog && update != null
+    // Fenrir: with the Fenrir top bar the update is a round button beside Search instead.
+    val fenrirStyleOn by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsState()
+    val fenrirButton = fenrirStyleOn && com.nuvio.app.readmode.ReadModeBridge.isAvailable
+    val showBanner = state.showDialog && update != null && !fenrirButton
 
     // Fenrir: a small glass pill floating just above the bottom island, so it never covers
     // the top bar or pushes the screen down.

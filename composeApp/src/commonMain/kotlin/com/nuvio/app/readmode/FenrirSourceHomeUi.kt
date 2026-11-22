@@ -171,28 +171,26 @@ private fun FenrirSourcePickerPanel(
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.6f))
+                .background(Color.Black.copy(alpha = 0.45f))
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDismiss),
         ) {
+            // A floating glass card under the wordmark, like the preview: compact rows.
             Column(
                 Modifier
+                    .padding(top = top + 62.dp, start = 12.dp, end = 40.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
-                    .background(Panel)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(Color(0xF71C1C22))
+                    .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(26.dp))
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
-                    .padding(top = top + 14.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    .padding(8.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = onDismiss)) {
-                    FenrirWordmark()
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Rounded.KeyboardArrowUp, contentDescription = "Close", tint = Red, modifier = Modifier.size(22.dp))
-                }
-                Text("Show on home", color = Muted, fontSize = 14.sp, modifier = Modifier.padding(top = 14.dp, bottom = 6.dp))
-                LazyColumn(Modifier.heightIn(max = 480.dp)) {
+                LazyColumn(Modifier.heightIn(max = 430.dp)) {
+                    item { GroupLabel("Show on home") }
                     item {
-                        SourceRow(
+                        MenuRow(
                             name = "Nuvio home",
-                            subtitle = "Your normal home screen",
+                            subtitle = "Stremio add-on catalogs",
                             iconUrl = null,
                             letter = null,
                             selected = selected == null,
@@ -202,9 +200,9 @@ private fun FenrirSourcePickerPanel(
                     if (csEntries.isNotEmpty()) {
                         item { GroupLabel("CloudStream") }
                         items(csEntries, key = { "cs-" + it.source.id }) { e ->
-                            SourceRow(
-                                name = (if (e.pinned) "📌 " else "") + e.source.name,
-                                subtitle = e.source.subtitle.ifBlank { "CloudStream" },
+                            MenuRow(
+                                name = e.source.name,
+                                subtitle = if (e.pinned) "Pinned · CloudStream" else "CloudStream",
                                 iconUrl = e.source.iconUrl,
                                 letter = e.source.name.take(1).uppercase(),
                                 selected = selected == e.source.id,
@@ -215,9 +213,9 @@ private fun FenrirSourcePickerPanel(
                     if (ayEntries.isNotEmpty()) {
                         item { GroupLabel("Aniyomi") }
                         items(ayEntries, key = { "ay-" + it.source.id }) { e ->
-                            SourceRow(
-                                name = (if (e.pinned) "📌 " else "") + e.source.name,
-                                subtitle = e.source.subtitle.ifBlank { "Aniyomi" },
+                            MenuRow(
+                                name = e.source.name,
+                                subtitle = if (e.pinned) "Pinned · Aniyomi" else "Aniyomi",
                                 iconUrl = e.source.iconUrl,
                                 letter = e.source.name.take(1).uppercase(),
                                 selected = selected == e.source.id,
@@ -235,41 +233,75 @@ private fun FenrirSourcePickerPanel(
                                     "No CloudStream or Aniyomi sources yet. Tap + to add some."
                                 },
                                 color = Muted,
-                                fontSize = 14.sp,
+                                fontSize = 13.sp,
                                 modifier = Modifier.padding(10.dp),
                             )
                         }
                     }
                 }
+                Box(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp).height(1.dp).background(Color(0xFF2A2A34)))
                 Row(
-                    Modifier.fillMaxWidth().padding(top = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    Modifier.fillMaxWidth().padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
                         Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(16.dp))
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(22.dp))
                             .background(Color(0xFF22222A))
-                            .clickable { onDismiss(); FenrirSourcesHub.open() }
-                            .padding(vertical = 13.dp),
+                            .border(1.dp, Color(0xFF34343F), RoundedCornerShape(22.dp))
+                            .clickable { onDismiss(); FenrirSourcesHub.open() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("Manage sources", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Manage sources", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Box(
                         Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .size(44.dp)
+                            .clip(CircleShape)
                             .background(Red)
                             .clickable { onDismiss(); FenrirSourcesHub.openAdd() },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("+", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                        Text("+", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
         }
+    }
+}
+
+/** One compact row of the FENRIR READ ▾ menu (50dp, small icon), as in the preview. */
+@Composable
+private fun MenuRow(
+    name: String,
+    subtitle: String,
+    iconUrl: String?,
+    letter: String?,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) Red.copy(alpha = 0.14f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp))) {
+            SourceIcon(iconUrl, letter, 30.dp)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(name, color = Color.White, fontSize = 15.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, color = Color(0xFF9A9AA6), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (selected) Icon(Icons.Rounded.Check, contentDescription = null, tint = Red, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -278,10 +310,10 @@ private fun GroupLabel(text: String) {
     Text(
         text.uppercase(),
         color = Muted,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.SemiBold,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
         letterSpacing = 1.sp,
-        modifier = Modifier.padding(start = 10.dp, top = 12.dp, bottom = 4.dp),
+        modifier = Modifier.padding(start = 10.dp, top = 8.dp, end = 10.dp, bottom = 2.dp),
     )
 }
 

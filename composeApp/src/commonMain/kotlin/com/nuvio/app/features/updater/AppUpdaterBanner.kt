@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -108,36 +109,33 @@ fun AppUpdaterHost(
     val update = state.update
     val showBanner = state.showDialog && update != null
 
-    // Fenrir: a small glass pill in its own row at the top (pushes the screen down a little
-    // instead of floating over the top bar's buttons).
-    Column(modifier = modifier) {
+    // Fenrir: a small glass pill floating just above the bottom island, so it never covers
+    // the top bar or pushes the screen down.
+    Box(modifier = modifier) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            content()
+        }
         AnimatedVisibility(
             visible = showBanner,
-            enter = expandVertically(expandFrom = Alignment.Top, animationSpec = tween(durationMillis = 260)) +
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(bottom = 92.dp),
+            enter = androidx.compose.animation.slideInVertically(tween(durationMillis = 280)) { it } +
                 fadeIn(animationSpec = tween(durationMillis = 180)),
-            exit = shrinkVertically(shrinkTowards = Alignment.Top, animationSpec = tween(durationMillis = 220)) +
+            exit = androidx.compose.animation.slideOutVertically(tween(durationMillis = 220)) { it } +
                 fadeOut(animationSpec = tween(durationMillis = 150)),
         ) {
             update?.let { availableUpdate ->
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    AppUpdateBanner(
-                        state = state,
-                        update = availableUpdate,
-                        onDownload = controller::downloadUpdate,
-                        onInstall = controller::installDownloadedUpdate,
-                        onShowReleaseNotes = { showReleaseNotes = true },
-                        onDismiss = controller::dismissDialog,
-                    )
-                }
+                AppUpdateBanner(
+                    state = state,
+                    update = availableUpdate,
+                    onDownload = controller::downloadUpdate,
+                    onInstall = controller::installDownloadedUpdate,
+                    onShowReleaseNotes = { showReleaseNotes = true },
+                    onDismiss = controller::dismissDialog,
+                )
             }
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .then(if (showBanner) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier),
-        ) {
-            content()
         }
     }
 
@@ -181,8 +179,7 @@ private fun AppUpdateBanner(
     val shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
     Row(
         modifier = Modifier
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(top = 6.dp, bottom = 6.dp, start = 16.dp, end = 16.dp)
+            .padding(start = 16.dp, end = 16.dp)
             .heightIn(min = 46.dp)
             .androidx_shadow(shape)
             .androidx_clip(shape)

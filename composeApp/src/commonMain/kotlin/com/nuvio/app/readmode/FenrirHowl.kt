@@ -15,6 +15,9 @@ object FenrirHowl {
     /** Set by the Android side to play the howl once (used for a preview when turning it on). */
     var play: (() -> Unit)? = null
 
+    /** Set by the Android side: plays the opening howl unless the phone is on silent / music is on. */
+    var openHowl: (() -> Unit)? = null
+
     fun load(value: Boolean) { _enabled.value = value }
 
     fun setEnabled(on: Boolean) {

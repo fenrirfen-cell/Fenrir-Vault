@@ -97,9 +97,11 @@ open class MainActivity : AppCompatActivity() {
         installSplashScreen()
         // Fenrir Vault: a wolf howl on a fresh start (setting in Settings; quiet on silent/vibrate).
         fenrirHowlSetup()
-        if (savedInstanceState == null) fenrirHowl(quietCheck = true)
+        // The opening animation starts the howl in time with the wolf; going straight to Read has no animation.
+        com.nuvio.app.readmode.FenrirHowl.openHowl = { fenrirHowl(quietCheck = true) }
         // Read mode: a fresh launch may go straight to the Read screen instead.
         if (savedInstanceState == null && MainActivityLaunchRedirect.handler?.invoke(this) == true) {
+            fenrirHowl(quietCheck = true)
             redirectedToReadMode = true
             super.onCreate(savedInstanceState)
             finish()

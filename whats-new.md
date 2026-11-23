@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Smoother book animations: the book no longer jumps at the start, and the library no longer flashes (or goes black) before the book's page opens
 - The island at the bottom of the Read side now has the same see-through glass as Watch, with a glowing selected tab
 - Fixed: the FENRIR READ button looked squashed with bigger text sizes
 - Fixed: the island at the bottom could cover the titles of the last books

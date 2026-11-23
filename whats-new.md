@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Opening a book shows the first page of the chapter you're on (manga page or novel text), then grows into the reader
+- Less battery: the library no longer runs animations that never stop
 - Fixed: the app could close when it opened straight on Read
 - The bookcase is complete: empty spots and empty shelves after your books
 - No more update pill in the library; you get a phone notification instead

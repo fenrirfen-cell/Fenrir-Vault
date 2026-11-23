@@ -2,35 +2,10 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
-- Smoother library scrolling: the top bars stay put, and the glass case and category bar scroll along with your books
-- Continue reading and the category bar now stay at the top while your books scroll
-- No more pill when scrolling on the Read side
-- Bigger book in the glass case; cleaner empty shelves
-- Opening a book shows the first page of the chapter you're on (manga page or novel text), then grows into the reader
-- Less battery: the library no longer runs animations that never stop
-- Fixed: the app could close when it opened straight on Read
-- The bookcase is complete: empty spots and empty shelves after your books
-- No more update pill in the library; you get a phone notification instead
-- You may like loads much faster: it starts when the book opens and each row shows as soon as it's ready
-- Novel reviews: Webnovel is tried first for every novel, whatever source it's from, then the other sites
-- Watch always asks "Who's watching?" when it opens: pick a profile to start watching
-- Bigger book in the Continue reading glass case, and no more books peeking through when you scroll back up
-- Profiles: "Who's watching?" shows when you open the app, so you can switch or add a profile (needs your Nuvio account; turn on "Remember last profile" in Advanced settings to skip it)
-- Update notifications: your phone tells you when a new Fenrir Vault is out, even with the app closed (Settings → Updates on Watch, Settings → App updates on Read)
-- Notifications on Watch and Read now show the Fenrir Vault logo
-- Going back to the library no longer opens your Continue reading book again
-- Continue reading opens straight into your next chapter
-- The Read side now finds app updates too, even if you never open Watch
-- Continue reading is now a glass display case on top of your bookcase: tap it and the doors swing open and your book comes out and opens
-- Tap any book on the shelves and it slides out and opens
-- Scrolling the library is smooth again: the top part slides away and comes back without jumping
-- Smoother opening animation on Watch and Read
-- The category name is now a button with an arrow, so you can see where to tap for all your categories
-- Switching categories turns the shelf like a revolving bookcase
-- Your library is now a real wooden bookcase: a carved top with a brass nameplate, a walnut back, and books that stand on the shelves like real hardcovers
-- Opening the app on the Read side shows only the Fenrir Vault logo
-- New chapter alerts: turn on automatic checks and notifications from a card in your library
-- "Book" is now a page layout in How to read: pages curl over like a real book
-- In Book layout, the last page turns straight into the next chapter
-- Hold the category name to jump to any category; Edit categories lets you reorder, rename, delete or add
-- Pulling down in the library brings the categories back before it refreshes
+- New top: carved wood all the way up, with a glass FENRIR READ ▾ button. Tap it for search, For you, filter & sort, a random book, checking for new chapters and more
+- No more "Library" title row, so your books get more room
+- Tapping a book on the shelf turns it round to its back cover in 3D, then opens its page
+- The shelves now end at the bottom of the screen (no scrolling past your books)
+- An "Add a book" spot after your books takes you to Browse
+- Decorations on novel shelves (bookends, plants, candles, book stacks) and figures on manga shelves
+- Warm lighting on the shelves, and the number of books under the category name

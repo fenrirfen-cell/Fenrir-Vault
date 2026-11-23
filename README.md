@@ -10,7 +10,7 @@
     Shows, movies and anime on one side. Light novels and manga on the other. One tap to switch between them.
   </p>
 
-  [Download the latest APK](https://github.com/fenrirfen-cell/Fenrir_Read/releases/latest) · [All releases](https://github.com/fenrirfen-cell/Fenrir_Read/releases) · [Report a problem](https://github.com/fenrirfen-cell/Fenrir_Read/issues)
+  [Download the latest APK](https://github.com/fenrirfen-cell/Fenrir-Vault/releases/latest) · [All releases](https://github.com/fenrirfen-cell/Fenrir-Vault/releases) · [Report a problem](https://github.com/fenrirfen-cell/Fenrir-Vault/issues)
 
 </div>
 
@@ -48,7 +48,7 @@ The app doesn't come with any content. You add your own sources, such as Stremio
 
 ## Install
 
-1. Download the newest `.apk` from [Releases](https://github.com/fenrirfen-cell/Fenrir_Read/releases/latest).
+1. Download the newest `.apk` from [Releases](https://github.com/fenrirfen-cell/Fenrir-Vault/releases/latest).
 2. Open it on your phone and allow installs from your browser or file manager if Android asks.
 3. After that, the app updates itself. When a new version is out, tap **Update** on the pill.
 
@@ -59,7 +59,7 @@ Android only. iOS and desktop builds of Nuvio are not part of this project.
 To add the J-Novel Club plugin (light novels only), paste this link into **Read → Browse → Extensions → +**:
 
 ```
-https://raw.githubusercontent.com/fenrirfen-cell/Fenrir_Read/read-mode/plugins/plugins.min.json
+https://raw.githubusercontent.com/fenrirfen-cell/Fenrir-Vault/read-mode/plugins/plugins.min.json
 ```
 
 ## Build from source
@@ -67,8 +67,8 @@ https://raw.githubusercontent.com/fenrirfen-cell/Fenrir_Read/read-mode/plugins/p
 You need Android Studio, the Android SDK and JDK 17 or newer.
 
 ```bash
-git clone --recurse-submodules -b read-mode https://github.com/fenrirfen-cell/Fenrir_Read
-cd Fenrir_Read
+git clone --recurse-submodules -b read-mode https://github.com/fenrirfen-cell/Fenrir-Vault
+cd Fenrir-Vault
 ./gradlew :androidApp:assembleFullDebug
 ```
 

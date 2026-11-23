@@ -36,7 +36,7 @@ import kotlinx.coroutines.delay
 /** Shown once per app start (not again when switching between Watch and Read). */
 private var splashShown = false
 
-/** Black screen with "FENRIR", a red line and "READ", fading out after about a second. */
+/** Black screen with "FENRIR", a red line and "VAULT", fading out after about a second. */
 @Composable
 fun FenrirSplash() {
     if (!FenrirStyle.isAvailable || splashShown) return
@@ -74,7 +74,7 @@ fun FenrirSplash() {
                         .background(MaterialTheme.colorScheme.primary),
                 )
                 Spacer(Modifier.height(14.dp))
-                Text("READ", color = Color(0xFFA7A7B2), fontSize = 14.sp, letterSpacing = 8.sp, modifier = Modifier.padding(start = 8.dp))
+                Text("VAULT", color = Color(0xFFA7A7B2), fontSize = 14.sp, letterSpacing = 8.sp, modifier = Modifier.padding(start = 8.dp))
             }
         }
     }

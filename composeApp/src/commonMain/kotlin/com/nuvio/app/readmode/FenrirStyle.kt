@@ -216,9 +216,9 @@ fun FenrirForYouButton(hazeState: HazeState? = null) {
     }
 }
 
-/** "FENRIR" with a smaller red "READ" beside it, both sitting on the same baseline. */
+/** "FENRIR" with a smaller red [word] beside it (WATCH / READ / VAULT), both on the same baseline. */
 @Composable
-fun FenrirWordmark(modifier: Modifier = Modifier, scale: Float = 1f) {
+fun FenrirWordmark(modifier: Modifier = Modifier, scale: Float = 1f, word: String = "READ") {
     Row(modifier = modifier) {
         Text(
             text = "FENRIR",
@@ -231,7 +231,7 @@ fun FenrirWordmark(modifier: Modifier = Modifier, scale: Float = 1f) {
         )
         Spacer(Modifier.width((6 * scale).dp))
         Text(
-            text = "READ",
+            text = word,
             color = Color(0xFFFF4D57),
             fontSize = (13 * scale).sp,
             letterSpacing = (4 * scale).sp,

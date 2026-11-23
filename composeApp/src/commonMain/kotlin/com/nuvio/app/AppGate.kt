@@ -287,7 +287,9 @@ internal fun AppGate(
         }
 
         autoSkipProfileSelection = true
-        if (profiles.size == 1) {
+        // Fenrir: "Who's watching?" on every open, even with one profile (so Add profile is always
+        // there). "Remember last profile" in Advanced settings skips it, as before.
+        if (profiles.size == 1 && !com.nuvio.app.readmode.FenrirStyle.isAvailable) {
             val onlyProfile = profiles.first()
             if (onlyProfile.pinEnabled) {
                 gateScreen = AppGateScreen.ProfileSelection.name

@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Fixed: the app could close when it opened straight on Read
+- The bookcase is complete: empty spots and empty shelves after your books
+- No more update pill in the library; you get a phone notification instead
 - You may like loads much faster: it starts when the book opens and each row shows as soon as it's ready
 - Novel reviews: Webnovel is tried first for every novel, whatever source it's from, then the other sites
 - Watch always asks "Who's watching?" when it opens: pick a profile to start watching

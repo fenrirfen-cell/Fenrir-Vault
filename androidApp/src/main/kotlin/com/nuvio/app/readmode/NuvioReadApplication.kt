@@ -58,7 +58,7 @@ class NuvioReadApplication : App() {
         }.getOrNull()
         fenrirWhatsNew()
         // Background update check + "Update available" notifications (even with the app closed).
-        com.nuvio.app.readmode.FenrirUpdateNotifier.install(this)
+        runCatching { com.nuvio.app.readmode.FenrirUpdateNotifier.install(this) }
         EmbeddedHost.updateSettings = { com.nuvio.app.readmode.FenrirUpdateSettingsCard() }
 
         // Fenrir style (Zangetsu-like layout), on by default; the Read side follows it too.
@@ -74,15 +74,15 @@ class NuvioReadApplication : App() {
         com.nuvio.app.fenrirInstallHowl(this)
         // Pull to refresh on the Read side also checks quietly for a new Fenrir Read version.
         // When there is one, the Read side shows a small pill with an Update button.
-        val updateScope = kotlinx.coroutines.MainScope()
+        val updateScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.CoroutineExceptionHandler { _, _ -> })
         var mirrorJob: kotlinx.coroutines.Job? = null
-        EmbeddedHost.checkAppUpdate = { onFound ->
-            // works even if the Watch side was never opened
-            com.nuvio.app.readmode.FenrirAppUpdates.wire()
+        EmbeddedHost.checkAppUpdate = check@{ onFound ->
+            // works even if the Watch side was never opened; never lets a check close the app
+            if (runCatching { com.nuvio.app.readmode.FenrirAppUpdates.wire() }.isFailure) return@check
             val check = com.nuvio.app.readmode.FenrirPullRefresh.checkForUpdates
             val state = com.nuvio.app.readmode.FenrirPullRefresh.updaterState
             if (check != null && state != null) {
-                check()
+                runCatching { check() }
                 mirrorJob?.cancel()
                 mirrorJob = updateScope.launch {
                     kotlinx.coroutines.delay(400)

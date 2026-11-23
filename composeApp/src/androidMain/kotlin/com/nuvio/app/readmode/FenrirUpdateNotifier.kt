@@ -49,6 +49,9 @@ object FenrirUpdateNotifier {
 
     fun install(context: Context) {
         app = context.applicationContext
+        // The updater must be ready even when the app opens straight on Read (it used to be set up
+        // only by the Watch screen, so an update check from Read closed the app).
+        runCatching { com.nuvio.app.features.updater.AndroidAppUpdaterPlatform.initialize(app) }
         val p = prefs()
         FenrirUpdateNotify.enabled.value = p.getBoolean("enabled", true)
         FenrirUpdateNotify.hours.value = p.getInt("hours", 6)
@@ -59,10 +62,10 @@ object FenrirUpdateNotifier {
                 .putInt("hours", FenrirUpdateNotify.hours.value)
                 .putBoolean("prefetch", FenrirUpdateNotify.prefetch.value)
                 .apply()
-            schedule(replace = true)
+            runCatching { schedule(replace = true) }
         }
         FenrirUpdateNotify.openBatterySettings = { openBattery() }
-        schedule(replace = false)
+        runCatching { schedule(replace = false) }
     }
 
     private fun prefs() = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -286,7 +289,9 @@ object FenrirUpdateNotifier {
 
 /** Every few hours: is there a newer release? Announce it (once), or download it first if asked. */
 class FenrirUpdateCheckWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = runCatching { check() }.getOrDefault(Result.success())
+
+    private suspend fun check(): Result {
         val r = withContext(Dispatchers.IO) { runCatching { FenrirUpdateNotifier.fetchLatest() }.getOrNull() } ?: return Result.success()
         if (!FenrirUpdateNotifier.isNewer(r) || FenrirUpdateNotifier.lastNotified() == r.tag) return Result.success()
         if (FenrirUpdateNotifier.prefetchOn()) {
@@ -302,7 +307,9 @@ class FenrirUpdateCheckWorker(ctx: Context, params: WorkerParameters) : Coroutin
 
 /** "Update" was tapped: download with a progress notification, then "ready to install". */
 class FenrirUpdateDownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = runCatching { fetch() }.getOrDefault(Result.success())
+
+    private suspend fun fetch(): Result {
         val r = withContext(Dispatchers.IO) { runCatching { FenrirUpdateNotifier.fetchLatest() }.getOrNull() }
         if (r == null || !FenrirUpdateNotifier.isNewer(r)) {
             FenrirUpdateNotifier.notifyFailed(applicationContext)
@@ -316,6 +323,6 @@ class FenrirUpdateDownloadWorker(ctx: Context, params: WorkerParameters) : Corou
 
 class FenrirUpdateActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == FenrirUpdateNotifier.ACTION_DOWNLOAD) FenrirUpdateNotifier.startDownload(context)
+        if (intent.action == FenrirUpdateNotifier.ACTION_DOWNLOAD) runCatching { FenrirUpdateNotifier.startDownload(context) }
     }
 }

@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- You may like loads much faster: it starts when the book opens and each row shows as soon as it's ready
+- Novel reviews: Webnovel is tried first for every novel, whatever source it's from, then the other sites
 - Watch always asks "Who's watching?" when it opens: pick a profile to start watching
 - Bigger book in the Continue reading glass case, and no more books peeking through when you scroll back up
 - Profiles: "Who's watching?" shows when you open the app, so you can switch or add a profile (needs your Nuvio account; turn on "Remember last profile" in Advanced settings to skip it)

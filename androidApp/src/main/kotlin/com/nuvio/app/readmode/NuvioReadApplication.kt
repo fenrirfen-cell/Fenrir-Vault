@@ -62,6 +62,9 @@ class NuvioReadApplication : App() {
             aniDramaPrefs.edit().putBoolean(KEY_FENRIR_STYLE, on).apply()
         }
         EmbeddedHost.fenrirStyle = { FenrirStyle.enabled.value }
+        // The opening animation also plays when the app opens straight on Read (once per start).
+        EmbeddedHost.splash = { com.nuvio.app.readmode.FenrirSplash() }
+        com.nuvio.app.fenrirInstallHowl(this)
         // Pull to refresh on the Read side also checks quietly for a new Fenrir Read version.
         // When there is one, the Read side shows a small pill with an Update button.
         val updateScope = kotlinx.coroutines.MainScope()

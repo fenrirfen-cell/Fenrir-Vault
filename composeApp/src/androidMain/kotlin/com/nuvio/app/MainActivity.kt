@@ -78,13 +78,7 @@ open class MainActivity : AppCompatActivity() {
     private var pipRemoteActionReceiver: PipRemoteActionReceiver? = null
     private var redirectedToReadMode = false
 
-    private fun fenrirHowlSetup() {
-        val prefs = applicationContext.getSharedPreferences("fenrir_vault", MODE_PRIVATE)
-        com.nuvio.app.readmode.FenrirHowl.load(prefs.getBoolean("howl_on_open", true))
-        com.nuvio.app.readmode.FenrirHowl.save = { on -> prefs.edit().putBoolean("howl_on_open", on).apply() }
-        val app = applicationContext
-        com.nuvio.app.readmode.FenrirHowl.play = { fenrirPlayHowl(app) }
-    }
+    private fun fenrirHowlSetup() = fenrirInstallHowl(applicationContext)
 
     private fun fenrirHowl(quietCheck: Boolean) {
         if (!com.nuvio.app.readmode.FenrirHowl.enabled.value) return
@@ -98,10 +92,8 @@ open class MainActivity : AppCompatActivity() {
         // Fenrir Vault: a wolf howl on a fresh start (setting in Settings; quiet on silent/vibrate).
         fenrirHowlSetup()
         // The opening animation starts the howl in time with the wolf; going straight to Read has no animation.
-        com.nuvio.app.readmode.FenrirHowl.openHowl = { fenrirHowl(quietCheck = true) }
         // Read mode: a fresh launch may go straight to the Read screen instead.
         if (savedInstanceState == null && MainActivityLaunchRedirect.handler?.invoke(this) == true) {
-            fenrirHowl(quietCheck = true)
             redirectedToReadMode = true
             super.onCreate(savedInstanceState)
             finish()
@@ -279,4 +271,22 @@ private fun fenrirPlayHowl(context: android.content.Context) {
         player.setOnPreparedListener { it.start() }
         player.prepareAsync()
     }
+}
+
+/** The opening howl: only when it's on and the phone isn't on silent / vibrate or playing music. */
+private fun fenrirOpenHowl(context: android.content.Context) {
+    if (!com.nuvio.app.readmode.FenrirHowl.enabled.value) return
+    val am = context.getSystemService(android.media.AudioManager::class.java) ?: return
+    if (am.ringerMode != android.media.AudioManager.RINGER_MODE_NORMAL || am.isMusicActive) return
+    fenrirPlayHowl(context)
+}
+
+/** Loads the howl setting and wires play / save; called from the Application too, so it works when the app reopens on Read. */
+fun fenrirInstallHowl(context: android.content.Context) {
+    val app = context.applicationContext
+    val prefs = app.getSharedPreferences("fenrir_vault", android.content.Context.MODE_PRIVATE)
+    com.nuvio.app.readmode.FenrirHowl.load(prefs.getBoolean("howl_on_open", true))
+    com.nuvio.app.readmode.FenrirHowl.save = { on -> prefs.edit().putBoolean("howl_on_open", on).apply() }
+    com.nuvio.app.readmode.FenrirHowl.play = { fenrirPlayHowl(app) }
+    com.nuvio.app.readmode.FenrirHowl.openHowl = { fenrirOpenHowl(app) }
 }

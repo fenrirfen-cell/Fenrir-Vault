@@ -78,8 +78,26 @@ open class MainActivity : AppCompatActivity() {
     private var pipRemoteActionReceiver: PipRemoteActionReceiver? = null
     private var redirectedToReadMode = false
 
+    private fun fenrirHowlSetup() {
+        val prefs = applicationContext.getSharedPreferences("fenrir_vault", MODE_PRIVATE)
+        com.nuvio.app.readmode.FenrirHowl.load(prefs.getBoolean("howl_on_open", true))
+        com.nuvio.app.readmode.FenrirHowl.save = { on -> prefs.edit().putBoolean("howl_on_open", on).apply() }
+        val app = applicationContext
+        com.nuvio.app.readmode.FenrirHowl.play = { fenrirPlayHowl(app) }
+    }
+
+    private fun fenrirHowl(quietCheck: Boolean) {
+        if (!com.nuvio.app.readmode.FenrirHowl.enabled.value) return
+        val am = getSystemService(android.media.AudioManager::class.java) ?: return
+        if (quietCheck && (am.ringerMode != android.media.AudioManager.RINGER_MODE_NORMAL || am.isMusicActive)) return
+        fenrirPlayHowl(applicationContext)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+        // Fenrir Vault: a wolf howl on a fresh start (setting in Settings; quiet on silent/vibrate).
+        fenrirHowlSetup()
+        if (savedInstanceState == null) fenrirHowl(quietCheck = true)
         // Read mode: a fresh launch may go straight to the Read screen instead.
         if (savedInstanceState == null && MainActivityLaunchRedirect.handler?.invoke(this) == true) {
             redirectedToReadMode = true
@@ -236,5 +254,27 @@ open class MainActivity : AppCompatActivity() {
         val appUrl = (intent?.dataString ?: intent?.getStringExtra(LinkActivity.EXTRA_LINK))?.trim().orEmpty()
         if (appUrl.isBlank()) return
         handleAppUrl(appUrl)
+    }
+}
+
+
+/** Plays the howl once; any problem just means no sound. */
+private fun fenrirPlayHowl(context: android.content.Context) {
+    runCatching {
+        val player = android.media.MediaPlayer()
+        player.setAudioAttributes(
+            android.media.AudioAttributes.Builder()
+                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build(),
+        )
+        context.resources.openRawResourceFd(R.raw.fenrir_howl).use { fd ->
+            player.setDataSource(fd.fileDescriptor, fd.startOffset, fd.length)
+        }
+        player.setVolume(0.7f, 0.7f)
+        player.setOnCompletionListener { runCatching { it.release() } }
+        player.setOnErrorListener { mp, _, _ -> runCatching { mp.release() }; true }
+        player.setOnPreparedListener { it.start() }
+        player.prepareAsync()
     }
 }

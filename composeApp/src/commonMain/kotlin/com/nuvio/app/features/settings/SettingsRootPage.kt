@@ -68,6 +68,8 @@ internal fun LazyListScope.settingsRootContent(
                         if (com.nuvio.app.readmode.FenrirStyle.isAvailable) {
                             FenrirStyleRow(isTablet = isTablet)
                             SettingsGroupDivider(isTablet = isTablet)
+                            FenrirHowlRow(isTablet = isTablet)
+                            SettingsGroupDivider(isTablet = isTablet)
                         }
                         SettingsPageRow(
                             page = SettingsPage.Appearance,
@@ -158,6 +160,18 @@ private fun SettingsPageRow(
     )
 }
 
+
+@Composable
+private fun FenrirHowlRow(isTablet: Boolean) {
+    val enabled by com.nuvio.app.readmode.FenrirHowl.enabled.collectAsStateWithLifecycle()
+    SettingsSwitchRow(
+        title = "Howl when the app opens",
+        description = "A wolf howl when you start Fenrir Vault. Stays quiet when your phone is on silent or vibrate, or music is playing.",
+        checked = enabled,
+        isTablet = isTablet,
+        onCheckedChange = { com.nuvio.app.readmode.FenrirHowl.setEnabled(it) },
+    )
+}
 
 @Composable
 private fun FenrirStyleRow(isTablet: Boolean) {

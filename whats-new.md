@@ -11,6 +11,9 @@ Short notes for the next build, shown in the app after updating. Edit these befo
 - The island at the bottom of the Read side now has the same see-through glass as Watch
 - Tapping a book turns the tome round to its back (wolf and FENRIR in the book's colour), then its page opens
 - The Continue reading book leaves the cabinet as a tome, then opens to your chapter
-- Updates, History, Browse and More now sit on the same dark wood, with gold titles and gold edges
+- The crown (and the Watch / Read switch) is only on the Library now; Updates, History, Browse and More keep their plain look
+- The unread count is a small tag on the corner of each book instead of on the cover art
+- Book titles are centred under their books
+- History: the last covers can scroll up above the island
 - The ivy is smaller and stays in the corners, off your books
 - The ★ rating moved next to "% read", so it no longer covers the cover art

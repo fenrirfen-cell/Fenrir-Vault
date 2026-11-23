@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Notifications on Watch and Read now show the Fenrir Vault logo
 - Going back to the library no longer opens your Continue reading book again
 - Continue reading opens straight into your next chapter
 - The Read side now finds app updates too, even if you never open Watch

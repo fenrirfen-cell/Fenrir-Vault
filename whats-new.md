@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Smoother library scrolling: the top bars stay put, and the glass case and category bar scroll along with your books
 - Continue reading and the category bar now stay at the top while your books scroll
 - No more pill when scrolling on the Read side
 - Bigger book in the glass case; cleaner empty shelves

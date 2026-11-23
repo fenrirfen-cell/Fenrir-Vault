@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- The island at the bottom of the Read side now has the same see-through glass as Watch, with a glowing selected tab
 - Fixed: the FENRIR READ button looked squashed with bigger text sizes
 - Fixed: the island at the bottom could cover the titles of the last books
 - New top: carved wood all the way up, with a glass FENRIR READ ▾ button. Tap it for search, For you, filter & sort, a random book, checking for new chapters and more

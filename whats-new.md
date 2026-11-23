@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
-- Pick the chapter order for each book: newest first or chapter 1 at the top
-- Manga page curl now follows your finger, like the novel reader
-- Smoother page turn when you go back a page
+- "Book" is now a page layout in How to read: pages curl over like a real book
+- In Book layout, the last page turns straight into the next chapter
+- Hold a category name to add, rename, move or delete categories
+- Pulling down in the library brings the categories back before it refreshes

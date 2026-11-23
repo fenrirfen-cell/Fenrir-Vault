@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Smoother opening animation on Watch and Read
 - The category name is now a button with an arrow, so you can see where to tap for all your categories
 - Switching categories turns the shelf like a revolving bookcase
 - Your library is now a real wooden bookcase: a carved top with a brass nameplate, a walnut back, and books that stand on the shelves like real hardcovers

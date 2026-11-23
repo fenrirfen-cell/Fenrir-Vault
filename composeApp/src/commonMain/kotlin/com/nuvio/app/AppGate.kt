@@ -370,6 +370,8 @@ internal fun AppGate(
             }
 
             if (profileState.profiles.size != 1) return@LaunchedEffect
+            // Fenrir: always ask "Who's watching?" (pick a profile before watching).
+            if (com.nuvio.app.readmode.FenrirStyle.isAvailable) return@LaunchedEffect
 
             val onlyProfile = profileState.profiles.first()
             if (onlyProfile.pinEnabled) return@LaunchedEffect

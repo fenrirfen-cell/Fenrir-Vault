@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Watch always asks "Who's watching?" when it opens: pick a profile to start watching
+- Bigger book in the Continue reading glass case, and no more books peeking through when you scroll back up
 - Profiles: "Who's watching?" shows when you open the app, so you can switch or add a profile (needs your Nuvio account; turn on "Remember last profile" in Advanced settings to skip it)
 - Update notifications: your phone tells you when a new Fenrir Vault is out, even with the app closed (Settings → Updates on Watch, Settings → App updates on Read)
 - Notifications on Watch and Read now show the Fenrir Vault logo

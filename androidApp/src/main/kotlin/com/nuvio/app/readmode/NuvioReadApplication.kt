@@ -74,6 +74,8 @@ class NuvioReadApplication : App() {
         val updateScope = kotlinx.coroutines.MainScope()
         var mirrorJob: kotlinx.coroutines.Job? = null
         EmbeddedHost.checkAppUpdate = { onFound ->
+            // works even if the Watch side was never opened
+            com.nuvio.app.readmode.FenrirAppUpdates.wire()
             val check = com.nuvio.app.readmode.FenrirPullRefresh.checkForUpdates
             val state = com.nuvio.app.readmode.FenrirPullRefresh.updaterState
             if (check != null && state != null) {

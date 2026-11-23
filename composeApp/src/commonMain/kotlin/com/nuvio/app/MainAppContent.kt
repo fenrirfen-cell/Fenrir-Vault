@@ -239,17 +239,12 @@ internal fun MainAppContent(
                 onLocalPop = if (posterNavigationEnabled) posterNavigation::clear else null,
             )
         }
-        val appUpdaterController = rememberAppUpdaterController()
+        // Fenrir: one updater for the whole app (Watch and Read share it).
+        val appUpdaterController = remember { com.nuvio.app.readmode.FenrirAppUpdates.controller }
         androidx.compose.runtime.SideEffect {
-            // Fenrir: pulling down on Home also checks for a new version, quietly: the update box
-            // shows only when there is a new one (no "up to date" or error messages).
-            com.nuvio.app.readmode.FenrirPullRefresh.checkForUpdates = {
-                appUpdaterController.checkForUpdates(force = false, showNoUpdateFeedback = false)
-            }
-            com.nuvio.app.readmode.FenrirPullRefresh.updaterState = appUpdaterController.uiState
-            com.nuvio.app.readmode.FenrirPullRefresh.downloadUpdate = appUpdaterController::downloadUpdate
-            com.nuvio.app.readmode.FenrirPullRefresh.installUpdate = appUpdaterController::installDownloadedUpdate
-            com.nuvio.app.readmode.FenrirPullRefresh.dismissUpdate = appUpdaterController::dismissDialog
+            // Pulling down on Home also checks for a new version, quietly: the update box shows
+            // only when there is a new one (no "up to date" or error messages).
+            com.nuvio.app.readmode.FenrirAppUpdates.wire()
         }
         if (ownsAppRuntime) {
             remember {

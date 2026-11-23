@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Going back to the library no longer opens your Continue reading book again
+- Continue reading opens straight into your next chapter
+- The Read side now finds app updates too, even if you never open Watch
 - Continue reading is now a glass display case on top of your bookcase: tap it and the doors swing open and your book comes out and opens
 - Tap any book on the shelves and it slides out and opens
 - Scrolling the library is smooth again: the top part slides away and comes back without jumping

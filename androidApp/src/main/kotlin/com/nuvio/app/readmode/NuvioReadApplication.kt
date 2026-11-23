@@ -56,6 +56,7 @@ class NuvioReadApplication : App() {
         FenrirUpdates.currentBuild = runCatching {
             FenrirUpdates.buildOf(packageManager.getPackageInfo(packageName, 0).versionName)
         }.getOrNull()
+        fenrirWhatsNew()
 
         // Fenrir style (Zangetsu-like layout), on by default; the Read side follows it too.
         FenrirStyle.install(enabled = aniDramaPrefs.getBoolean(KEY_FENRIR_STYLE, true)) { on ->
@@ -63,7 +64,10 @@ class NuvioReadApplication : App() {
         }
         EmbeddedHost.fenrirStyle = { FenrirStyle.enabled.value }
         // The opening animation also plays when the app opens straight on Read (once per start).
-        EmbeddedHost.splash = { com.nuvio.app.readmode.FenrirSplash() }
+        EmbeddedHost.splash = {
+            com.nuvio.app.readmode.FenrirSplash()
+            com.nuvio.app.readmode.FenrirWhatsNewCard()
+        }
         com.nuvio.app.fenrirInstallHowl(this)
         // Pull to refresh on the Read side also checks quietly for a new Fenrir Read version.
         // When there is one, the Read side shows a small pill with an Update button.
@@ -152,5 +156,44 @@ class NuvioReadApplication : App() {
         return tsundokuLoader.newBuilder()
             .components(components)
             .build()
+    }
+
+    /** After an update, fetch this build's "What's new" from its GitHub release (once). */
+    private fun fenrirWhatsNew() {
+        val build = FenrirUpdates.currentBuild ?: return
+        val repo = FenrirUpdates.repo ?: return
+        val prefs = getSharedPreferences("fenrir_vault", MODE_PRIVATE)
+        com.nuvio.app.readmode.FenrirWhatsNew.markSeen = { b -> prefs.edit().putInt("whats_new_seen", b).apply() }
+        val seen = prefs.getInt("whats_new_seen", -1)
+        if (seen >= build) return
+        val info = runCatching { packageManager.getPackageInfo(packageName, 0) }.getOrNull()
+        // A fresh install isn't an update: nothing to announce.
+        if (seen < 0 && info != null && info.firstInstallTime == info.lastUpdateTime) {
+            prefs.edit().putInt("whats_new_seen", build).apply()
+            return
+        }
+        Thread {
+            runCatching {
+                val conn = java.net.URL("https://api.github.com/repos/$repo/releases?per_page=10").openConnection() as java.net.HttpURLConnection
+                conn.connectTimeout = 10_000
+                conn.readTimeout = 10_000
+                conn.setRequestProperty("Accept", "application/vnd.github+json")
+                val text = conn.inputStream.bufferedReader().use { it.readText() }
+                val arr = org.json.JSONArray(text)
+                for (i in 0 until arr.length()) {
+                    val rel = arr.getJSONObject(i)
+                    if (FenrirUpdates.buildOf(rel.optString("tag_name")) == build) {
+                        val bullets = com.nuvio.app.readmode.FenrirWhatsNew.parse(rel.optString("body"))
+                        if (bullets.isEmpty()) {
+                            prefs.edit().putInt("whats_new_seen", build).apply()
+                        } else {
+                            com.nuvio.app.readmode.FenrirWhatsNew.notes.value =
+                                com.nuvio.app.readmode.FenrirWhatsNew.Notes(build, bullets)
+                        }
+                        break
+                    }
+                }
+            }
+        }.start()
     }
 }

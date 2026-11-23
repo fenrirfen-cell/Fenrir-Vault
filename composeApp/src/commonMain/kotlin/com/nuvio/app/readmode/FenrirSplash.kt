@@ -59,7 +59,10 @@ private const val HOWL_FRAME = 3 // the wolf throws its head back
  */
 @Composable
 fun FenrirSplash() {
-    if (!FenrirStyle.isAvailable || splashShown) return
+    if (!FenrirStyle.isAvailable || splashShown) {
+        FenrirWhatsNew.splashDone.value = true
+        return
+    }
     var visible by remember { mutableStateOf(true) }
     var frame by remember { mutableStateOf(0) }
     val wordAlpha = remember { Animatable(0f) }
@@ -73,6 +76,7 @@ fun FenrirSplash() {
         delay(450)
         visible = false
         splashShown = true
+        FenrirWhatsNew.splashDone.value = true
     }
     val showWord = frame >= SplashFrames.size - 4
     LaunchedEffect(showWord) { if (showWord) wordAlpha.animateTo(1f, tween(500)) }
@@ -85,6 +89,7 @@ fun FenrirSplash() {
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                     visible = false
                     splashShown = true
+                    FenrirWhatsNew.splashDone.value = true
                 },
             contentAlignment = Alignment.Center,
         ) {

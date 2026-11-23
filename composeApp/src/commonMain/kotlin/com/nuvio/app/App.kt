@@ -72,6 +72,7 @@ fun App(
         )
         // Fenrir: "FENRIR READ" for about a second when the app opens.
         com.nuvio.app.readmode.FenrirSplash()
+        com.nuvio.app.readmode.FenrirWhatsNewCard()
       }
     }
 }

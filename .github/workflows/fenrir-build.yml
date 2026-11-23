@@ -205,9 +205,14 @@ jobs:
           TAG="fenrir-${VER}-r${GITHUB_RUN_NUMBER}"
           APK=$(ls androidApp/build/outputs/apk/full/fast/*.apk | head -n1)
           cp "$APK" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk"
-          NOTES="Fenrir Read built from official Nuvio ${VER} and Tsundoku $(git -C tsundoku rev-parse --short HEAD). Commit: $(git rev-parse --short HEAD)"
+          NOTES="Fenrir Vault built from official Nuvio ${VER} and Tsundoku $(git -C tsundoku rev-parse --short HEAD). Commit: $(git rev-parse --short HEAD)"
+          # "What's new" (shown in the app after updating): whats-new.md, only when it changed since the last release.
+          PREV=$(gh release list --limit 20 --json tagName --jq '.[].tagName' | grep '^fenrir-' | head -n1 || true)
+          if [ -f whats-new.md ] && { [ -z "$PREV" ] || ! git diff --quiet "$PREV" HEAD -- whats-new.md 2>/dev/null; }; then
+            NOTES="$(printf "## What's new\n%s\n\n%s" "$(grep -E '^[-*] ' whats-new.md)" "$NOTES")"
+          fi
           gh release create "$TAG" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk" \
-            --title "Fenrir Read ${VER} (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --target "$(git rev-parse HEAD)"
+            --title "Fenrir Vault ${VER} (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --target "$(git rev-parse HEAD)"
           # keep only the 5 newest Fenrir releases
           gh release list --limit 100 --json tagName --jq '.[].tagName' | grep '^fenrir-' | tail -n +6 | \
             while read -r old; do gh release delete "$old" --yes --cleanup-tag; done

@@ -32,6 +32,12 @@ internal fun LazyListScope.settingsRootContent(
             FenrirSourcesGroup(isTablet = isTablet, onPageClick = onPageClick)
         }
     }
+    // Fenrir: update notifications (background check, even with the app closed).
+    if (com.nuvio.app.readmode.FenrirUpdateNotify.isAvailable && (category == null || category == SettingsCategory.entries.first())) {
+        item(key = "fenrir-updates") {
+            FenrirUpdatesGroup(isTablet = isTablet)
+        }
+    }
     SettingsCategory.entries.filter { category == null || it == category }.forEach { group ->
         item(key = group.name) {
             SettingsGroup(isTablet = isTablet) {
@@ -204,6 +210,53 @@ private fun FenrirSourcesGroup(isTablet: Boolean, onPageClick: (SettingsPage) ->
                 icon = Icons.Default.Extension,
                 isTablet = isTablet,
                 onClick = { com.nuvio.app.readmode.FenrirSourcesHub.open() },
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun FenrirUpdatesGroup(isTablet: Boolean) {
+    val n = com.nuvio.app.readmode.FenrirUpdateNotify
+    val on by n.enabled.collectAsStateWithLifecycle()
+    val hours by n.hours.collectAsStateWithLifecycle()
+    val prefetch by n.prefetch.collectAsStateWithLifecycle()
+    SettingsSection(title = "Updates", isTablet = isTablet) {
+        SettingsGroup(isTablet = isTablet) {
+            SettingsSwitchRow(
+                title = "Notify me about updates",
+                description = "Checks in the background, even when the app is closed",
+                checked = on,
+                isTablet = isTablet,
+                onCheckedChange = n::setEnabled,
+            )
+            SettingsGroupDivider(isTablet = isTablet)
+            SettingsNavigationRow(
+                title = "How often",
+                description = "Every $hours hours · tap to change",
+                enabled = on,
+                isTablet = isTablet,
+                onClick = {
+                    val i = n.hourChoices.indexOf(hours)
+                    n.setHours(n.hourChoices[(i + 1).mod(n.hourChoices.size)])
+                },
+            )
+            SettingsGroupDivider(isTablet = isTablet)
+            SettingsSwitchRow(
+                title = "Download before notifying",
+                description = if (prefetch) "On: you're told when it's ready to install" else "Off: downloads only after you tap Update",
+                checked = prefetch,
+                enabled = on,
+                isTablet = isTablet,
+                onCheckedChange = n::setPrefetch,
+            )
+            SettingsGroupDivider(isTablet = isTablet)
+            SettingsNavigationRow(
+                title = "Allow background checks",
+                description = "Samsung battery: set Fenrir Vault to Unrestricted",
+                isTablet = isTablet,
+                onClick = { n.openBatterySettings?.invoke() },
             )
         }
     }

@@ -200,6 +200,10 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- Fenrir: "Update" button on the update-available notification. -->
+        <receiver
+            android:name="com.nuvio.app.readmode.FenrirUpdateActionReceiver"
+            android:exported="false" />
         <!-- Fenrir: "Snooze" on Ani-drama episode reminders. -->
         <receiver
             android:name="com.nuvio.app.features.anidrama.AniDramaReminderSnoozeReceiver"

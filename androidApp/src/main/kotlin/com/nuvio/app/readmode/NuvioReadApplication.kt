@@ -57,6 +57,9 @@ class NuvioReadApplication : App() {
             FenrirUpdates.buildOf(packageManager.getPackageInfo(packageName, 0).versionName)
         }.getOrNull()
         fenrirWhatsNew()
+        // Background update check + "Update available" notifications (even with the app closed).
+        com.nuvio.app.readmode.FenrirUpdateNotifier.install(this)
+        EmbeddedHost.updateSettings = { com.nuvio.app.readmode.FenrirUpdateSettingsCard() }
 
         // Fenrir style (Zangetsu-like layout), on by default; the Read side follows it too.
         FenrirStyle.install(enabled = aniDramaPrefs.getBoolean(KEY_FENRIR_STYLE, true)) { on ->

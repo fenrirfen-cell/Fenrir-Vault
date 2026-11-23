@@ -82,7 +82,7 @@ fun FenrirUpdateSettingsCard(modifier: Modifier = Modifier) {
         }
         CardRow(
             "Allow background checks",
-            "Samsung battery: set Fenrir Vault to Unrestricted",
+            "Only if notifications come late: battery settings",
             onClick = { FenrirUpdateNotify.openBatterySettings?.invoke() },
         ) { Text("›", color = Color(0xFFC8C8D2), fontSize = 26.sp) }
     }

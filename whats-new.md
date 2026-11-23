@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Continue reading and the category bar now stay at the top while your books scroll
+- No more pill when scrolling on the Read side
+- Bigger book in the glass case; cleaner empty shelves
 - Opening a book shows the first page of the chapter you're on (manga page or novel text), then grows into the reader
 - Less battery: the library no longer runs animations that never stop
 - Fixed: the app could close when it opened straight on Read

@@ -254,7 +254,7 @@ private fun FenrirUpdatesGroup(isTablet: Boolean) {
             SettingsGroupDivider(isTablet = isTablet)
             SettingsNavigationRow(
                 title = "Allow background checks",
-                description = "Samsung battery: set Fenrir Vault to Unrestricted",
+                description = "Only if notifications come late: battery settings",
                 isTablet = isTablet,
                 onClick = { n.openBatterySettings?.invoke() },
             )

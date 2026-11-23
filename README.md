@@ -1,8 +1,8 @@
 <div align="center">
 
-  <img src="assets/readme/fenrir-icon.png" alt="Fenrir Read" width="120" />
+  <img src="assets/readme/fenrir-icon.png" alt="Fenrir Vault" width="120" />
 
-  <h1>Fenrir Read</h1>
+  <h1>Fenrir Vault</h1>
 
   <p>
     One Android app to <b>watch</b> and to <b>read</b>.
@@ -16,12 +16,12 @@
 
 ## What it is
 
-Fenrir Read combines two open-source apps into one:
+Fenrir Vault combines two open-source apps into one:
 
 - **Watch**, built on [Nuvio Mobile](https://github.com/NuvioMedia/NuvioMobile): a library with artwork, ratings, subtitles and your place saved.
 - **Read**, built on [Tsundoku](https://github.com/tsundoku-otaku/tsundoku): a reader for light novels and manga with a library, updates and history.
 
-The **FENRIR READ ▾** switch at the top moves between the two. The app reopens on the side you used last.
+The **Watch / Read** switch at the top moves between the two. The app reopens on the side you used last.
 
 The app doesn't come with any content. You add your own sources, such as Stremio add-ons, CloudStream and Aniyomi plugins, or Tsundoku extensions.
 

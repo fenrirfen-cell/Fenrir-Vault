@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Continue reading is now a glass display case on top of your bookcase: tap it and the doors swing open and your book comes out and opens
+- Tap any book on the shelves and it slides out and opens
+- Scrolling the library is smooth again: the top part slides away and comes back without jumping
 - Smoother opening animation on Watch and Read
 - The category name is now a button with an arrow, so you can see where to tap for all your categories
 - Switching categories turns the shelf like a revolving bookcase

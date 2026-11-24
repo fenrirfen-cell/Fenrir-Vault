@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import com.nuvio.app.readmode.fenrirSourceHomeHeader
+import com.nuvio.app.readmode.fenrirSourceHomeHero
 import com.nuvio.app.readmode.fenrirSourceHomeItems
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -1106,9 +1107,10 @@ fun HomeScreen(
 
                             homeUiState.heroItems.isNotEmpty() && fenrirStyleOn && homeMaxWidth < 600.dp -> FenrirHeroCard(
                                 items = homeHeroState.items,
-                                height = (homeMaxHeight * 0.58f).coerceIn(380.dp, 520.dp),
+                                height = (homeMaxHeight * 0.50f).coerceIn(340.dp, 480.dp),
                                 onOpen = { onPosterClick?.invoke(it) },
-                                modifier = Modifier.padding(top = 4.dp),
+                                // Fenrir: the banner starts at the top of the screen, behind the bar
+                                topBarRoom = if (com.nuvio.app.readmode.ReadModeBridge.isAvailable) com.nuvio.app.readmode.modeBarHeight() else 0.dp,
                             )
 
                             homeUiState.heroItems.isNotEmpty() -> HomeHeroSection(
@@ -1140,6 +1142,14 @@ fun HomeScreen(
                         sourceId = fenrirSourceId.orEmpty(),
                         horizontalPadding = homeSectionPadding,
                     )
+                    if (fenrirStyleOn) {
+                        val heroSourceId = fenrirSourceId.orEmpty()
+                        fenrirSourceHomeHero(
+                            state = fenrirSourceState.takeIf { it.sourceId == heroSourceId }
+                                ?: com.nuvio.app.readmode.FenrirSourceHomeState(heroSourceId, loading = true),
+                            source = com.nuvio.app.readmode.FenrirSourceHome.sourceInfo(heroSourceId),
+                        )
+                    }
                     homeContinueWatchingSections(
                         preferences = continueWatchingPreferences,
                         continueWatchingItems = continueWatchingItems,
@@ -1293,6 +1303,22 @@ fun HomeScreen(
                         onItemLongPress = onContinueWatchingLongPress,
                         disintegrationRequest = continueWatchingDisintegrationRequest,
                     )
+                    // Fenrir: "Top 10" from your first home list, with big numbers beside the posters
+                    if (fenrirStyleOn) {
+                        val topSection = homeUiState.sections.firstOrNull { it.items.size >= 5 }
+                        if (topSection != null) {
+                            item(key = "fenrir_top10", contentType = "fenrir_top10") {
+                                com.nuvio.app.readmode.FenrirTop10Row(
+                                    title = "Top 10 today",
+                                    subtitle = topSection.title,
+                                    entries = topSection.items.take(10).map { m ->
+                                        com.nuvio.app.readmode.FenrirTopEntry("${m.type}:${m.id}", m.name, m.poster) { onPosterClick?.invoke(m) }
+                                    },
+                                    horizontalPadding = homeSectionPadding,
+                                )
+                            }
+                        }
+                    }
 
                     keyedEnabledHomeItems.forEach { keyedSettingsItem ->
                         val settingsItem = keyedSettingsItem.value

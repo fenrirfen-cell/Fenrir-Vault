@@ -1,5 +1,13 @@
 package com.nuvio.app.features.home.components
 
+import androidx.compose.material.icons.rounded.PlayArrow
+
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+import androidx.compose.foundation.shape.CircleShape
+
+import androidx.compose.foundation.layout.offset
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -763,6 +771,25 @@ private fun ContinueWatchingCard(
         }
         if (item.shufflePlayback) ShuffleBadge(Modifier.align(Alignment.TopStart).padding(8.dp))
         com.nuvio.app.readmode.FenrirCloudStreamTag(item.parentMetaId, Modifier.align(Alignment.TopEnd).padding(8.dp))
+        // Fenrir: a round play button in the middle of the card
+        if (com.nuvio.app.readmode.FenrirStyle.enabled.collectAsStateWithLifecycle().value) {
+            Box(
+                Modifier
+                    .align(Alignment.Center)
+                    .offset(y = (-14).dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.92f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.material3.Icon(
+                    androidx.compose.material.icons.Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    tint = Color(0xFF0C0C10),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)

@@ -61,49 +61,37 @@ fun FenrirHeroCard(
     height: Dp,
     onOpen: (MetaPreview) -> Unit,
     modifier: Modifier = Modifier,
+    topBarRoom: Dp = 0.dp,
 ) {
     if (items.isEmpty()) return
-    val pagerState = rememberPagerState(pageCount = { items.size })
-    val accent = MaterialTheme.colorScheme.primary
-
-    LaunchedEffect(pagerState, items.size) {
-        if (items.size <= 1) return@LaunchedEffect
-        while (true) {
-            delay(7_000)
-            if (!pagerState.isScrollInProgress) {
-                pagerState.animateScrollToPage((pagerState.currentPage + 1) % items.size)
-            }
+    val scope = rememberCoroutineScope()
+    val library by LibraryRepository.uiState.collectAsStateWithLifecycle()
+    val pages = remember(items, library) {
+        items.mapIndexed { i, item ->
+            val saved = LibraryRepository.isSaved(item.id, item.type)
+            com.nuvio.app.readmode.FenrirHeroPage(
+                key = "${item.type}:${item.id}",
+                image = item.banner ?: item.landscapePoster ?: item.poster,
+                logo = item.logo?.takeIf { it.isNotBlank() },
+                title = item.name,
+                tag = "#${i + 1} TRENDING",
+                meta = listOfNotNull(
+                    item.releaseInfo?.take(4)?.takeIf { it.isNotBlank() },
+                    when (item.type) { "series" -> "TV"; "movie" -> "Movie"; "" -> null; else -> item.type.replaceFirstChar { it.uppercase() } },
+                    item.genres.take(2).takeIf { it.isNotEmpty() }?.joinToString(", "),
+                ).joinToString("  ·  "),
+                rating = item.imdbRating?.takeIf { it.isNotBlank() && it != "0" && it != "0.0" },
+                audio = null,
+                onPlay = { onOpen(item) },
+                onInfo = { onOpen(item) },
+                saved = saved,
+                onToggleSave = {
+                    scope.launch { runCatching { LibraryRepository.toggleSaved(item.toLibraryItem(savedAtEpochMs = 0L)) } }
+                },
+            )
         }
     }
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        HorizontalPager(
-            state = pagerState,
-            pageSpacing = 12.dp,
-            modifier = Modifier.fillMaxWidth().height(height),
-        ) { page ->
-            HeroPage(item = items[page], onOpen = onOpen)
-        }
-        if (items.size > 1) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                items.indices.forEach { index ->
-                    val selected = index == pagerState.currentPage
-                    val width by animateDpAsState(if (selected) 20.dp else 6.dp, label = "heroDot")
-                    Box(
-                        Modifier
-                            .padding(horizontal = 3.dp)
-                            .height(6.dp)
-                            .width(width)
-                            .clip(CircleShape)
-                            .background(if (selected) accent else Color(0xFF3A3A44)),
-                    )
-                }
-            }
-        }
-    }
+    com.nuvio.app.readmode.FenrirBleedHero(pages = pages, height = height, topBarRoom = topBarRoom, modifier = modifier)
 }
 
 @Composable

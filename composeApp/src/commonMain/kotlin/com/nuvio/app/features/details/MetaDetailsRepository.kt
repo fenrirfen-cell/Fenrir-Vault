@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.async
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.getString
 
@@ -154,21 +155,30 @@ object MetaDetailsRepository {
                     return@withTimeout
                 }
 
-                for (manifest in manifests) {
-                    val result = withContext(Dispatchers.Default) {
-                        tryFetchMeta(manifest, type, metaLookupId, includeMdbList = false)
+                // Fenrir: ask every add-on at once and use the first one (in your order) that has
+                // it; TMDB details are added after the page is already showing.
+                val attempts = manifests.map { manifest ->
+                    async(Dispatchers.Default) {
+                        withTimeoutOrNull(8_000) { tryFetchMeta(manifest, type, metaLookupId, includeMdbList = false, enrichTmdb = false) }
                     }
-                    if (result != null) {
-                        publishLoadedMeta(
-                            requestKey = requestKey,
-                            meta = result,
-                            fallbackItemId = metaLookupId,
-                            fallbackItemType = type,
-                            mdbListSettings = mdbListSettings,
-                            metaScreenSettingsFingerprint = metaScreenSettingsFingerprint,
-                        )
-                        return@withTimeout
-                    }
+                }
+                var found: MetaDetails? = null
+                for (attempt in attempts) {
+                    found = attempt.await()
+                    if (found != null) break
+                }
+                attempts.forEach { it.cancel() }
+                if (found != null) {
+                    publishLoadedMeta(
+                        requestKey = requestKey,
+                        meta = found,
+                        fallbackItemId = metaLookupId,
+                        fallbackItemType = type,
+                        mdbListSettings = mdbListSettings,
+                        metaScreenSettingsFingerprint = metaScreenSettingsFingerprint,
+                        needsTmdb = true,
+                    )
+                    return@withTimeout
                 }
 
                 val tmdbMeta = tryFetchTmdbFallbackMeta(type = type, id = id)
@@ -290,12 +300,14 @@ object MetaDetailsRepository {
     private const val METADATA_PROVIDER_READY_TIMEOUT_MS = 10_000L
     private const val TMDB_ENRICH_TIMEOUT_MS = 5_000L
     private const val MDBLIST_ENRICH_TIMEOUT_MS = 5_000L
+    private const val RELATED_TIMEOUT_MS = 8_000L
 
     private suspend fun tryFetchMeta(
         manifest: AddonManifest,
         type: String,
         id: String,
         includeMdbList: Boolean,
+        enrichTmdb: Boolean = true,
     ): MetaDetails? {
         val url = buildAddonResourceUrl(
             manifestUrl = manifest.transportUrl,
@@ -310,7 +322,7 @@ object MetaDetailsRepository {
             val payload = fetchAddonResponseText(url)
             log.d { "Raw payload length=${payload.length}, first 500 chars: ${payload.take(500)}" }
             val result = MetaDetailsParser.parse(payload)
-            val tmdbEnriched = withTimeoutOrNull(TMDB_ENRICH_TIMEOUT_MS) {
+            val tmdbEnriched = if (!enrichTmdb) result else withTimeoutOrNull(TMDB_ENRICH_TIMEOUT_MS) {
                 TmdbMetadataService.enrichMeta(
                     meta = result,
                     fallbackItemId = id,
@@ -401,7 +413,21 @@ object MetaDetailsRepository {
         fallbackItemType: String,
         mdbListSettings: com.nuvio.app.features.mdblist.MdbListSettings,
         metaScreenSettingsFingerprint: String,
+        needsTmdb: Boolean = false,
     ) {
+        val meta = if (!needsTmdb) meta else {
+            // show the page right away, then add TMDB's details (cast, logo, More like this, sequels)
+            cachedMetaByRequestKey[requestKey] = CachedMetaEntry(baseMeta = meta)
+            _uiState.value = MetaDetailsUiState(isLoading = true, meta = meta.withUnreleasedFilter())
+            TmdbSettingsRepository.ensureLoaded()
+            withTimeoutOrNull(TMDB_ENRICH_TIMEOUT_MS) {
+                TmdbMetadataService.enrichMeta(
+                    meta = meta,
+                    fallbackItemId = fallbackItemId,
+                    settings = TmdbSettingsRepository.snapshot(),
+                )
+            } ?: meta
+        }
         val cachedEntry = CachedMetaEntry(baseMeta = meta)
         cachedMetaByRequestKey[requestKey] = cachedEntry
 
@@ -441,18 +467,27 @@ object MetaDetailsRepository {
         settings: com.nuvio.app.features.mdblist.MdbListSettings,
         settingsFingerprint: String,
     ): MetaDetails {
-        val mdbListEnrichedMeta = withTimeoutOrNull(MDBLIST_ENRICH_TIMEOUT_MS) {
-            MdbListMetadataService.enrichMeta(
-                meta = meta,
-                fallbackItemId = fallbackItemId,
-                settings = settings,
-            )
-        } ?: meta
-        val enrichedMeta = applyMoreLikeThisSource(
-            meta = mdbListEnrichedMeta,
-            fallbackItemId = fallbackItemId,
-            fallbackItemType = fallbackItemType,
-        )
+        // Fenrir: ratings (MDBList) and "More like this" load side by side, each with a time limit.
+        val enrichedMeta = kotlinx.coroutines.coroutineScope {
+            val related = async {
+                withTimeoutOrNull(RELATED_TIMEOUT_MS) {
+                    applyMoreLikeThisSource(meta = meta, fallbackItemId = fallbackItemId, fallbackItemType = fallbackItemType)
+                }
+            }
+            val mdbListEnrichedMeta = withTimeoutOrNull(MDBLIST_ENRICH_TIMEOUT_MS) {
+                MdbListMetadataService.enrichMeta(
+                    meta = meta,
+                    fallbackItemId = fallbackItemId,
+                    settings = settings,
+                )
+            } ?: meta
+            val rel = related.await()
+            if (rel == null) {
+                mdbListEnrichedMeta
+            } else {
+                mdbListEnrichedMeta.copy(moreLikeThis = rel.moreLikeThis, moreLikeThisSource = rel.moreLikeThisSource)
+            }
+        }
 
         cachedMetaByRequestKey[requestKey] = cachedMetaByRequestKey[requestKey]
             ?.copy(

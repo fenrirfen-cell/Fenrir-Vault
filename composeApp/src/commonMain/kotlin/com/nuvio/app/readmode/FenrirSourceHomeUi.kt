@@ -663,6 +663,31 @@ fun FenrirSourcePillOverlay(modifier: Modifier = Modifier) {
     }
 }
 
+/** Fenrir: the featured banner on a plugin site's Home, from the site's first list. */
+fun LazyListScope.fenrirSourceHomeHero(state: FenrirSourceHomeState, source: FenrirHomeSource?) {
+    val row = state.rows.firstOrNull { !it.horizontalImages && it.items.size >= 3 } ?: return
+    item(key = "fenrir_source_hero_${row.title}", contentType = "fenrir_source_hero") {
+        val pages = remember(row) {
+            row.items.take(5).mapIndexed { i, item ->
+                FenrirHeroPage(
+                    key = item.hit.key,
+                    image = item.hit.poster,
+                    logo = null,
+                    title = item.hit.title,
+                    tag = "#${i + 1} · ${row.title.uppercase()}",
+                    meta = listOfNotNull(item.year?.toString(), if (item.isMovie) "Movie" else "TV", source?.name).joinToString("  ·  "),
+                    rating = null,
+                    audio = item.badge,
+                    onPlay = { openItem(item) },
+                    onInfo = { openItem(item) },
+                )
+            }
+        }
+        val h = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
+        FenrirBleedHero(pages = pages, height = (h * 0.50f).coerceIn(340.dp, 480.dp), topBarRoom = modeBarHeight())
+    }
+}
+
 fun LazyListScope.fenrirSourceHomeItems(
     state: FenrirSourceHomeState,
     source: FenrirHomeSource?,
@@ -701,9 +726,20 @@ fun LazyListScope.fenrirSourceHomeItems(
             }
         }
         else -> {
+            // Fenrir: Top 10 from the site's first list
+            state.rows.firstOrNull { !it.horizontalImages && it.items.size >= 5 }?.let { top ->
+                item(key = "fenrir_source_top10_${top.title}", contentType = "fenrir_top10") {
+                    FenrirTop10Row(
+                        title = "Top 10 today",
+                        subtitle = listOfNotNull(top.title, source?.name).joinToString(" · "),
+                        entries = top.items.take(10).map { FenrirTopEntry(it.hit.key, it.hit.title, it.hit.poster) { openItem(it) } },
+                        horizontalPadding = horizontalPadding,
+                    )
+                }
+            }
             state.rows.forEachIndexed { index, row ->
                 item(key = "fenrir_source_row_${index}_${row.title}", contentType = "fenrir_source_row") {
-                    SourceRowSection(row, horizontalPadding)
+                    SourceRowSection(row, horizontalPadding, source?.name)
                 }
             }
             if (state.loading) {
@@ -714,22 +750,16 @@ fun LazyListScope.fenrirSourceHomeItems(
 }
 
 @Composable
-private fun SourceRowSection(row: FenrirHomeRow, horizontalPadding: androidx.compose.ui.unit.Dp) {
+private fun SourceRowSection(row: FenrirHomeRow, horizontalPadding: androidx.compose.ui.unit.Dp, sourceName: String? = null) {
     Column(Modifier.fillMaxWidth().padding(top = 18.dp)) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = horizontalPadding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(row.title, color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                "See all",
-                color = Red,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { FenrirSourceHomeUi.seeAll.value = row }.padding(6.dp),
-            )
-        }
-        Spacer(Modifier.height(8.dp))
+        // Fenrir: bold title, the site it comes from, a round › for See all
+        FenrirRowHeader(
+            title = row.title,
+            subtitle = sourceName,
+            horizontalPadding = horizontalPadding,
+            onSeeAll = { FenrirSourceHomeUi.seeAll.value = row },
+        )
+        Spacer(Modifier.height(10.dp))
         LazyRow(
             contentPadding = PaddingValues(horizontal = horizontalPadding),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -755,24 +785,22 @@ private fun PosterCard(item: FenrirHomeItem, modifier: Modifier, wide: Boolean =
                 AsyncImage(model = item.hit.poster, contentDescription = item.hit.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             }
             item.badge?.let { badge ->
-                Text(
-                    badge,
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(7.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xCC0B0B0F)).padding(horizontal = 7.dp, vertical = 2.dp),
-                )
+                FenrirAudioChip(badge, Modifier.align(Alignment.TopEnd).padding(6.dp))
             }
         }
         Text(
             item.hit.title,
             color = Color.White,
-            fontSize = 14.sp,
+            fontSize = 13.5.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 7.dp, bottom = 2.dp),
+            modifier = Modifier.padding(top = 7.dp),
         )
+        val sub = listOfNotNull(item.year?.toString(), if (item.isMovie) "Movie" else null).joinToString(" · ")
+        if (sub.isNotEmpty()) {
+            Text(sub, color = Muted, fontSize = 11.5.sp, maxLines = 1, modifier = Modifier.padding(bottom = 2.dp))
+        }
     }
 }
 

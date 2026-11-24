@@ -2,6 +2,11 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- New Home look: a big featured banner from the top of the screen, a play button on Continue Watching cards, a Top 10 row, ratings and SUB/DUB on posters, cleaner row headers with where each list comes from
+- Faster show pages: all your add-ons are asked at once and the page opens as soon as one answers; extra details fill in after
+- More like this and sequels show again (TMDB details are on by default), and load alongside ratings with a time limit
+- Novel reviews: the first review site that answers shows right away
+
 - New: "Links from" on show and movie pages: All, Nuvio add-ons or Plugins (CloudStream / Aniyomi). Remembered for each title
 - "Found in your sources" also lists your plugin sites (purple); tap one to play straight from that site
 - Player: the Sources list now includes your CloudStream and Aniyomi sites, so you can switch to a plugin link while watching

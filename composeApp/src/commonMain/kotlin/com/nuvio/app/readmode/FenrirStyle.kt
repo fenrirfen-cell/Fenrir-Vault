@@ -165,7 +165,8 @@ fun FenrirTopBar(
         }
         // Search, then the Watch / Ani-drama / Read switch at the far right (For you is in the island).
         if (onSearch != null) {
-            FenrirSearchButton(onSearch, hazeState)
+            // the picked CloudStream site's own search only belongs to Home (Watch)
+            FenrirSearchButton(onSearch, hazeState, sourceSearch = selected == FenrirMode.Watch)
             Spacer(Modifier.width(10.dp))
         }
         FenrirModePill(selected, onWatch, onAniDrama, openRead, hazeState)
@@ -177,14 +178,14 @@ fun FenrirTopBar(
  * only that source; otherwise it opens the normal Search screen ([onSearch]).
  */
 @Composable
-fun FenrirSearchButton(onSearch: () -> Unit, hazeState: HazeState? = null) {
+fun FenrirSearchButton(onSearch: () -> Unit, hazeState: HazeState? = null, sourceSearch: Boolean = true) {
     Box(
         modifier = Modifier
             .size(42.dp)
             .shadow(12.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.4f), spotColor = Color.Black.copy(alpha = 0.4f))
             .clip(CircleShape)
             .clickable(role = Role.Button) {
-                if (FenrirSourceHome.selected.value != null) {
+                if (sourceSearch && FenrirSourceHome.selected.value != null) {
                     FenrirSourceHomeUi.searching.value = true
                 } else {
                     onSearch()

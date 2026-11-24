@@ -10,35 +10,52 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * Fenrir: Nuvio home lists, cleaned up.
  * - The same list from two add-ons (or an add-on added twice) shows once.
- * - Spanish lists only show in "Nuvio home · Español"; the normal Nuvio home leaves them out.
+ * - Spanish (and Portuguese) lists only show for profiles set to "Spanish only"; others leave them out.
  */
 object FenrirHomeFilter {
-    private val _spanish = MutableStateFlow(false)
-    val spanish: StateFlow<Boolean> = _spanish.asStateFlow()
-    private var persist: ((Boolean) -> Unit)? = null
+    /** Profiles (by number) set to "Spanish only" in their profile settings. */
+    private val _spanishProfiles = MutableStateFlow<Set<Int>>(emptySet())
+    val spanishProfiles: StateFlow<Set<Int>> = _spanishProfiles.asStateFlow()
+    private var persist: ((String) -> Unit)? = null
 
-    fun setSpanish(on: Boolean) {
-        _spanish.value = on
-        persist?.invoke(on)
+    fun isSpanishProfile(profileIndex: Int?): Boolean = profileIndex != null && profileIndex in _spanishProfiles.value
+
+    fun setSpanishProfile(profileIndex: Int, on: Boolean) {
+        _spanishProfiles.value = if (on) _spanishProfiles.value + profileIndex else _spanishProfiles.value - profileIndex
+        persist?.invoke(_spanishProfiles.value.sorted().joinToString(","))
     }
 
-    fun install(saved: Boolean, persist: (Boolean) -> Unit) {
+    fun install(saved: String?, persist: (String) -> Unit) {
         this.persist = persist
-        _spanish.value = saved
+        _spanishProfiles.value = saved.orEmpty().split(',').mapNotNull { it.trim().toIntOrNull() }.toSet()
     }
 
-    private val spanishWords = Regex(
-        """\b(pel[ií]culas?|pelis|series en|espa[ñn]ol|latino|castellano|estrenos|populares|tendencias?|mejor(es)? valorad[ao]s|novedades|recomendad[ao]s|doramas|telenovelas|animes? en|en emisi[oó]n|lo m[aá]s visto|cl[aá]sicos|infantil|documentales|temporada)\b""",
-        RegexOption.IGNORE_CASE,
+    // Spanish and Portuguese words in list names ("Películas populares", "Tendências", "Ano", "Idioma"…)
+    private val foreignWords = setOf(
+        "películas", "pelicula", "película", "peliculas", "pelis", "español", "espanol", "latino", "castellano",
+        "estrenos", "populares", "tendencias", "tendencia", "tendências", "tendência", "valoradas", "valorados",
+        "novedades", "recomendadas", "recomendados", "doramas", "telenovelas", "emisión", "emision", "visto", "vistos",
+        "clásicos", "clasicos", "infantil", "documentales", "temporada", "temporadas", "idioma", "idiomas", "año", "ano",
+        "años", "anos", "género", "genero", "gênero", "géneros", "generos", "gêneros", "filmes", "séries", "lançamentos",
+        "lancamentos", "destaques", "década", "décadas", "animación", "animação", "comedia", "comédia", "acción", "ação",
+        "ficción", "ficção", "suspenso", "misterio", "mistério", "família", "familia", "crimen", "mejores", "melhores",
+        "nuevos", "novos", "nuevas", "novas", "cine", "más", "mais", "em", "alta", "estreias", "dublado", "dublados",
+        "legendado", "legendados", "doblaje", "doblada", "doblado", "subtitulada", "subtitulado",
     )
-    private val spanishTags = Regex("""(\(es\)|\[es]|\bes-|🇪🇸|🇲🇽|🇦🇷|\blat\b|\besp\b)""", RegexOption.IGNORE_CASE)
+    private val foreignTags = Regex("""(\(es\)|\[es]|\(pt\)|\[pt]|\(br\)|\[br]|🇪🇸|🇲🇽|🇦🇷|🇧🇷|🇵🇹)""", RegexOption.IGNORE_CASE)
 
+    /** A list in Spanish (or Portuguese), going by its name, or by its titles' language when the add-on says. */
     fun isSpanish(section: HomeCatalogSection): Boolean {
-        val text = "${section.title} ${section.subtitle} ${section.addonName}"
-        if (spanishWords.containsMatchIn(text) || spanishTags.containsMatchIn(text)) return true
-        // the titles' own language, when the add-on says
+        val name = "${section.title} ${section.subtitle}"
+        if (foreignTags.containsMatchIn("$name ${section.addonName}")) return true
+        val words = name.lowercase().split(Regex("[^\\p{L}]+")).filter { it.isNotBlank() }
+        if (words.any { it in foreignWords && it != "em" && it != "alta" && it != "mais" } ||
+            (words.contains("em") && words.contains("alta"))
+        ) {
+            return true
+        }
         val langs = section.items.mapNotNull { it.language?.lowercase()?.takeIf { l -> l.isNotBlank() } }
-        return langs.size >= 3 && langs.count { it.startsWith("es") || it.startsWith("spa") } * 2 > langs.size
+        return langs.size >= 3 && langs.count { it.startsWith("es") || it.startsWith("spa") || it.startsWith("pt") || it.startsWith("por") } * 2 > langs.size
     }
 
     private fun norm(t: String) = t.lowercase().replace(Regex("[^a-z0-9áéíóúñ]+"), " ").trim()

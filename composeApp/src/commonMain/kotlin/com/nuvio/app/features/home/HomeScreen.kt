@@ -164,8 +164,10 @@ fun HomeScreen(
     // Fenrir Read: anime and drama rows from add-ons move to the Ani-drama tab.
     val aniDramaAvailable by com.nuvio.app.features.anidrama.AniDramaBridge.isAvailable.collectAsStateWithLifecycle()
     val keepAniDramaRowsOnHome by com.nuvio.app.features.anidrama.AniDramaBridge.keepRowsOnHome.collectAsStateWithLifecycle()
-    // Fenrir: same list twice shows once; Spanish lists only in "Nuvio home · Español"
-    val fenrirSpanish by com.nuvio.app.readmode.FenrirHomeFilter.spanish.collectAsStateWithLifecycle()
+    // Fenrir: same list twice shows once; Spanish lists only for "Spanish only" profiles
+    val fenrirSpanishProfiles by com.nuvio.app.readmode.FenrirHomeFilter.spanishProfiles.collectAsStateWithLifecycle()
+    val fenrirProfileIndex by ProfileRepository.state.collectMappedAsState { it.activeProfile?.profileIndex ?: 1 }
+    val fenrirSpanish = fenrirProfileIndex in fenrirSpanishProfiles
     val homeUiState = remember(rawHomeUiState, aniDramaAvailable, keepAniDramaRowsOnHome, fenrirSpanish) {
         val base = com.nuvio.app.features.anidrama.AniDramaRows.filterHome(rawHomeUiState, aniDramaAvailable, keepAniDramaRowsOnHome)
         if (com.nuvio.app.readmode.ReadModeBridge.isAvailable) com.nuvio.app.readmode.FenrirHomeFilter.apply(base, fenrirSpanish) else base

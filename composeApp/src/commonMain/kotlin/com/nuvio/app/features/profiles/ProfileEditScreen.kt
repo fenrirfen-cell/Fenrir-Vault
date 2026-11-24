@@ -78,6 +78,8 @@ fun ProfileEditScreen(
     var selectedBackgroundId by rememberSaveable { mutableStateOf(currentProfile?.profileBackgroundId) }
     var selectedBackgroundUrl by rememberSaveable { mutableStateOf(currentProfile?.profileBackgroundUrl) }
     var usesPrimaryAddons by rememberSaveable { mutableStateOf(currentProfile?.usesPrimaryAddons ?: false) }
+    // Fenrir: Spanish-only profile (Home shows only the Spanish lists)
+    var spanishOnly by rememberSaveable { mutableStateOf(com.nuvio.app.readmode.FenrirHomeFilter.isSpanishProfile(currentProfile?.profileIndex)) }
     var isSaving by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showPinSetup by remember { mutableStateOf(false) }
@@ -132,6 +134,8 @@ fun ProfileEditScreen(
                 usesPrimaryAddons = usesPrimaryAddons,
                 onNameChange = { name = it },
                 onUsesPrimaryAddonsChange = { usesPrimaryAddons = it },
+                spanishOnly = spanishOnly,
+                onSpanishOnlyChange = { spanishOnly = it },
                 selectedAvatar = visibleAvatarItem,
                 customAvatarUrl = customAvatarUrl,
                 accentColor = previewAccent,
@@ -283,6 +287,7 @@ fun ProfileEditScreen(
                     isSaving = true
                     scope.launch {
                         val avatarColorHex = visibleAvatarItem?.bgColor ?: fallbackColorHex
+                        val profilesBefore = ProfileRepository.state.value.profiles.map { it.profileIndex }.toSet()
                         if (isNew) {
                             ProfileRepository.createProfile(
                                 name = name,
@@ -302,6 +307,14 @@ fun ProfileEditScreen(
                                 profileBackgroundUrl = selectedBackgroundUrl,
                                 usesPrimaryAddons = usesPrimaryAddons,
                             )
+                        }
+                        val savedIndex = if (isNew) {
+                            (ProfileRepository.state.value.profiles.map { it.profileIndex }.toSet() - profilesBefore).firstOrNull()
+                        } else {
+                            currentProfile?.profileIndex
+                        }
+                        if (savedIndex != null && com.nuvio.app.readmode.ReadModeBridge.isAvailable) {
+                            com.nuvio.app.readmode.FenrirHomeFilter.setSpanishProfile(savedIndex, spanishOnly)
                         }
                         isSaving = false
                         onSaved()
@@ -385,6 +398,8 @@ private fun ProfileIdentityCard(
     isNew: Boolean,
     profileIndex: Int?,
     usesPrimaryAddons: Boolean,
+    spanishOnly: Boolean = false,
+    onSpanishOnlyChange: (Boolean) -> Unit = {},
     onNameChange: (String) -> Unit,
     onUsesPrimaryAddonsChange: (Boolean) -> Unit,
     selectedAvatar: AvatarCatalogItem?,
@@ -510,6 +525,14 @@ private fun ProfileIdentityCard(
                 checked = usesPrimaryAddons,
                 onCheckedChange = onUsesPrimaryAddonsChange,
             )
+            if (com.nuvio.app.readmode.ReadModeBridge.isAvailable) {
+                ProfileOptionRow(
+                    title = "Spanish only (Español)",
+                    description = "Home shows only Spanish lists for this profile. Other profiles don't see them.",
+                    checked = spanishOnly,
+                    onCheckedChange = onSpanishOnlyChange,
+                )
+            }
         }
     }
 }

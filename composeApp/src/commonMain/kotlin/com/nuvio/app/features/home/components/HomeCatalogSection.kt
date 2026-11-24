@@ -83,7 +83,7 @@ private fun HomeCatalogRowSectionContent(
     val posterCardStyle = rememberPosterCardStyleUiState()
     val fenrirStyle by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsStateWithLifecycle()
     if (fenrirStyle) {
-        // Fenrir Home: bold title, where it comes from, a round › for See all; posters with a rating
+        // Fenrir Home: bold title, where it comes from, a round › for See all (posters show Nuvio's own rating)
         Column(modifier.padding(top = 14.dp)) {
             com.nuvio.app.readmode.FenrirRowHeader(
                 title = section.title,
@@ -109,10 +109,6 @@ private fun HomeCatalogRowSectionContent(
                             onClick = onPosterClick?.let { { it(item) } },
                             onLongClick = onPosterLongClick?.let { { it(item) } },
                         )
-                        val rating = item.imdbRating?.takeIf { it.isNotBlank() && it != "0" && it != "0.0" }
-                        if (rating != null) {
-                            com.nuvio.app.readmode.FenrirRatingChip(rating, Modifier.align(Alignment.TopStart).padding(6.dp))
-                        }
                     }
                 }
             }

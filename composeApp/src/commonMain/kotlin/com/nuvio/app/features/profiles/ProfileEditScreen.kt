@@ -314,7 +314,7 @@ fun ProfileEditScreen(
                             currentProfile?.profileIndex
                         }
                         if (savedIndex != null && com.nuvio.app.readmode.ReadModeBridge.isAvailable) {
-                            com.nuvio.app.readmode.FenrirHomeFilter.setSpanishProfile(savedIndex, spanishOnly)
+                            com.nuvio.app.readmode.FenrirHomeFilter.setSpanishProfile(savedIndex, spanishOnly, recheckLists = true)
                         }
                         isSaving = false
                         onSaved()

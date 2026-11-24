@@ -137,6 +137,10 @@ class NuvioReadApplication : App() {
         com.nuvio.app.readmode.FenrirHomeFilter.install(aniDramaPrefs.getString(KEY_SPANISH_PROFILES, null)) { text ->
             aniDramaPrefs.edit().putString(KEY_SPANISH_PROFILES, text).apply()
         }
+        // Profiles whose Home lists were already set to Fenrir's picks (then the user decides).
+        com.nuvio.app.readmode.FenrirHomeFilter.installCurated(aniDramaPrefs.getString(KEY_CURATED_PROFILES, null)) { text ->
+            aniDramaPrefs.edit().putString(KEY_CURATED_PROFILES, text).apply()
+        }
         // "Links from" on show pages (All / Nuvio add-ons / Plugins), per title.
         com.nuvio.app.readmode.FenrirLinkChoice.install(aniDramaPrefs.getString(KEY_LINK_CHOICE, null)) { text ->
             aniDramaPrefs.edit().putString(KEY_LINK_CHOICE, text).apply()
@@ -154,6 +158,7 @@ class NuvioReadApplication : App() {
         const val KEY_SOURCE_FLAGS = "fenrir_source_flags"
         const val KEY_LINK_CHOICE = "fenrir_link_choice"
         const val KEY_SPANISH_PROFILES = "fenrir_spanish_profiles"
+        const val KEY_CURATED_PROFILES = "fenrir_curated_home_profiles"
     }
 
     /**

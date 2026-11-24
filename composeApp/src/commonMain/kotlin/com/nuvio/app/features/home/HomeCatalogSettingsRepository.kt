@@ -340,6 +340,19 @@ object HomeCatalogSettingsRepository {
             .filterKeys { it !in knownKeys }
             .toMutableMap()
         var enabledHeroSourceCount = 0
+        // Fenrir: new lists start off except the main ones (all Spanish ones for Spanish-only
+        // profiles); the first time, a profile's existing lists are set the same way.
+        val fenrirProfile = com.nuvio.app.features.profiles.ProfileRepository.activeProfileId
+        val fenrirOn = com.nuvio.app.readmode.ReadModeBridge.isAvailable
+        val fenrirCurateAll = fenrirOn && definitions.isNotEmpty() && com.nuvio.app.readmode.FenrirHomeFilter.needsCuration(fenrirProfile)
+        val fenrirPicks = if (fenrirOn) {
+            com.nuvio.app.readmode.FenrirHomeFilter.startsOn(
+                definitions.map { Triple(it.key, it.defaultTitle, it.type) },
+                com.nuvio.app.readmode.FenrirHomeFilter.isSpanishProfile(fenrirProfile),
+            )
+        } else {
+            emptySet()
+        }
         orderedEntries.forEach { entry ->
             val stored = current[entry.key]
             val heroSourceEnabled = if (entry.isCollection) {
@@ -354,12 +367,17 @@ object HomeCatalogSettingsRepository {
             normalized[entry.key] = StoredHomeCatalogPreference(
                 key = entry.key,
                 customTitle = stored?.customTitle.orEmpty(),
-                enabled = stored?.enabled ?: true,
+                enabled = if (fenrirOn && !entry.isCollection && (stored == null || fenrirCurateAll)) {
+                    entry.key in fenrirPicks
+                } else {
+                    stored?.enabled ?: true
+                },
                 heroSourceEnabled = heroSourceEnabled,
                 order = stored?.order ?: nextOrder++,
             )
         }
         preferences = normalized.toMap()
+        if (fenrirCurateAll) com.nuvio.app.readmode.FenrirHomeFilter.markCurated(fenrirProfile)
     }
 
     private fun publish() {

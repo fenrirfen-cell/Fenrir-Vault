@@ -25,9 +25,72 @@ object FenrirHomeFilter {
         persist?.invoke(_spanishProfiles.value.sorted().joinToString(","))
     }
 
+    fun setSpanishProfile(profileIndex: Int, on: Boolean, recheckLists: Boolean) {
+        val was = isSpanishProfile(profileIndex)
+        setSpanishProfile(profileIndex, on)
+        // switching a profile to or from Spanish picks its Home lists again
+        if (recheckLists && was != on) {
+            curated = curated - profileIndex
+            persistCurated?.invoke(curated.sorted().joinToString(","))
+        }
+    }
+
     fun install(saved: String?, persist: (String) -> Unit) {
         this.persist = persist
         _spanishProfiles.value = saved.orEmpty().split(',').mapNotNull { it.trim().toIntOrNull() }.toSet()
+    }
+
+    // ---------------------------------------------------------------- which Home lists start on
+
+    /** Profiles whose Home lists were already set to Fenrir's picks once (then the user decides). */
+    private var curated: Set<Int> = emptySet()
+    private var persistCurated: ((String) -> Unit)? = null
+
+    fun installCurated(saved: String?, persist: (String) -> Unit) {
+        persistCurated = persist
+        curated = saved.orEmpty().split(',').mapNotNull { it.trim().toIntOrNull() }.toSet()
+    }
+
+    fun needsCuration(profileIndex: Int): Boolean = persistCurated != null && profileIndex !in curated
+
+    fun markCurated(profileIndex: Int) {
+        if (profileIndex in curated) return
+        curated = curated + profileIndex
+        persistCurated?.invoke(curated.sorted().joinToString(","))
+    }
+
+    private fun kindOf(title: String): String? {
+        val t = title.lowercase()
+        return when {
+            "trending" in t -> "trending"
+            "popular" in t -> "popular"
+            "top rated" in t || "top-rated" in t || "best rated" in t -> "top"
+            "featured" in t -> "featured"
+            "new" in t.split(Regex("[^a-z]+")) || "latest" in t || "recent" in t || "in theaters" in t -> "new"
+            else -> null
+        }
+    }
+
+    /**
+     * Lists that start switched on (everything else starts off; turn more on in Settings → Homescreen):
+     * normal profiles get the main English lists (trending, popular, top rated, new, featured),
+     * one of each per movies / series; Spanish-only profiles get every Spanish list.
+     */
+    fun startsOn(
+        lists: List<Triple<String, String, String>>, // key, title, type
+        spanishProfile: Boolean,
+    ): Set<String> {
+        val nameOnly = { title: String ->
+            HomeCatalogSection(key = "", title = title, subtitle = "", addonName = "", target = com.nuvio.app.features.catalog.CatalogTarget.Addon("", "", ""), items = emptyList())
+        }
+        if (spanishProfile) return lists.filter { isSpanish(nameOnly(it.second)) }.map { it.first }.toSet()
+        val picked = linkedMapOf<String, String>()
+        lists.forEach { (key, title, type) ->
+            if (isSpanish(nameOnly(title))) return@forEach
+            val kind = kindOf(title) ?: return@forEach
+            picked.getOrPut("$kind|$type") { key }
+        }
+        return picked.values.toSet()
     }
 
     // Spanish and Portuguese words in list names ("Películas populares", "Tendências", "Ano", "Idioma"…)

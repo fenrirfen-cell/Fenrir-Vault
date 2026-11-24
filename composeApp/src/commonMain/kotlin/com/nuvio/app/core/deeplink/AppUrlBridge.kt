@@ -19,6 +19,8 @@ internal sealed interface AppDeepLink {
 
     data class AddonInstall(
         val manifestUrl: String,
+        /** Fenrir: true once you said yes in the "Install this add-on?" box. */
+        val confirmed: Boolean = false,
     ) : AppDeepLink
 
     data object Downloads : AppDeepLink
@@ -36,6 +38,11 @@ internal object AppDeepLinkRepository {
         parseAppDeepLink(url)?.let { deepLink ->
             _pendingDeepLink.value = deepLink
         }
+    }
+
+    /** Fenrir: install an add-on link after you confirmed it. */
+    fun confirmAddonInstall(manifestUrl: String) {
+        _pendingDeepLink.value = AppDeepLink.AddonInstall(manifestUrl, confirmed = true)
     }
 
     fun markConsumed(deepLink: AppDeepLink) {
@@ -72,7 +79,7 @@ internal fun parseAppDeepLink(url: String): AppDeepLink? {
     val scheme = parsedUrl.protocol.name.lowercase()
     if (scheme == "stremio") {
         return if (looksLikeAddonHost(parsedUrl.host.lowercase())) {
-            customSchemeToHttpsUrl(url, scheme)?.let(AppDeepLink::AddonInstall)
+            customSchemeToHttpsUrl(url, scheme)?.let { AppDeepLink.AddonInstall(it) }
         } else {
             null
         }
@@ -108,7 +115,7 @@ internal fun parseAppDeepLink(url: String): AppDeepLink? {
 
         else -> {
             if (looksLikeAddonHost(host)) {
-                customSchemeToHttpsUrl(url, scheme)?.let(AppDeepLink::AddonInstall)
+                customSchemeToHttpsUrl(url, scheme)?.let { AppDeepLink.AddonInstall(it) }
             } else {
                 null
             }

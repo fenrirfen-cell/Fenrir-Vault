@@ -2,6 +2,11 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- New Regular library look: a big Continue Reading card over the book's own cover, category tabs with book counts, and covers showing type, unread chapters and reading progress
+- Read side (Regular look): Search sits next to Read; everything else is under FENRIR READ ▾
+- Opening Ani-drama from the Read side no longer waits on the loading screen
+- Safety: add-on links from websites now ask before installing, and CloudStream plugins only download over secure (https) connections
+
 - Ani-drama: pull down to refresh; it also refreshes by itself when you come back after 30 minutes, so airing lists and new episodes stay current
 - Ani-drama: the search button no longer covers FENRIR WATCH
 

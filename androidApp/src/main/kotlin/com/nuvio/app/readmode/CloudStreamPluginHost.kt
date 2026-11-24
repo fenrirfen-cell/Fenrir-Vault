@@ -217,7 +217,9 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
         val trimmed = raw.trim()
         val url = when {
             trimmed.startsWith("cloudstreamrepo://") -> "https://" + trimmed.removePrefix("cloudstreamrepo://")
-            trimmed.startsWith("http") -> trimmed
+            // Fenrir: plugins are code, so only over a secure (https) connection.
+            trimmed.startsWith("https://") -> trimmed
+            trimmed.startsWith("http://") -> "https://" + trimmed.removePrefix("http://")
             else -> return null
         }
         return url
@@ -239,8 +241,15 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
         publish()
     }
 
+    /** Fenrir: plugin code and repository lists are only ever fetched over https. */
+    private fun secureUrl(url: String): URL {
+        val u = URL(if (url.startsWith("http://")) "https://" + url.removePrefix("http://") else url)
+        require(u.protocol == "https") { "Not a secure (https) link" }
+        return u
+    }
+
     private fun httpGet(url: String): String {
-        val connection = URL(url).openConnection() as HttpURLConnection
+        val connection = secureUrl(url).openConnection() as HttpURLConnection
         connection.connectTimeout = 15_000
         connection.readTimeout = 30_000
         connection.instanceFollowRedirects = true
@@ -248,7 +257,7 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
     }
 
     private fun download(url: String, target: File) {
-        val connection = URL(url).openConnection() as HttpURLConnection
+        val connection = secureUrl(url).openConnection() as HttpURLConnection
         connection.connectTimeout = 15_000
         connection.readTimeout = 60_000
         connection.instanceFollowRedirects = true

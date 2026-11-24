@@ -159,19 +159,8 @@ fun FenrirTopBar(
         Box(modifier = Modifier.weight(1f)) {
             // Fenrir: shrinks to fit when the buttons on the right are wide ("Ani-drama"), so the
             // search button never covers WATCH.
-            androidx.compose.ui.layout.Layout(
-                content = { FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() }) },
-            ) { measurables, constraints ->
-                val avail = (constraints.maxWidth - 8.dp.roundToPx()).coerceAtLeast(1)
-                val p = measurables.first().measure(androidx.compose.ui.unit.Constraints(maxHeight = constraints.maxHeight))
-                val k = if (p.width > avail) avail.toFloat() / p.width else 1f
-                layout(kotlin.math.min(p.width, constraints.maxWidth), p.height) {
-                    p.placeWithLayer(0, 0) {
-                        scaleX = k
-                        scaleY = k
-                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
-                    }
-                }
+            FenrirFitWidth(endGap = 8.dp) {
+                FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
             }
         }
         // Search, then the Watch / Ani-drama / Read switch at the far right (For you is in the island).
@@ -548,4 +537,29 @@ fun FenrirUpdateButton(hazeState: HazeState? = null): Boolean {
         }
     }
     return true
+}
+
+/** Fenrir: draws [content] at its own size, shrunk evenly to fit the width when there isn't room. */
+@Composable
+fun FenrirFitWidth(
+    modifier: Modifier = Modifier,
+    endGap: androidx.compose.ui.unit.Dp = 0.dp,
+    center: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    androidx.compose.ui.layout.Layout(content = content, modifier = modifier) { measurables, constraints ->
+        val avail = (constraints.maxWidth - endGap.roundToPx()).coerceAtLeast(1)
+        val p = measurables.first().measure(androidx.compose.ui.unit.Constraints(maxHeight = constraints.maxHeight))
+        val k = if (p.width > avail) avail.toFloat() / p.width else 1f
+        val w = if (center) constraints.maxWidth.coerceAtLeast(0) else kotlin.math.min(p.width, constraints.maxWidth)
+        val h = p.height.coerceIn(constraints.minHeight, constraints.maxHeight)
+        layout(w.coerceAtLeast(constraints.minWidth), h) {
+            val x = if (center) ((w - p.width) / 2) else 0
+            p.placeWithLayer(x, (h - p.height) / 2) {
+                scaleX = k
+                scaleY = k
+                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(if (center) 0.5f else 0f, 0.5f)
+            }
+        }
+    }
 }

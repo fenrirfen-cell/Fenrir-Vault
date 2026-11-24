@@ -286,6 +286,8 @@ internal fun MainAppContent(
         }.collectAsStateWithLifecycle()
         val liquidGlassNativeTabBarSupported = remember { isLiquidGlassNativeTabBarSupported() }
         var showExitConfirmation by rememberSaveable { mutableStateOf(false) }
+        // Fenrir: an add-on link opened from a website or another app waits for your OK.
+        var fenrirPendingAddonUrl by rememberSaveable { mutableStateOf<String?>(null) }
         var selectedPosterActionTarget by remember { mutableStateOf<PosterActionTarget?>(null) }
         var selectedPosterAnchor by remember { mutableStateOf<PosterZoomAnchor?>(null) }
         val posterOverlayHazeState = rememberHazeState()
@@ -558,6 +560,14 @@ internal fun MainAppContent(
         initialHomeReady = true
     }
 
+    // Fenrir: opened straight onto another tab (Ani-drama from the Read side, for example), Home
+    // never draws, so don't keep the start screen up waiting for it.
+    LaunchedEffect(selectedTab) {
+        if (!ownsAppRuntime || initialHomeReady || selectedTab == AppScreenTab.Home) return@LaunchedEffect
+        kotlinx.coroutines.delay(250)
+        initialHomeReady = true
+    }
+
     LaunchedEffect(networkCondition) {
         if (!ownsAppRuntime) return@LaunchedEffect
         val condition = networkCondition
@@ -795,6 +805,13 @@ internal fun MainAppContent(
                     }
 
                     is AppDeepLink.AddonInstall -> {
+                        // Fenrir: never install from a link without asking first (otherwise any web
+                        // page could add an add-on, which would see what you watch).
+                        if (!deepLink.confirmed) {
+                            fenrirPendingAddonUrl = deepLink.manifestUrl
+                            AppDeepLinkRepository.markConsumed(deepLink)
+                            return@collectLatest
+                        }
                         activateTab(AppScreenTab.Settings)
                         navController.navigate(AddonsSettingsRoute(addonsSettingsTitle)) {
                             launchSingleTop = true
@@ -2180,6 +2197,23 @@ internal fun MainAppContent(
                 pending = pendingTrackingRemoval,
                 onPendingChange = { pendingTrackingRemoval = it },
             )
+
+            // Fenrir: "Install this add-on?" for add-on links opened from outside the app
+            fenrirPendingAddonUrl?.let { addonUrl ->
+                val host = remember(addonUrl) { addonUrl.substringAfter("://").substringBefore('/') }
+                NuvioStatusModal(
+                    title = "Install this add-on?",
+                    message = "A link wants to add an add-on from $host.\n\nAdd-ons can see what you browse and watch. Only install ones you trust.\n\n$addonUrl",
+                    isVisible = true,
+                    confirmText = "Install",
+                    dismissText = "Cancel",
+                    onConfirm = {
+                        fenrirPendingAddonUrl = null
+                        AppDeepLinkRepository.confirmAddonInstall(addonUrl)
+                    },
+                    onDismiss = { fenrirPendingAddonUrl = null },
+                )
+            }
 
             NuvioStatusModal(
                 title = stringResource(Res.string.app_exit_title),

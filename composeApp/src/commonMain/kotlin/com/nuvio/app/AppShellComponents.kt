@@ -230,8 +230,9 @@ internal fun AppLoadingContent(
         ) {
             AppBrandWordmark(
                 contentDescription = stringResource(Res.string.app_brand_name),
+                // Fenrir: the FENRIR VAULT name needs more room than Nuvio's logo
                 modifier = Modifier
-                    .fillMaxWidth(0.48f)
+                    .fillMaxWidth(if (com.nuvio.app.readmode.FenrirStyle.isAvailable) 0.86f else 0.48f)
                     .height(44.dp),
             )
             Spacer(modifier = Modifier.height(tokens.spacing.sectionGap))

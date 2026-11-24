@@ -160,7 +160,12 @@ fun FenrirTopBar(
             // Fenrir: shrinks to fit when the buttons on the right are wide ("Ani-drama"), so the
             // search button never covers WATCH.
             FenrirFitWidth(endGap = 8.dp) {
-                FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
+                // On Ani-drama the name is just a name: picking a Home source belongs to Watch.
+                if (selected == FenrirMode.AniDrama) {
+                    FenrirWordmark(scale = 1.15f, word = "WATCH", modifier = Modifier.padding(vertical = 4.dp))
+                } else {
+                    FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
+                }
             }
         }
         // Search, then the Watch / Ani-drama / Read switch at the far right (For you is in the island).

@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Ani-drama: FENRIR WATCH is just the name there (the Home source picker stays on Watch)
 - Fixed: Search on the Ani-drama page opens the search screen (it did nothing when a CloudStream site was picked for Home)
 - Fixed: tapping FENRIR WATCH ▾ opens the Home / source picker again
 - New Regular library look: a big Continue Reading card over the book's own cover, category tabs with book counts, and covers showing type, unread chapters and reading progress

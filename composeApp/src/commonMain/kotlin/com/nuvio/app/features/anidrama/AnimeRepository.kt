@@ -37,6 +37,14 @@ internal object AnimeRepository {
 
     private val pageCache = HashMap<String, Pair<List<AniDramaItem>, Boolean>>()
 
+    /** Fenrir: forget the lists (not the id matches) so the next load fetches them fresh. */
+    fun clearLists() {
+        pageCache.clear()
+        latestCache = null
+        scheduleCache.clear()
+        dubbedMalIds = null
+    }
+
     suspend fun dubbedIds(): Set<Int> = dubMutex.withLock {
         dubbedMalIds?.let { return@withLock it }
         val ids = runCatching {

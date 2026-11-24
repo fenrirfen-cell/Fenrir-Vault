@@ -34,6 +34,16 @@ internal object DramaRepository {
     private val airingMutex = Mutex()
     private val airingCache = HashMap<AniDramaRegion, List<TvDetails>>()
 
+    /** Fenrir: forget the lists and airing details so the next load fetches them fresh. */
+    fun clearLists() {
+        pageCache.clear()
+        detailCache.clear()
+        airingCache.clear()
+        latestCache.clear()
+        scheduleCache.clear()
+        seasonCache.clear()
+    }
+
     data class Filter(
         val chip: DramaChip,
         val genreId: Int? = null,

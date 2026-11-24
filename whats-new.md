@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Ani-drama: pull down to refresh; it also refreshes by itself when you come back after 30 minutes, so airing lists and new episodes stay current
+- Ani-drama: the search button no longer covers FENRIR WATCH
+
 - Fixed: the Luxury Collection shelf was empty (the background was drawn over the books)
 - Watch: tapping a title on a CloudStream or Aniyomi site's home page now opens that site's own episodes and links, instead of jumping to the Nuvio show page and its addon links
 

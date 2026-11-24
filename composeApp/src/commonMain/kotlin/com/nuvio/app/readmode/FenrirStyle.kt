@@ -157,7 +157,22 @@ fun FenrirTopBar(
     ) {
         // Tap FENRIR READ to pick what Home shows: Nuvio's home or a CloudStream source's home.
         Box(modifier = Modifier.weight(1f)) {
-            FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() })
+            // Fenrir: shrinks to fit when the buttons on the right are wide ("Ani-drama"), so the
+            // search button never covers WATCH.
+            androidx.compose.ui.layout.Layout(
+                content = { FenrirWordmarkSourceButton(onPicked = { if (selected != FenrirMode.Watch) onWatch() }) },
+            ) { measurables, constraints ->
+                val avail = (constraints.maxWidth - 8.dp.roundToPx()).coerceAtLeast(1)
+                val p = measurables.first().measure(androidx.compose.ui.unit.Constraints(maxHeight = constraints.maxHeight))
+                val k = if (p.width > avail) avail.toFloat() / p.width else 1f
+                layout(kotlin.math.min(p.width, constraints.maxWidth), p.height) {
+                    p.placeWithLayer(0, 0) {
+                        scaleX = k
+                        scaleY = k
+                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                    }
+                }
+            }
         }
         // Search, then the Watch / Ani-drama / Read switch at the far right (For you is in the island).
         if (onSearch != null) {

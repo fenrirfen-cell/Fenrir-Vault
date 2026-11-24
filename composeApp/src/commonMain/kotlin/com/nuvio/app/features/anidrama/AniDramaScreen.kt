@@ -45,6 +45,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.nuvio.app.features.addons.enabledAddons
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -66,6 +69,7 @@ import com.nuvio.app.features.home.components.HomeCatalogRowSection
  * The Ani-drama tab: Otaku-style anime browsing (AniList) and K-/C-/J-drama browsing (TMDB),
  * plus the anime and drama rows from your add-ons that used to sit on Home.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun AniDramaScreen(
     modifier: Modifier = Modifier,
@@ -136,7 +140,43 @@ fun AniDramaScreen(
         }
         Spacer(Modifier.height(6.dp))
 
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+        // Fenrir: pull down to reload (and it reloads by itself after a while away).
+        val refreshGen by AniDramaRefresh.generation.collectAsStateWithLifecycle()
+        LaunchedEffect(Unit) { AniDramaRefresh.refreshIfStale() }
+        var refreshing by remember { mutableStateOf(false) }
+        val refreshScope = rememberCoroutineScope()
+        val pullState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = {
+                if (!refreshing) {
+                    refreshing = true
+                    AniDramaRefresh.refresh()
+                    // the add-on anime / drama rows come from Home's catalogs
+                    HomeRepository.refresh(
+                        com.nuvio.app.features.addons.AddonRepository.uiState.value.addons.enabledAddons(),
+                        force = true,
+                    )
+                    refreshScope.launch {
+                        kotlinx.coroutines.delay(1_200)
+                        refreshing = false
+                    }
+                }
+            },
+            state = pullState,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            indicator = {
+                androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator(
+                    state = pullState,
+                    isRefreshing = refreshing,
+                    containerColor = androidx.compose.ui.graphics.Color(0xFF1C1D26),
+                    color = androidx.compose.ui.graphics.Color(0xFFFF4D57),
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+            },
+        ) {
+        androidx.compose.runtime.key(refreshGen) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (region == AniDramaRegion.Anime) {
                 AnimeContent(
                     chip = animeChip,
@@ -162,6 +202,8 @@ fun AniDramaScreen(
                     onCatalogClick = onCatalogClick,
                 )
             }
+        }
+        }
         }
     }
 }

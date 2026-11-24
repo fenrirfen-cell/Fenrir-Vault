@@ -340,16 +340,13 @@ object HomeCatalogSettingsRepository {
             .filterKeys { it !in knownKeys }
             .toMutableMap()
         var enabledHeroSourceCount = 0
-        // Fenrir: new lists start off except the main ones (all Spanish ones for Spanish-only
-        // profiles); the first time, a profile's existing lists are set the same way.
+        // Fenrir: new lists start off except the main ones; the first time, a profile's existing
+        // lists are set the same way.
         val fenrirProfile = com.nuvio.app.features.profiles.ProfileRepository.activeProfileId
         val fenrirOn = com.nuvio.app.readmode.ReadModeBridge.isAvailable
         val fenrirCurateAll = fenrirOn && definitions.isNotEmpty() && com.nuvio.app.readmode.FenrirHomeFilter.needsCuration(fenrirProfile)
         val fenrirPicks = if (fenrirOn) {
-            com.nuvio.app.readmode.FenrirHomeFilter.startsOn(
-                definitions.map { Triple(it.key, it.defaultTitle, it.type) },
-                com.nuvio.app.readmode.FenrirHomeFilter.isSpanishProfile(fenrirProfile),
-            )
+            com.nuvio.app.readmode.FenrirHomeFilter.startsOn(definitions.map { Triple(it.key, it.defaultTitle, it.type) })
         } else {
             emptySet()
         }

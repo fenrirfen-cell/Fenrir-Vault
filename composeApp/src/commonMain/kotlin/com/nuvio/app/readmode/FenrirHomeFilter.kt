@@ -10,36 +10,9 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * Fenrir: Nuvio home lists, cleaned up.
  * - The same list from two add-ons (or an add-on added twice) shows once.
- * - Spanish (and Portuguese) lists only show for profiles set to "Spanish only"; others leave them out.
+ * - Only the main lists start switched on (Spanish / Portuguese ones aren't among them).
  */
 object FenrirHomeFilter {
-    /** Profiles (by number) set to "Spanish only" in their profile settings. */
-    private val _spanishProfiles = MutableStateFlow<Set<Int>>(emptySet())
-    val spanishProfiles: StateFlow<Set<Int>> = _spanishProfiles.asStateFlow()
-    private var persist: ((String) -> Unit)? = null
-
-    fun isSpanishProfile(profileIndex: Int?): Boolean = profileIndex != null && profileIndex in _spanishProfiles.value
-
-    fun setSpanishProfile(profileIndex: Int, on: Boolean) {
-        _spanishProfiles.value = if (on) _spanishProfiles.value + profileIndex else _spanishProfiles.value - profileIndex
-        persist?.invoke(_spanishProfiles.value.sorted().joinToString(","))
-    }
-
-    fun setSpanishProfile(profileIndex: Int, on: Boolean, recheckLists: Boolean) {
-        val was = isSpanishProfile(profileIndex)
-        setSpanishProfile(profileIndex, on)
-        // switching a profile to or from Spanish picks its Home lists again
-        if (recheckLists && was != on) {
-            curated = curated - profileIndex
-            persistCurated?.invoke(curated.sorted().joinToString(","))
-        }
-    }
-
-    fun install(saved: String?, persist: (String) -> Unit) {
-        this.persist = persist
-        _spanishProfiles.value = saved.orEmpty().split(',').mapNotNull { it.trim().toIntOrNull() }.toSet()
-    }
-
     // ---------------------------------------------------------------- which Home lists start on
 
     /** Profiles whose Home lists were already set to Fenrir's picks once (then the user decides). */
@@ -73,17 +46,15 @@ object FenrirHomeFilter {
 
     /**
      * Lists that start switched on (everything else starts off; turn more on in Settings → Homescreen):
-     * normal profiles get the main English lists (trending, popular, top rated, new, featured),
-     * one of each per movies / series; Spanish-only profiles get every Spanish list.
+     * the main English lists (trending, popular, top rated, new, featured), one of each per
+     * movies / series.
      */
     fun startsOn(
         lists: List<Triple<String, String, String>>, // key, title, type
-        spanishProfile: Boolean,
     ): Set<String> {
         val nameOnly = { title: String ->
             HomeCatalogSection(key = "", title = title, subtitle = "", addonName = "", target = com.nuvio.app.features.catalog.CatalogTarget.Addon("", "", ""), items = emptyList())
         }
-        if (spanishProfile) return lists.filter { isSpanish(nameOnly(it.second)) }.map { it.first }.toSet()
         val picked = linkedMapOf<String, String>()
         lists.forEach { (key, title, type) ->
             if (isSpanish(nameOnly(title))) return@forEach
@@ -107,7 +78,7 @@ object FenrirHomeFilter {
     )
     private val foreignTags = Regex("""(\(es\)|\[es]|\(pt\)|\[pt]|\(br\)|\[br]|🇪🇸|🇲🇽|🇦🇷|🇧🇷|🇵🇹)""", RegexOption.IGNORE_CASE)
 
-    /** A list in Spanish (or Portuguese), going by its name, or by its titles' language when the add-on says. */
+    /** A list in Spanish (or Portuguese), going by its name (kept out of the lists that start on). */
     fun isSpanish(section: HomeCatalogSection): Boolean {
         val name = "${section.title} ${section.subtitle}"
         if (foreignTags.containsMatchIn("$name ${section.addonName}")) return true
@@ -123,10 +94,9 @@ object FenrirHomeFilter {
 
     private fun norm(t: String) = t.lowercase().replace(Regex("[^a-z0-9áéíóúñ]+"), " ").trim()
 
-    fun apply(state: HomeUiState, spanishMode: Boolean): HomeUiState {
+    fun apply(state: HomeUiState): HomeUiState {
         val kept = mutableListOf<HomeCatalogSection>()
         for (section in state.sections) {
-            if (isSpanish(section) != spanishMode) continue
             val keys = section.items.take(20).map { it.stableKey() }.toSet()
             val dupe = kept.any { other ->
                 val otherKeys = other.items.take(20).map { it.stableKey() }.toSet()
@@ -138,7 +108,7 @@ object FenrirHomeFilter {
         }
         if (kept.size == state.sections.size) return state
         val keptKeys = kept.flatMapTo(HashSet()) { s -> s.items.map { it.stableKey() } }
-        val hero = state.heroItems.filter { it.stableKey() in keptKeys }.ifEmpty { if (spanishMode) emptyList() else state.heroItems }
+        val hero = state.heroItems.filter { it.stableKey() in keptKeys }.ifEmpty { state.heroItems }
         return state.copy(sections = kept, heroItems = hero)
     }
 }

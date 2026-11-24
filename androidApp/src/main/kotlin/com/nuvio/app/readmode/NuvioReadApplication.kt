@@ -133,10 +133,6 @@ class NuvioReadApplication : App() {
         com.nuvio.app.readmode.FenrirSourceFlags.install(aniDramaPrefs.getString(KEY_SOURCE_FLAGS, null)) { text ->
             aniDramaPrefs.edit().putString(KEY_SOURCE_FLAGS, text).apply()
         }
-        // Profiles set to "Spanish only" (their Home shows only the Spanish lists).
-        com.nuvio.app.readmode.FenrirHomeFilter.install(aniDramaPrefs.getString(KEY_SPANISH_PROFILES, null)) { text ->
-            aniDramaPrefs.edit().putString(KEY_SPANISH_PROFILES, text).apply()
-        }
         // Profiles whose Home lists were already set to Fenrir's picks (then the user decides).
         com.nuvio.app.readmode.FenrirHomeFilter.installCurated(aniDramaPrefs.getString(KEY_CURATED_PROFILES, null)) { text ->
             aniDramaPrefs.edit().putString(KEY_CURATED_PROFILES, text).apply()
@@ -157,7 +153,6 @@ class NuvioReadApplication : App() {
         const val KEY_HOME_SOURCE = "home_cloudstream_source"
         const val KEY_SOURCE_FLAGS = "fenrir_source_flags"
         const val KEY_LINK_CHOICE = "fenrir_link_choice"
-        const val KEY_SPANISH_PROFILES = "fenrir_spanish_profiles"
         const val KEY_CURATED_PROFILES = "fenrir_curated_home_profiles"
     }
 

@@ -4,9 +4,8 @@ Short notes for the next build, shown in the app after updating. Edit these befo
 
 - Home: the same list from two add-ons now shows once
 - Manage sources → Stremio: each add-on has Configure (opens its own setup page) and Refresh (reloads it after you change it)
-- Spanish (and Portuguese) lists are off Home. To see them, make a profile with "Spanish only (Español)" turned on in its profile settings; that profile's Home shows only those lists
 - Posters no longer show their rating twice
-- Home starts with just the main lists (trending, popular, top rated, new; one each for movies and series). Turn on any others in Settings → Homescreen. Spanish-only profiles start with all the Spanish lists
+- Home starts with just the main lists (trending, popular, top rated, new; one each for movies and series). Turn on any others in Settings → Homescreen
 
 - New Home look: a big featured banner from the top of the screen, a play button on Continue Watching cards, a Top 10 row, ratings and SUB/DUB on posters, cleaner row headers with where each list comes from
 - Faster show pages: all your add-ons are asked at once and the page opens as soon as one answers; extra details fill in after

@@ -174,7 +174,11 @@ object StreamsRepository {
         val fenrirLinkMode = com.nuvio.app.readmode.FenrirLinkChoice.modeFor(fenrirLinkMetaId)
         val fenrirPluginsOnly = (fenrirLinkMode == com.nuvio.app.readmode.FenrirLinkChoice.Mode.Plugins || fenrirOnlySite != null) &&
             com.nuvio.app.readmode.FenrirPlugins.all.any { it.hasSources }
-        val fenrirNoPlugins = fenrirLinkMode == com.nuvio.app.readmode.FenrirLinkChoice.Mode.Nuvio && fenrirOnlySite == null
+        // Fenrir: in a watch party playing a plugin site's link, always look on the plugins too
+        val fenrirPartyOnPlugin = com.nuvio.app.features.party.PartyRepository.state.value.party?.media?.source?.addonId
+            ?.startsWith("fenrir:") == true
+        val fenrirNoPlugins = fenrirLinkMode == com.nuvio.app.readmode.FenrirLinkChoice.Mode.Nuvio && fenrirOnlySite == null &&
+            !fenrirPartyOnPlugin
 
         val isNativeServerRequest = ServerStreams.isNativeRequest(videoId)
         val serverSources = if (fenrirPluginsOnly) emptyList() else ServerStreams.sources(type, videoId, season, episode, forceRefresh)

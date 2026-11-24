@@ -3,6 +3,7 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- Watch Party with plugin links: when the party plays a CloudStream / Aniyomi site, everyone's app looks on that site too and marks its links as the party source (same site, same episode)
 - Settings: the wolf howl is gone; app update notifications moved into Settings → Notifications
 - Manage sources → Stremio: each add-on has Configure (opens its own setup page) and Refresh (reloads it after you change it)
 - Posters no longer show their rating twice

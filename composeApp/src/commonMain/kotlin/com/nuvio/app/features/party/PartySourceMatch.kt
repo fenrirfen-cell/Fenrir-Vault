@@ -13,6 +13,10 @@ internal fun PartySource.matches(stream: StreamItem): Boolean {
     val file = filename?.trim()?.takeIf { it.isNotEmpty() }
     val streamFile = (stream.behaviorHints.filename ?: stream.clientResolve?.filename)?.trim()
     if (file != null && !streamFile.isNullOrEmpty()) return file.equals(streamFile, ignoreCase = true)
+    // Fenrir: a CloudStream / Aniyomi site's links change wording between phones; the same site
+    // for the same episode is the party's source.
+    val site = addonId?.takeIf { it.startsWith("fenrir:") && it.count { c -> c == ':' } >= 2 }
+    if (site != null) return stream.addonId == site
     val label = name?.trim()?.takeIf { it.isNotEmpty() } ?: return false
     return stream.addonId == addonId && stream.streamLabel.trim().equals(label, ignoreCase = true)
 }

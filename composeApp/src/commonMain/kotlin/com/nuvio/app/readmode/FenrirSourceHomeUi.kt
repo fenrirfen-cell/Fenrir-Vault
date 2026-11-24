@@ -788,8 +788,10 @@ private fun SkeletonRow(horizontalPadding: androidx.compose.ui.unit.Dp) {
 }
 
 private fun openItem(item: FenrirHomeItem) {
-    if (FenrirSourceHomeUi.opening.value != null) return
-    FenrirSourceHomeUi.opening.value = item
+    // Fenrir: a title from a plugin site always opens that site's own page (its episodes and its
+    // own links), never the matching Nuvio show page with the addon links.
+    if (FenrirSourceHomeUi.sheetItem.value != null) return
+    FenrirSourceHomeUi.sheetItem.value = item
 }
 
 // ---------------------------------------------------------------------------- overlays (see all, opening, title sheet)
@@ -1032,7 +1034,7 @@ private fun SeeAllDialog(row: FenrirHomeRow, sourceId: String, onDismiss: () -> 
     }
 }
 
-/** The source's own page for a title that didn't match a Nuvio show: episodes, links under each. */
+/** The source's own page for a title: episodes, its own links under each. */
 @Composable
 private fun TitleSheet(item: FenrirHomeItem, onDismiss: () -> Unit) {
     val host = FenrirSourceHome.host

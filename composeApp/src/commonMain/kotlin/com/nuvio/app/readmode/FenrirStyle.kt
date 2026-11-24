@@ -550,6 +550,9 @@ fun FenrirFitWidth(
     androidx.compose.ui.layout.Layout(content = content, modifier = modifier) { measurables, constraints ->
         val avail = (constraints.maxWidth - endGap.roundToPx()).coerceAtLeast(1)
         val p = measurables.first().measure(androidx.compose.ui.unit.Constraints(maxHeight = constraints.maxHeight))
+        // anything else the content adds (a menu's popup anchor, for example) is placed as is,
+        // otherwise menus opened from it never show
+        val extras = measurables.drop(1).map { it.measure(androidx.compose.ui.unit.Constraints()) }
         val k = if (p.width > avail) avail.toFloat() / p.width else 1f
         val w = if (center) constraints.maxWidth.coerceAtLeast(0) else kotlin.math.min(p.width, constraints.maxWidth)
         val h = p.height.coerceIn(constraints.minHeight, constraints.maxHeight)
@@ -560,6 +563,7 @@ fun FenrirFitWidth(
                 scaleY = k
                 transformOrigin = androidx.compose.ui.graphics.TransformOrigin(if (center) 0.5f else 0f, 0.5f)
             }
+            extras.forEach { it.place(0, 0) }
         }
     }
 }

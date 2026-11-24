@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Fixed: tapping FENRIR WATCH ▾ opens the Home / source picker again
 - New Regular library look: a big Continue Reading card over the book's own cover, category tabs with book counts, and covers showing type, unread chapters and reading progress
 - Read side (Regular look): Search sits next to Read; everything else is under FENRIR READ ▾
 - Opening Ani-drama from the Read side no longer waits on the loading screen

@@ -32,12 +32,7 @@ internal fun LazyListScope.settingsRootContent(
             FenrirSourcesGroup(isTablet = isTablet, onPageClick = onPageClick)
         }
     }
-    // Fenrir: update notifications (background check, even with the app closed).
-    if (com.nuvio.app.readmode.FenrirUpdateNotify.isAvailable && (category == null || category == SettingsCategory.entries.first())) {
-        item(key = "fenrir-updates") {
-            FenrirUpdatesGroup(isTablet = isTablet)
-        }
-    }
+    // Fenrir: app update notifications live under Notifications.
     SettingsCategory.entries.filter { category == null || it == category }.forEach { group ->
         item(key = group.name) {
             SettingsGroup(isTablet = isTablet) {
@@ -73,8 +68,6 @@ internal fun LazyListScope.settingsRootContent(
                     SettingsCategory.Look -> {
                         if (com.nuvio.app.readmode.FenrirStyle.isAvailable) {
                             FenrirStyleRow(isTablet = isTablet)
-                            SettingsGroupDivider(isTablet = isTablet)
-                            FenrirHowlRow(isTablet = isTablet)
                             SettingsGroupDivider(isTablet = isTablet)
                         }
                         SettingsPageRow(
@@ -217,12 +210,12 @@ private fun FenrirSourcesGroup(isTablet: Boolean, onPageClick: (SettingsPage) ->
 
 
 @Composable
-private fun FenrirUpdatesGroup(isTablet: Boolean) {
+internal fun FenrirUpdatesGroup(isTablet: Boolean) {
     val n = com.nuvio.app.readmode.FenrirUpdateNotify
     val on by n.enabled.collectAsStateWithLifecycle()
     val hours by n.hours.collectAsStateWithLifecycle()
     val prefetch by n.prefetch.collectAsStateWithLifecycle()
-    SettingsSection(title = "Updates", isTablet = isTablet) {
+    SettingsSection(title = "App updates", isTablet = isTablet) {
         SettingsGroup(isTablet = isTablet) {
             SettingsSwitchRow(
                 title = "Notify me about updates",

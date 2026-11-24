@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /** "Howl when the app opens": the wolf howl on a fresh start (the phone side plays it and saves the choice). */
 object FenrirHowl {
-    private val _enabled = MutableStateFlow(true)
+    // Fenrir: the howl is gone (no setting, never plays).
+    private val _enabled = MutableStateFlow(false)
     val enabled: StateFlow<Boolean> = _enabled.asStateFlow()
 
     /** Set by the Android side to save the choice. */
@@ -18,7 +19,7 @@ object FenrirHowl {
     /** Set by the Android side: plays the opening howl unless the phone is on silent / music is on. */
     var openHowl: (() -> Unit)? = null
 
-    fun load(value: Boolean) { _enabled.value = value }
+    fun load(value: Boolean) { _enabled.value = false }
 
     fun setEnabled(on: Boolean) {
         _enabled.value = on

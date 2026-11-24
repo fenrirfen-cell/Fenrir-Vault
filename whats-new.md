@@ -3,6 +3,7 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- Settings: the wolf howl is gone; app update notifications moved into Settings → Notifications
 - Manage sources → Stremio: each add-on has Configure (opens its own setup page) and Refresh (reloads it after you change it)
 - Posters no longer show their rating twice
 - Home starts with just the main lists (trending, popular, top rated, new; one each for movies and series). Turn on any others in Settings → Homescreen

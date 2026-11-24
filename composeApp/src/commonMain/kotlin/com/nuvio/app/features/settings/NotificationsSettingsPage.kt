@@ -35,6 +35,12 @@ internal fun LazyListScope.notificationsSettingsContent(
     isTablet: Boolean,
     uiState: EpisodeReleaseNotificationsUiState,
 ) {
+    // Fenrir: new app version notifications, with the other notifications
+    if (com.nuvio.app.readmode.FenrirUpdateNotify.isAvailable) {
+        item(key = "fenrir-updates") {
+            FenrirUpdatesGroup(isTablet = isTablet)
+        }
+    }
     item {
         SettingsSection(
             title = stringResource(Res.string.settings_notifications_section_alerts),

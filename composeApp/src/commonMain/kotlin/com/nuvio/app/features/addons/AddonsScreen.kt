@@ -154,7 +154,10 @@ internal fun AddonsSettingsPageContent(
             uiState.addons.forEachIndexed { index, addon ->
                 val manifest = addon.manifest
                 val behaviorHints = manifest?.behaviorHints
-                val showConfigureAction = behaviorHints?.configurable == true || behaviorHints?.configurationRequired == true
+                // Fenrir: also when the link carries a saved setup (AIOStreams, AIOMetadata…)
+                val showConfigureAction = behaviorHints?.configurable == true || behaviorHints?.configurationRequired == true ||
+                    (com.nuvio.app.readmode.ReadModeBridge.isAvailable &&
+                        addon.manifestUrl.substringBefore("?").removeSuffix("/manifest.json").substringAfter("://").contains('/'))
                 val configureUrl = addon.manifestUrl.toConfigureUrl()
                 InstalledAddonCard(
                     addon = addon,

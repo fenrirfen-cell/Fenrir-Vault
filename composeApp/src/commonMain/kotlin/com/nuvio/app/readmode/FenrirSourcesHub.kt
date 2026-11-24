@@ -28,6 +28,8 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material3.CircularProgressIndicator
@@ -436,6 +438,7 @@ private fun StremioManager() {
     var consent by remember { mutableStateOf<AddonManifest?>(null) }
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val on = ui.addons.filter { it.enabled }
     val off = ui.addons.filter { !it.enabled }
@@ -477,6 +480,24 @@ private fun StremioManager() {
                     if (on.isEmpty()) item { EmptyNote("No add-ons turned on. Add one under Repositories.") }
                     items(on, key = { "on-${it.manifestUrl}" }) { addon ->
                         AddonRow(addon.displayTitle, addon.manifest?.description ?: addon.errorMessage ?: addon.manifestUrl, addon.manifest?.logoUrl) {
+                            // Fenrir: change the add-on on its own page, then reload it here
+                            fenrirConfigureUrl(addon)?.let { url ->
+                                Icon(
+                                    androidx.compose.material.icons.Icons.Rounded.Settings,
+                                    contentDescription = "Configure add-on",
+                                    tint = Color.White,
+                                    modifier = Modifier.clip(CircleShape).clickable { runCatching { uriHandler.openUri(url) } }.padding(8.dp).size(20.dp),
+                                )
+                            }
+                            Icon(
+                                androidx.compose.material.icons.Icons.Rounded.Refresh,
+                                contentDescription = "Refresh add-on",
+                                tint = Color.White,
+                                modifier = Modifier.clip(CircleShape).clickable {
+                                    AddonRepository.refreshAddon(manifestUrl = addon.manifestUrl, forceRefresh = true)
+                                    message = "Refreshing ${addon.displayTitle}…"
+                                }.padding(8.dp).size(20.dp),
+                            )
                             Switch(checked = true, onCheckedChange = { AddonRepository.setAddonEnabled(addon.manifestUrl, false) })
                         }
                     }
@@ -564,4 +585,17 @@ private fun AddonRow(title: String, subtitle: String, logo: String?, trailing: @
         Spacer(Modifier.width(8.dp))
         trailing()
     }
+}
+
+
+/**
+ * Fenrir: the add-on's own setup page, when it has one (it says so, or its link carries a saved
+ * setup, like AIOStreams and AIOMetadata).
+ */
+private fun fenrirConfigureUrl(addon: com.nuvio.app.features.addons.ManagedAddon): String? {
+    val hints = addon.manifest?.behaviorHints
+    val base = addon.manifestUrl.substringBefore("?").trimEnd('/').removeSuffix("/manifest.json")
+    val path = base.substringAfter("://").substringAfter('/', "")
+    val configurable = hints?.configurable == true || hints?.configurationRequired == true || path.isNotBlank()
+    return if (configurable && base.startsWith("http")) "$base/configure" else null
 }

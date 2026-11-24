@@ -3,6 +3,7 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- Manage sources → Stremio: each add-on has Configure (opens its own setup page) and Refresh (reloads it after you change it)
 - Spanish (and Portuguese) lists are off Home. To see them, make a profile with "Spanish only (Español)" turned on in its profile settings; that profile's Home shows only those lists
 - Posters no longer show their rating twice
 - Home starts with just the main lists (trending, popular, top rated, new; one each for movies and series). Turn on any others in Settings → Homescreen. Spanish-only profiles start with all the Spanish lists

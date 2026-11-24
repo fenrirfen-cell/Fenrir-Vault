@@ -71,6 +71,18 @@ object PartyRepository {
     private val _sharedStream = MutableStateFlow<PartyStream?>(null)
     val sharedStream: StateFlow<PartyStream?> = _sharedStream.asStateFlow()
 
+    /**
+     * Fenrir: the last link the host shared with this phone. Playback from it stops when the host
+     * stops sharing, leaves or ends the party, and it can't be copied or opened in another player.
+     */
+    private var hostSharedUrl: String? = null
+
+    fun isHostSharedUrl(url: String?): Boolean = url != null && url == hostSharedUrl
+
+    fun forgetHostSharedUrl() {
+        hostSharedUrl = null
+    }
+
     private val _enabled = MutableStateFlow(true)
     val available: StateFlow<Boolean> = combine(ServerConfigurationRepository.active, _enabled) { server, enabled ->
         server.capabilities.watchParty && enabled
@@ -369,6 +381,7 @@ object PartyRepository {
                     ?.takeIf { it !is JsonNull }
                     ?.let { decode(it, PartyStream.serializer()) }
                     ?.takeIf { isShareableStreamUrl(it.url) }
+                _sharedStream.value?.url?.let { hostSharedUrl = it }
             }
             "chat" -> PartyChat.receive(payload)
         }

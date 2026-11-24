@@ -286,6 +286,17 @@ internal fun PlayerScreenRuntime.BindPartyEffects() {
         if (sharing) PartyRepository.shareStream(sharedStream)
     }
 
+    // Fenrir: watching the host's shared link stops when they stop sharing, leave or end the party
+    val hostShared by PartyRepository.sharedStream.collectAsState()
+    LaunchedEffect(hostShared == null, partyId) {
+        if (!PartyRepository.isHostSharedUrl(activeSourceUrl)) return@LaunchedEffect
+        if (hostShared != null && partyId != null) return@LaunchedEffect
+        playerController?.pause()
+        PartyRepository.forgetHostSharedUrl()
+        com.nuvio.app.core.ui.NuvioToastController.show("The host stopped sharing their link. Pick one of your own to keep watching.")
+        openSourcesPanel()
+    }
+
     LaunchedEffect(key) {
         partyBehind = false
         val previous = partyPreviousKey

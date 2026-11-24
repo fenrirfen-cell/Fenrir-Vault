@@ -637,6 +637,13 @@ internal fun StreamDestination(
         forceInternal: Boolean,
         saveForReuse: Boolean = true,
     ) {
+        // Fenrir: the host's shared party link plays only in Fenrir's own player and isn't kept for later
+        if (PartyRepository.isHostSharedUrl(stream.url) &&
+            (forceExternal || !forceInternal || saveForReuse)
+        ) {
+            openSelectedStream(stream, resolvedResumePositionMs, resolvedResumeProgressFraction, forceExternal = false, forceInternal = true, saveForReuse = false)
+            return
+        }
         if (stream.needsServerPreparation) {
             if (preparingServerStream) return
             streamRouteScope.launch {

@@ -443,6 +443,8 @@ private fun PlayerScreenRuntime.RenderPlayerControls(
             onChaptersClick = if (chapters.isNotEmpty()) { { openChaptersPanel() } } else null,
             onOpenInExternalPlayer = args.onOpenInExternalPlayer
                 ?.takeUnless { ServerStreams.isServerSourceId(activeProviderAddonId) }
+                // Fenrir: the host's shared party link only plays here
+                ?.takeUnless { com.nuvio.app.features.party.PartyRepository.isHostSharedUrl(activeSourceUrl) }
                 ?.let { openExternal ->
                 {
                     val loadedSubtitles = addonSubtitles

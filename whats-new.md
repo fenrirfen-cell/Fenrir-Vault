@@ -3,6 +3,7 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- Watch Party, shared links: when the host stops sharing, leaves or ends the party, anyone watching the host's link is stopped and asked to pick one of their own. A shared link only plays in Fenrir's own player, can't be copied or opened elsewhere, and isn't saved for later
 - Watch Party with plugin links: when the party plays a CloudStream / Aniyomi site, everyone's app looks on that site too and marks its links as the party source (same site, same episode)
 - Settings: the wolf howl is gone; app update notifications moved into Settings → Notifications
 - Manage sources → Stremio: each add-on has Configure (opens its own setup page) and Refresh (reloads it after you change it)

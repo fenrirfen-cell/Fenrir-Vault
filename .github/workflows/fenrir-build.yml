@@ -169,6 +169,9 @@ jobs:
 
       - name: Build Fenrir Read
         if: steps.go.outputs.build == 'true'
+        env:
+          # Optional: your own Sentry crash-report address. Empty = crash reports stay off.
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           chmod +x gradlew
           ./gradlew :androidApp:assembleFullFast --stacktrace

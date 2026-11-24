@@ -254,18 +254,18 @@ object StreamsRepository {
 
         // Fenrir: Aniyomi / CloudStream plugins look the show up by name and add their own groups.
         val fenrirHosts = com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources }
-        val fenrirQuery = com.nuvio.app.readmode.FenrirPlugins
-            .titleFor(parentMetaId ?: videoId.substringBefore(':'))
-            ?.let { (name, year) ->
-                com.nuvio.app.readmode.FenrirStreamQuery(
-                    title = name,
-                    year = year,
-                    isMovie = type == "movie",
-                    season = season,
-                    episode = episode,
-                )
-            }
-            ?.takeIf { fenrirHosts.isNotEmpty() }
+        val fenrirMetaId = parentMetaId ?: videoId.substringBefore(':')
+        fun fenrirQueryFor(name: String, year: Int?) = com.nuvio.app.readmode.FenrirStreamQuery(
+            title = name,
+            year = year,
+            isMovie = type == "movie",
+            season = season,
+            episode = episode,
+        )
+        // The show's name may not be known yet (opened from Continue watching, or after a restart):
+        // then it's looked up below instead of skipping the plugins.
+        val fenrirKnown = com.nuvio.app.readmode.FenrirPlugins.titleFor(fenrirMetaId)?.let { (n, y) -> fenrirQueryFor(n, y) }
+        val fenrirQuery = if (fenrirHosts.isNotEmpty() && fenrirMetaId.isNotBlank()) fenrirKnown ?: fenrirQueryFor("", null) else null
         if (fenrirQuery != null) {
             val loadingGroups = fenrirHosts.map { host ->
                 AddonStreamGroup(addonName = host.groupName(), addonId = host.groupId(), streams = emptyList(), isLoading = true)
@@ -462,33 +462,79 @@ object StreamsRepository {
                 null
             }
 
+            // Fenrir: each plugin site gets its own section ("CloudStream · SiteName") as its links come in.
+            fun upsertFenrirGroup(group: AddonStreamGroup, removeId: String? = null) {
+                _uiState.update { current ->
+                    val kept = current.groups.filter { it.addonId != removeId }
+                    val groups = if (kept.any { it.addonId == group.addonId }) {
+                        kept.map { if (it.addonId == group.addonId) group else it }
+                    } else {
+                        kept + group
+                    }
+                    val anyLoading = groups.any { it.isLoading }
+                    current.copy(
+                        groups = groups,
+                        activeAddonIds = current.activeAddonIds + group.addonId,
+                        isAnyLoading = anyLoading,
+                        emptyStateReason = groups.toEmptyStateReason(anyLoading),
+                    )
+                }
+                updateAutoPlayAfterStreamsChanged()
+            }
             val fenrirJobs = if (fenrirQuery == null) emptyList() else fenrirHosts.map { host ->
                 launch {
-                    val lock = kotlinx.coroutines.sync.Mutex()
-                    val collected = mutableListOf<StreamItem>()
-                    runCatching {
-                        host.findStreams(fenrirQuery) { _, found ->
-                            val snapshot = lock.withLock {
-                                collected += found.map { it.toFenrirStreamItem(host) }
-                                collected.toList()
-                            }
-                            if (snapshot.isNotEmpty()) {
-                                publishAddonGroup(
-                                    AddonStreamGroup(host.groupName(), host.groupId(), snapshot, isLoading = true),
-                                )
-                            }
+                    val query = if (fenrirQuery.title.isNotBlank()) {
+                        fenrirQuery
+                    } else {
+                        val meta = runCatching {
+                            com.nuvio.app.features.details.MetaDetailsRepository.fetch(if (season != null) "series" else type, fenrirMetaId)
+                        }.getOrNull()
+                        meta?.let {
+                            val year = it.releaseInfo?.let { r -> Regex("\\d{4}").find(r)?.value?.toIntOrNull() }
+                            com.nuvio.app.readmode.FenrirPlugins.rememberTitle(fenrirMetaId, it.name, year)
+                            fenrirQueryFor(it.name, year)
                         }
                     }
-                    val final = lock.withLock { collected.toList() }
-                    publishAddonGroup(
-                        AddonStreamGroup(
-                            addonName = host.groupName(),
-                            addonId = host.groupId(),
-                            streams = final,
-                            isLoading = false,
-                            error = if (final.isEmpty()) "Not found in your ${host.title.lowercase()}" else null,
-                        ),
-                    )
+                    if (query == null || query.title.isBlank()) {
+                        publishAddonGroup(
+                            AddonStreamGroup(host.groupName(), host.groupId(), emptyList(), isLoading = false, error = "Couldn't look up this title"),
+                        )
+                        return@launch
+                    }
+                    val lock = kotlinx.coroutines.sync.Mutex()
+                    val bySource = linkedMapOf<String, MutableList<StreamItem>>()
+                    runCatching {
+                        host.findStreams(query) { sourceName, found ->
+                            if (found.isEmpty()) return@findStreams
+                            val snapshot = lock.withLock {
+                                bySource.getOrPut(sourceName) { mutableListOf() }.addAll(found.map { it.toFenrirStreamItem(host) })
+                                bySource.getValue(sourceName).toList()
+                            }
+                            upsertFenrirGroup(
+                                AddonStreamGroup("${host.groupName()} · $sourceName", "${host.groupId()}:$sourceName", snapshot, isLoading = false),
+                            )
+                        }
+                    }
+                    val found = lock.withLock { bySource.isNotEmpty() }
+                    if (found) {
+                        // the per-site sections are there; drop the "searching…" placeholder
+                        _uiState.update { current ->
+                            val groups = current.groups.filter { it.addonId != host.groupId() }
+                            val anyLoading = groups.any { it.isLoading }
+                            current.copy(groups = groups, isAnyLoading = anyLoading, emptyStateReason = groups.toEmptyStateReason(anyLoading))
+                        }
+                        updateAutoPlayAfterStreamsChanged()
+                    } else {
+                        publishAddonGroup(
+                            AddonStreamGroup(
+                                addonName = host.groupName(),
+                                addonId = host.groupId(),
+                                streams = emptyList(),
+                                isLoading = false,
+                                error = "Not found in your ${host.title.lowercase()}",
+                            ),
+                        )
+                    }
                 }
             }
 

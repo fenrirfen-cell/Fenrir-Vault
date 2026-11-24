@@ -210,8 +210,11 @@ fun MetaDetailsScreen(
         shuffleWasInactive = !active
     }
     val uiState by MetaDetailsRepository.uiState.collectAsStateWithLifecycle()
-    val displayedMeta = uiState.meta?.takeIf { it.type == type && it.id == id }
+    val fullMeta = uiState.meta?.takeIf { it.type == type && it.id == id }
         ?: MetaDetailsRepository.peek(type, id)
+    // Fenrir: until the details arrive, show what the poster knew (title, pictures, description)
+    val displayedMeta = fullMeta ?: MetaDetailsRepository.previewFor(type, id)?.takeIf { uiState.errorMessage == null }
+    val isPreviewOnly = fullMeta == null && displayedMeta != null
     val metaScreenSettingsUiState by remember {
         MetaScreenSettingsRepository.ensureLoaded()
         MetaScreenSettingsRepository.uiState
@@ -409,7 +412,7 @@ fun MetaDetailsScreen(
     }
 
     LaunchedEffect(type, id, displayedMeta, uiState.isLoading, autoLoadAttempted) {
-        if (!autoLoadAttempted && displayedMeta == null && !uiState.isLoading) {
+        if (!autoLoadAttempted && (displayedMeta == null || isPreviewOnly) && !uiState.isLoading) {
             autoLoadAttempted = true
             MetaDetailsRepository.load(type, id)
         }
@@ -427,7 +430,7 @@ fun MetaDetailsScreen(
         tmdbSettingsUiState.language,
         mdbListSettings,
     ) {
-        if (displayedMeta != null && !uiState.isLoading) {
+        if (displayedMeta != null && !isPreviewOnly && !uiState.isLoading) {
             MetaDetailsRepository.load(type, id)
         }
     }
@@ -807,7 +810,7 @@ fun MetaDetailsScreen(
                 }
                 val primaryVideoId = seriesStreamVideoId ?: seriesAction?.videoId ?: meta.id
                 val shufflePoolEmpty = shuffleSettings.enabled && seriesAction == null
-                val isPrimaryPlayEnabled = shufflePoolEmpty || playbackAvailability.canPlay(
+                val isPrimaryPlayEnabled = !isPreviewOnly && shufflePoolEmpty || !isPreviewOnly && playbackAvailability.canPlay(
                     type = meta.type,
                     videoId = primaryVideoId,
                     parentMetaId = meta.id,

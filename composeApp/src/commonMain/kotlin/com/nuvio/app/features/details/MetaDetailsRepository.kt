@@ -157,16 +157,38 @@ object MetaDetailsRepository {
 
                 // Fenrir: ask every add-on at once and use the first one (in your order) that has
                 // it; TMDB details are added after the page is already showing.
-                val attempts = manifests.map { manifest ->
-                    async(Dispatchers.Default) {
-                        withTimeoutOrNull(8_000) { tryFetchMeta(manifest, type, metaLookupId, includeMdbList = false, enrichTmdb = false) }
+                // Your add-on order still counts, but a slow first add-on doesn't hold the page up:
+                // once any add-on has it, the ones above get 1.5 more seconds.
+                val answers = kotlinx.coroutines.channels.Channel<Pair<Int, MetaDetails?>>(manifests.size)
+                val attempts = manifests.mapIndexed { index, manifest ->
+                    launch(Dispatchers.Default) {
+                        val r = withTimeoutOrNull(8_000) { tryFetchMeta(manifest, type, metaLookupId, includeMdbList = false, enrichTmdb = false) }
+                        answers.trySend(index to r)
                     }
                 }
-                var found: MetaDetails? = null
-                for (attempt in attempts) {
-                    found = attempt.await()
-                    if (found != null) break
+                val results = arrayOfNulls<MetaDetails>(manifests.size)
+                val finished = BooleanArray(manifests.size)
+                var deadline = Long.MAX_VALUE
+                fun best(): MetaDetails? {
+                    for (i in results.indices) {
+                        if (results[i] != null) return results[i]
+                        if (!finished[i]) return null
+                    }
+                    return null
                 }
+                var found: MetaDetails? = null
+                while (finished.any { !it }) {
+                    val wait = if (deadline == Long.MAX_VALUE) 9_000L else (deadline - com.nuvio.app.features.trakt.TraktPlatformClock.nowEpochMs()).coerceAtLeast(0L)
+                    val next = withTimeoutOrNull(wait) { answers.receive() } ?: break
+                    finished[next.first] = true
+                    results[next.first] = next.second
+                    found = best()
+                    if (found != null) break
+                    if (next.second != null && deadline == Long.MAX_VALUE) {
+                        deadline = com.nuvio.app.features.trakt.TraktPlatformClock.nowEpochMs() + 1_500L
+                    }
+                }
+                if (found == null) found = results.firstOrNull { it != null }
                 attempts.forEach { it.cancel() }
                 if (found != null) {
                     publishLoadedMeta(
@@ -213,6 +235,34 @@ object MetaDetailsRepository {
             }
         }
     }
+
+    // Fenrir: what the tapped poster already knows, shown while the full details load
+    private val previews = HashMap<String, MetaDetails>()
+
+    fun seedPreview(p: com.nuvio.app.features.home.MetaPreview) {
+        if (p.id.isBlank()) return
+        previews["${p.type}:${p.id}"] = MetaDetails(
+            id = p.id,
+            type = p.type,
+            name = p.name,
+            poster = p.poster,
+            background = p.banner ?: p.landscapePoster,
+            logo = p.logo,
+            description = p.description,
+            releaseInfo = p.releaseInfo,
+            status = p.status,
+            imdbRating = p.imdbRating,
+            ageRating = p.ageRating,
+            runtime = p.runtime,
+            genres = p.genres,
+            language = p.language,
+        )
+        if (previews.size > 40) previews.keys.firstOrNull()?.let { previews.remove(it) }
+    }
+
+    fun previewFor(type: String, id: String): MetaDetails? = previews["$type:$id"]
+
+    fun isPreview(meta: MetaDetails): Boolean = previews["${meta.type}:${meta.id}"] === meta
 
     fun peek(type: String, id: String): MetaDetails? {
         val requestKey = "$type:$id"

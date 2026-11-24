@@ -40,6 +40,10 @@ internal object CatalogLaunchStore {
 internal fun NuvioNavigator.openPreview(meta: MetaPreview) {
     val collection = ServerCatalog.collectionTarget(meta)
     if (collection == null) {
+        // Fenrir: the page opens straight away with what this poster knows
+        if (com.nuvio.app.readmode.ReadModeBridge.isAvailable) {
+            com.nuvio.app.features.details.MetaDetailsRepository.seedPreview(meta)
+        }
         navigate(DetailRoute(type = meta.type, id = meta.id, title = meta.name))
         return
     }

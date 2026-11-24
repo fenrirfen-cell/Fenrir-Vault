@@ -2,6 +2,10 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- New: "Links from" on show and movie pages: All, Nuvio add-ons or Plugins (CloudStream / Aniyomi). Remembered for each title
+- "Found in your sources" also lists your plugin sites (purple); tap one to play straight from that site
+- Player: the Sources list now includes your CloudStream and Aniyomi sites, so you can switch to a plugin link while watching
+
 - Fixed: a show page that couldn't load kept spinning forever; it now stops after 30 seconds with Retry
 - Ani-drama: FENRIR WATCH is just the name there (the Home source picker stays on Watch)
 - Fixed: Search on the Ani-drama page opens the search screen (it did nothing when a CloudStream site was picked for Home)

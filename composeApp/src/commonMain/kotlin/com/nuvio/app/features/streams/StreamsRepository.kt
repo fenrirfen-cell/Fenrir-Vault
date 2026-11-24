@@ -84,7 +84,8 @@ object StreamsRepository {
             episode = episode,
             manualSelection = manualSelection,
         )
-        val requestKey = "$requestToken::pluginsGrouped=${pluginUiState.groupStreamsByRepository}"
+        val requestKey = "$requestToken::pluginsGrouped=${pluginUiState.groupStreamsByRepository}" +
+            "::links=${com.nuvio.app.readmode.FenrirLinkChoice.requestTag(parentMetaId ?: videoId.substringBefore(':'))}"
         val currentState = _uiState.value
         if (
             !forceRefresh &&
@@ -166,11 +167,20 @@ object StreamsRepository {
             return
         }
 
+        // Fenrir: "Links from" on the show page: all, only Nuvio add-ons, or only the plugins
+        // (or one plugin site tapped under "Found in").
+        val fenrirLinkMetaId = parentMetaId ?: videoId.substringBefore(':')
+        val fenrirOnlySite = com.nuvio.app.readmode.FenrirLinkChoice.takeOnlySite(fenrirLinkMetaId)
+        val fenrirLinkMode = com.nuvio.app.readmode.FenrirLinkChoice.modeFor(fenrirLinkMetaId)
+        val fenrirPluginsOnly = (fenrirLinkMode == com.nuvio.app.readmode.FenrirLinkChoice.Mode.Plugins || fenrirOnlySite != null) &&
+            com.nuvio.app.readmode.FenrirPlugins.all.any { it.hasSources }
+        val fenrirNoPlugins = fenrirLinkMode == com.nuvio.app.readmode.FenrirLinkChoice.Mode.Nuvio && fenrirOnlySite == null
+
         val isNativeServerRequest = ServerStreams.isNativeRequest(videoId)
-        val serverSources = ServerStreams.sources(type, videoId, season, episode, forceRefresh)
+        val serverSources = if (fenrirPluginsOnly) emptyList() else ServerStreams.sources(type, videoId, season, episode, forceRefresh)
         val preferredGroupIds = serverSources.filter { it.preferred }.mapTo(mutableSetOf()) { it.addonId }
-        val installedAddons = if (isNativeServerRequest) emptyList() else AddonRepository.uiState.value.addons.enabledAddons()
-        val pluginScrapers = if (AppFeaturePolicy.pluginsEnabled && !isNativeServerRequest) {
+        val installedAddons = if (isNativeServerRequest || fenrirPluginsOnly) emptyList() else AddonRepository.uiState.value.addons.enabledAddons()
+        val pluginScrapers = if (AppFeaturePolicy.pluginsEnabled && !isNativeServerRequest && !fenrirPluginsOnly) {
             PluginRepository.getEnabledScrapersForType(type)
         } else {
             emptyList()
@@ -180,7 +190,7 @@ object StreamsRepository {
             groupByRepository = pluginUiState.groupStreamsByRepository,
         )
 
-        if (installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
+        if (!fenrirPluginsOnly && installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
             _uiState.value = StreamsUiState(
                 requestToken = requestToken,
                 isAnyLoading = false,
@@ -204,7 +214,7 @@ object StreamsRepository {
 
         log.d { "Found ${streamAddons.size} addons for stream type=$type id=$videoId" }
 
-        if (streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
+        if (!fenrirPluginsOnly && streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
             _uiState.value = StreamsUiState(
                 requestToken = requestToken,
                 isAnyLoading = false,
@@ -253,7 +263,11 @@ object StreamsRepository {
         )
 
         // Fenrir: Aniyomi / CloudStream plugins look the show up by name and add their own groups.
-        val fenrirHosts = com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources }
+        val fenrirHosts = if (fenrirNoPlugins) {
+            emptyList()
+        } else {
+            com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources && (fenrirOnlySite == null || it.id == fenrirOnlySite.first) }
+        }
         val fenrirMetaId = parentMetaId ?: videoId.substringBefore(':')
         fun fenrirQueryFor(name: String, year: Int?) = com.nuvio.app.readmode.FenrirStreamQuery(
             title = name,
@@ -501,11 +515,14 @@ object StreamsRepository {
                         )
                         return@launch
                     }
+                    // remembered for the player's Sources list (switching links while watching)
+                    com.nuvio.app.readmode.FenrirPlugins.lastTitle = query.title to query.year
                     val lock = kotlinx.coroutines.sync.Mutex()
                     val bySource = linkedMapOf<String, MutableList<StreamItem>>()
                     runCatching {
                         host.findStreams(query) { sourceName, found ->
                             if (found.isEmpty()) return@findStreams
+                            if (fenrirOnlySite != null && sourceName != fenrirOnlySite.second) return@findStreams
                             val snapshot = lock.withLock {
                                 bySource.getOrPut(sourceName) { mutableListOf() }.addAll(found.map { it.toFenrirStreamItem(host) })
                                 bySource.getValue(sourceName).toList()
@@ -705,15 +722,15 @@ object StreamsRepository {
     }
 }
 
-private fun com.nuvio.app.readmode.FenrirPluginHost.groupId(): String = "fenrir:$id"
+internal fun com.nuvio.app.readmode.FenrirPluginHost.groupId(): String = "fenrir:$id"
 
-private fun com.nuvio.app.readmode.FenrirPluginHost.groupName(): String = when (id) {
+internal fun com.nuvio.app.readmode.FenrirPluginHost.groupName(): String = when (id) {
     "aniyomi" -> "Aniyomi"
     "cloudstream" -> "CloudStream"
     else -> title
 }
 
-private fun com.nuvio.app.readmode.FenrirPluginStream.toFenrirStreamItem(
+internal fun com.nuvio.app.readmode.FenrirPluginStream.toFenrirStreamItem(
     host: com.nuvio.app.readmode.FenrirPluginHost,
 ): StreamItem = StreamItem(
     name = label,

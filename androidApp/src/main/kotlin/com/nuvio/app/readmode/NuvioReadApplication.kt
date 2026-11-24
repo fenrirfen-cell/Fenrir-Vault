@@ -133,6 +133,10 @@ class NuvioReadApplication : App() {
         com.nuvio.app.readmode.FenrirSourceFlags.install(aniDramaPrefs.getString(KEY_SOURCE_FLAGS, null)) { text ->
             aniDramaPrefs.edit().putString(KEY_SOURCE_FLAGS, text).apply()
         }
+        // "Links from" on show pages (All / Nuvio add-ons / Plugins), per title.
+        com.nuvio.app.readmode.FenrirLinkChoice.install(aniDramaPrefs.getString(KEY_LINK_CHOICE, null)) { text ->
+            aniDramaPrefs.edit().putString(KEY_LINK_CHOICE, text).apply()
+        }
         com.nuvio.app.readmode.FenrirSourceHome.install(aniDramaPrefs.getString(KEY_HOME_SOURCE, null)) { id ->
             aniDramaPrefs.edit().apply { if (id == null) remove(KEY_HOME_SOURCE) else putString(KEY_HOME_SOURCE, id) }.apply()
         }
@@ -144,6 +148,7 @@ class NuvioReadApplication : App() {
         const val KEY_FENRIR_STYLE = "fenrir_style"
         const val KEY_HOME_SOURCE = "home_cloudstream_source"
         const val KEY_SOURCE_FLAGS = "fenrir_source_flags"
+        const val KEY_LINK_CHOICE = "fenrir_link_choice"
     }
 
     /**

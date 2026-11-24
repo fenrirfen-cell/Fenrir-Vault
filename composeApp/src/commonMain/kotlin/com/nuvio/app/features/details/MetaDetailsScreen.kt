@@ -1219,7 +1219,7 @@ fun MetaDetailsScreen(
                                                                 onSaveClick = toggleSaved,
                                                                 onSaveLongClick = openLibraryListPicker,
                                                             )
-                                                            FenrirFoundInRow(metaId = meta.id)
+                                                            FenrirFoundInRow(metaId = meta.id, onPlay = onPrimaryPlayClick)
                                                         }
                                                     }
                                                 } else {
@@ -2399,7 +2399,7 @@ private fun ConfiguredMetaSections(
                         onSaveClick = onSaveClick,
                         onSaveLongClick = onSaveLongClick,
                     )
-                    FenrirFoundInRow(metaId = meta.id)
+                    FenrirFoundInRow(metaId = meta.id, onPlay = onPrimaryPlayClick)
                 }
             }
             MetaScreenSectionKey.OVERVIEW -> {

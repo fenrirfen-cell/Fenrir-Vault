@@ -142,4 +142,7 @@ object FenrirPlugins {
     }
 
     fun titleFor(metaId: String?): Pair<String, Int?>? = metaId?.let { titles[it] }
+
+    /** Name and year of the title whose links were looked up last (what's playing). */
+    var lastTitle: Pair<String, Int?>? = null
 }

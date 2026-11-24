@@ -19,6 +19,9 @@ import com.nuvio.app.features.streams.StreamBadgePresentation
 import com.nuvio.app.features.streams.StreamBadgeSettingsRepository
 import com.nuvio.app.features.streams.StreamLoadCompletion
 import com.nuvio.app.features.streams.StreamSearchSessions
+import com.nuvio.app.features.streams.groupId
+import com.nuvio.app.features.streams.groupName
+import com.nuvio.app.features.streams.toFenrirStreamItem
 import com.nuvio.app.features.streams.StreamSearchTargets
 import com.nuvio.app.features.streams.withoutPendingGroups
 import com.nuvio.app.features.streams.StreamsUiState
@@ -336,6 +339,42 @@ object PlayerStreamsRepository {
                         isAnyLoading = anyLoading,
                         emptyStateReason = updated.toEmptyStateReason(anyLoading),
                     )
+                }
+            }
+
+            // Fenrir: the CloudStream / Aniyomi sites too, one section per site, so a link that
+            // doesn't work can be swapped for a plugin one while watching.
+            val fenrirTitle = com.nuvio.app.readmode.FenrirPlugins.lastTitle
+            if (fenrirTitle != null) {
+                val query = com.nuvio.app.readmode.FenrirStreamQuery(
+                    title = fenrirTitle.first,
+                    year = fenrirTitle.second,
+                    isMovie = type == "movie",
+                    season = season,
+                    episode = episode,
+                )
+                com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources }.forEach { host ->
+                    launch {
+                        runCatching {
+                            host.findStreams(query) { site, found ->
+                                if (found.isEmpty()) return@findStreams
+                                val id = "${host.groupId()}:$site"
+                                val items = found.map { it.toFenrirStreamItem(host) }
+                                stateFlow.update { current ->
+                                    val existing = current.groups.firstOrNull { it.addonId == id }
+                                    val group = AddonStreamGroup("${host.groupName()} · $site", id, existing?.streams.orEmpty() + items, isLoading = false)
+                                    val groups = if (existing != null) current.groups.map { if (it.addonId == id) group else it } else current.groups + group
+                                    val anyLoading = groups.any { it.isLoading }
+                                    current.copy(
+                                        groups = groups,
+                                        activeAddonIds = current.activeAddonIds + id,
+                                        isAnyLoading = anyLoading,
+                                        emptyStateReason = groups.toEmptyStateReason(anyLoading),
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

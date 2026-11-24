@@ -3,6 +3,7 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- CloudStream / Aniyomi: links already found on the show page (Found in) show instantly when you tap the site or open the links or the player's Sources; a search still running is joined instead of started again
 - Reader page flip (manga and novels): turns like a real book both ways. Tapping gives a smooth full turn; going back, the previous page lifts off the spine and lays down; swiping back keeps the fold under your finger. Soft shadow under the curl and the print shows faintly through the back of the page
 - Show pages open instantly with what the poster already knows (title, pictures, description, year, rating); episodes, cast and the rest fill in. Play turns on when the full details are in
 - A slow add-on no longer holds a show page up: once any add-on has the title, the ones above it get 1.5 more seconds

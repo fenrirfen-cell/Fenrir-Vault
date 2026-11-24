@@ -86,7 +86,7 @@ internal fun FenrirFoundInRow(metaId: String, modifier: Modifier = Modifier, onP
             hosts.map { host ->
                 launch {
                     runCatching {
-                        host.findStreams(query) { site, found ->
+                        com.nuvio.app.readmode.FenrirFoundLinks.find(host, query) { site, found ->
                             if (found.isNotEmpty()) {
                                 val key = host.id to site
                                 value = true to (value.second + (key to ((value.second[key] ?: 0) + found.size)))

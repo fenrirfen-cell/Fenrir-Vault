@@ -524,9 +524,10 @@ object StreamsRepository {
                     val lock = kotlinx.coroutines.sync.Mutex()
                     val bySource = linkedMapOf<String, MutableList<StreamItem>>()
                     runCatching {
-                        host.findStreams(query) { sourceName, found ->
-                            if (found.isEmpty()) return@findStreams
-                            if (fenrirOnlySite != null && sourceName != fenrirOnlySite.second) return@findStreams
+                        // Fenrir: links found a moment ago (show page "Found in") come straight away
+                        com.nuvio.app.readmode.FenrirFoundLinks.find(host, query) { sourceName, found ->
+                            if (found.isEmpty()) return@find
+                            if (fenrirOnlySite != null && sourceName != fenrirOnlySite.second) return@find
                             val snapshot = lock.withLock {
                                 bySource.getOrPut(sourceName) { mutableListOf() }.addAll(found.map { it.toFenrirStreamItem(host) })
                                 bySource.getValue(sourceName).toList()

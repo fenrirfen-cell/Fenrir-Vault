@@ -356,8 +356,8 @@ object PlayerStreamsRepository {
                 com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources }.forEach { host ->
                     launch {
                         runCatching {
-                            host.findStreams(query) { site, found ->
-                                if (found.isEmpty()) return@findStreams
+                            com.nuvio.app.readmode.FenrirFoundLinks.find(host, query) { site, found ->
+                                if (found.isEmpty()) return@find
                                 val id = "${host.groupId()}:$site"
                                 val items = found.map { it.toFenrirStreamItem(host) }
                                 stateFlow.update { current ->

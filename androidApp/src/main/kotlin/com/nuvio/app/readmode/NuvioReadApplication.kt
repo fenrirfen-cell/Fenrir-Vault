@@ -133,6 +133,10 @@ class NuvioReadApplication : App() {
         com.nuvio.app.readmode.FenrirSourceFlags.install(aniDramaPrefs.getString(KEY_SOURCE_FLAGS, null)) { text ->
             aniDramaPrefs.edit().putString(KEY_SOURCE_FLAGS, text).apply()
         }
+        // "Nuvio home · Español": only the Spanish lists on Home.
+        com.nuvio.app.readmode.FenrirHomeFilter.install(aniDramaPrefs.getBoolean(KEY_HOME_SPANISH, false)) { on ->
+            aniDramaPrefs.edit().putBoolean(KEY_HOME_SPANISH, on).apply()
+        }
         // "Links from" on show pages (All / Nuvio add-ons / Plugins), per title.
         com.nuvio.app.readmode.FenrirLinkChoice.install(aniDramaPrefs.getString(KEY_LINK_CHOICE, null)) { text ->
             aniDramaPrefs.edit().putString(KEY_LINK_CHOICE, text).apply()
@@ -149,6 +153,7 @@ class NuvioReadApplication : App() {
         const val KEY_HOME_SOURCE = "home_cloudstream_source"
         const val KEY_SOURCE_FLAGS = "fenrir_source_flags"
         const val KEY_LINK_CHOICE = "fenrir_link_choice"
+        const val KEY_HOME_SPANISH = "fenrir_home_spanish"
     }
 
     /**

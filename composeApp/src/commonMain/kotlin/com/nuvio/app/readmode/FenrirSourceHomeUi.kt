@@ -251,13 +251,23 @@ private fun FenrirSourcePickerPanel(
                         }
                     }
                     item {
+                        val spanish by FenrirHomeFilter.spanish.collectAsStateWithLifecycle()
                         MenuRow(
                             name = "Nuvio home",
                             subtitle = "Stremio add-on catalogs",
                             iconUrl = null,
                             letter = null,
-                            selected = selected == null,
-                            onClick = { onPick(null) },
+                            selected = selected == null && !spanish,
+                            onClick = { FenrirHomeFilter.setSpanish(false); onPick(null) },
+                        )
+                        // Fenrir: the same home with only the Spanish lists
+                        MenuRow(
+                            name = "Nuvio home · Español",
+                            subtitle = "Only Spanish lists (Latino, Castellano)",
+                            iconUrl = null,
+                            letter = "ES",
+                            selected = selected == null && spanish,
+                            onClick = { FenrirHomeFilter.setSpanish(true); onPick(null) },
                         )
                     }
                     sourceGroup(

@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Home: the same list from two add-ons now shows once
+- New "Nuvio home · Español" under FENRIR WATCH ▾: only the Spanish lists. The normal Nuvio home leaves them out
+
 - New Home look: a big featured banner from the top of the screen, a play button on Continue Watching cards, a Top 10 row, ratings and SUB/DUB on posters, cleaner row headers with where each list comes from
 - Faster show pages: all your add-ons are asked at once and the page opens as soon as one answers; extra details fill in after
 - More like this and sequels show again (TMDB details are on by default), and load alongside ratings with a time limit

@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Fixed: a show page that couldn't load kept spinning forever; it now stops after 30 seconds with Retry
 - Ani-drama: FENRIR WATCH is just the name there (the Home source picker stays on Watch)
 - Fixed: Search on the Ani-drama page opens the search screen (it did nothing when a CloudStream site was picked for Home)
 - Fixed: tapping FENRIR WATCH ▾ opens the Home / source picker again

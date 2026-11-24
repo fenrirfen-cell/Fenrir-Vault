@@ -125,10 +125,52 @@ object MetaDetailsRepository {
         _uiState.value = MetaDetailsUiState(isLoading = true)
 
         scope.launch {
-            val metaLookupId = resolveMetaLookupId(itemId = id, itemType = type)
-            val manifests = findReadyMetaManifests(type = type, id = metaLookupId)
+            // Fenrir: a load that fails or hangs must end in an error with Retry, never an endless
+            // spinner (a stuck load also blocked opening the same title again).
+            val outcome = runCatching {
+                kotlinx.coroutines.withTimeout(30_000) {
+                val metaLookupId = resolveMetaLookupId(itemId = id, itemType = type)
+                val manifests = findReadyMetaManifests(type = type, id = metaLookupId)
 
-            if (manifests.isEmpty()) {
+                if (manifests.isEmpty()) {
+                    val tmdbMeta = tryFetchTmdbFallbackMeta(type = type, id = id)
+                    if (tmdbMeta != null) {
+                        publishLoadedMeta(
+                            requestKey = requestKey,
+                            meta = tmdbMeta,
+                            fallbackItemId = id,
+                            fallbackItemType = type,
+                            mdbListSettings = mdbListSettings,
+                            metaScreenSettingsFingerprint = metaScreenSettingsFingerprint,
+                        )
+                        return@withTimeout
+                    }
+
+                    log.w { "No addon provides meta for type=$type id=$id" }
+                    _uiState.value = MetaDetailsUiState(
+                        errorMessage = getString(Res.string.details_no_addon_meta),
+                    )
+                    activeRequestKey = null
+                    return@withTimeout
+                }
+
+                for (manifest in manifests) {
+                    val result = withContext(Dispatchers.Default) {
+                        tryFetchMeta(manifest, type, metaLookupId, includeMdbList = false)
+                    }
+                    if (result != null) {
+                        publishLoadedMeta(
+                            requestKey = requestKey,
+                            meta = result,
+                            fallbackItemId = metaLookupId,
+                            fallbackItemType = type,
+                            mdbListSettings = mdbListSettings,
+                            metaScreenSettingsFingerprint = metaScreenSettingsFingerprint,
+                        )
+                        return@withTimeout
+                    }
+                }
+
                 val tmdbMeta = tryFetchTmdbFallbackMeta(type = type, id = id)
                 if (tmdbMeta != null) {
                     publishLoadedMeta(
@@ -139,51 +181,26 @@ object MetaDetailsRepository {
                         mdbListSettings = mdbListSettings,
                         metaScreenSettingsFingerprint = metaScreenSettingsFingerprint,
                     )
-                    return@launch
+                    return@withTimeout
                 }
 
-                log.w { "No addon provides meta for type=$type id=$id" }
                 _uiState.value = MetaDetailsUiState(
-                    errorMessage = getString(Res.string.details_no_addon_meta),
+                    errorMessage = getString(Res.string.details_load_failed_all_addons),
                 )
                 activeRequestKey = null
-                return@launch
-            }
-
-            for (manifest in manifests) {
-                val result = withContext(Dispatchers.Default) {
-                    tryFetchMeta(manifest, type, metaLookupId, includeMdbList = false)
                 }
-                if (result != null) {
-                    publishLoadedMeta(
-                        requestKey = requestKey,
-                        meta = result,
-                        fallbackItemId = metaLookupId,
-                        fallbackItemType = type,
-                        mdbListSettings = mdbListSettings,
-                        metaScreenSettingsFingerprint = metaScreenSettingsFingerprint,
+            }
+            outcome.exceptionOrNull()?.let { e ->
+                if (e is CancellationException && e !is kotlinx.coroutines.TimeoutCancellationException) throw e
+                log.w { "Details load failed for type=$type id=$id: ${e.message}" }
+                if (activeRequestKey == requestKey && _uiState.value.isLoading) {
+                    _uiState.value = MetaDetailsUiState(
+                        meta = _uiState.value.meta,
+                        errorMessage = if (e is kotlinx.coroutines.TimeoutCancellationException) "This took too long. Try again." else "Couldn't load this title. Try again.",
                     )
-                    return@launch
+                    activeRequestKey = null
                 }
             }
-
-            val tmdbMeta = tryFetchTmdbFallbackMeta(type = type, id = id)
-            if (tmdbMeta != null) {
-                publishLoadedMeta(
-                    requestKey = requestKey,
-                    meta = tmdbMeta,
-                    fallbackItemId = id,
-                    fallbackItemType = type,
-                    mdbListSettings = mdbListSettings,
-                    metaScreenSettingsFingerprint = metaScreenSettingsFingerprint,
-                )
-                return@launch
-            }
-
-            _uiState.value = MetaDetailsUiState(
-                errorMessage = getString(Res.string.details_load_failed_all_addons),
-            )
-            activeRequestKey = null
         }
     }
 

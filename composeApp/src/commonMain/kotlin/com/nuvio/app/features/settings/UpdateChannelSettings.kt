@@ -37,7 +37,12 @@ import org.jetbrains.compose.resources.stringResource
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun UpdateChannelSettingsRow(isTablet: Boolean) {
-    val channel by UpdatePreferences.shared.channel.collectAsState()
+    // Fenrir: this row is the "Get beta builds" switch (Settings → Notifications → App updates);
+    // Nuvio's own channel isn't used for Fenrir's updates.
+    val fenrir = com.nuvio.app.readmode.FenrirUpdates.repo != null
+    val nuvioChannel by UpdatePreferences.shared.channel.collectAsState()
+    val fenrirBeta by com.nuvio.app.readmode.FenrirUpdateNotify.beta.collectAsState()
+    val channel = if (fenrir) (if (fenrirBeta) UpdateChannel.BETA else UpdateChannel.STABLE) else nuvioChannel
     var showDialog by rememberSaveable { mutableStateOf(false) }
     val tokens = MaterialTheme.nuvio
     SettingsNavigationRow(
@@ -68,6 +73,7 @@ internal fun UpdateChannelSettingsRow(isTablet: Boolean) {
                             selected = option == channel,
                             role = Role.RadioButton,
                             onClick = {
+                                if (fenrir) com.nuvio.app.readmode.FenrirUpdateNotify.setBeta(option == UpdateChannel.BETA)
                                 UpdatePreferences.shared.setChannel(option)
                                 showDialog = false
                             },

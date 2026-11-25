@@ -123,7 +123,10 @@ internal fun LazyListScope.settingsFooterContent(isTablet: Boolean) {
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = stringResource(
+                // Fenrir: its own build number (the one in the release names), not Nuvio's code
+                text = com.nuvio.app.readmode.FenrirUpdates.currentBuild?.let { build ->
+                    "Version ${AppVersionConfig.VERSION_NAME} · build $build"
+                } ?: stringResource(
                     Res.string.compose_about_version_format,
                     AppVersionConfig.VERSION_NAME,
                     AppVersionConfig.VERSION_CODE,

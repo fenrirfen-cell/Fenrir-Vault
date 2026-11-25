@@ -3,6 +3,10 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- Plugin check: test CloudStream plugins before installing (Available → Test all); each shows Works / Slow / Down, with filters
+- Opening a book from the shelf: no second cover while it flies out, and no flash of the library before the reader
+- Not working list: the same source in many languages shows once with a ×N count; sources that are only empty (like some MangaDex languages) aren't turned off anymore, and the ones that were are back on
+- Mass import: when a link doesn't open straight away, the book is looked up on the site instead; sites that changed their ending (.com → .net) still match
 - Novels in page mode: tap the right side for the next page and the left side to go back, with the book flip (the middle still opens the menu)
 - FENRIR WATCH ▾ always opens now; with no plugins it still has For you
 - For you moved from the bottom bar into the FENRIR WATCH ▾ menu (on Watch and Ani-drama); the bottom bar is Home, Assistant, My list, Settings

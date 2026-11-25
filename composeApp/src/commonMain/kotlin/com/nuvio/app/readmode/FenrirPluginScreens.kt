@@ -2,6 +2,7 @@ package com.nuvio.app.readmode
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -192,6 +193,8 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
                 modifier = Modifier.clip(CircleShape).clickable { host.refresh() }.padding(8.dp).size(22.dp),
             )
         }
+        val checks by host.checks.collectAsStateWithLifecycle()
+        var checkFilter by remember { mutableStateOf<FenrirPluginCheck.Result?>(null) }
         FenrirTabs(listOf("Installed", "Available", "Repositories"), tab) { tab = it }
         state.message?.let { message ->
             Row(
@@ -261,8 +264,24 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
                             EmptyNote(if (state.repos.isEmpty()) "Add a repository first." else "Everything from your repositories is installed.")
                         }
                     }
-                    items(notInstalled, key = { "a-${it.id}" }) { plugin ->
-                        PluginRow(plugin) { PillButton("Install", filled = true) { installGuard.request(plugin) } }
+                    if (host.canTest && notInstalled.isNotEmpty()) {
+                        item(key = "plugin-check") { PluginCheckCard(host, notInstalled, checkFilter) { checkFilter = it } }
+                    }
+                    val shownAvail = if (checkFilter == null) notInstalled else notInstalled.filter { p ->
+                        val c = checks[p.id]?.result
+                        when (checkFilter) {
+                            FenrirPluginCheck.Result.Down -> c == FenrirPluginCheck.Result.Down || p.unsupportedReason != null
+                            else -> c == checkFilter
+                        }
+                    }
+                    items(shownAvail, key = { "a-${it.id}" }) { plugin ->
+                        val check = checks[plugin.id]
+                        val down = check?.result == FenrirPluginCheck.Result.Down || plugin.unsupportedReason != null
+                        PluginRow(
+                            plugin,
+                            check = if (host.canTest) (check ?: FenrirPluginCheck(FenrirPluginCheck.Result.Testing, reason = "untested")) else null,
+                            onTest = if (host.canTest) ({ host.test(listOf(plugin.id)) }) else null,
+                        ) { PillButton("Install", filled = !down) { installGuard.request(plugin) } }
                     }
                 }
                 else -> {
@@ -441,7 +460,13 @@ internal fun EmptyNote(text: String) {
 }
 
 @Composable
-internal fun PluginRow(plugin: FenrirPluginItem, onClick: (() -> Unit)? = null, trailing: @Composable () -> Unit) {
+internal fun PluginRow(
+    plugin: FenrirPluginItem,
+    onClick: (() -> Unit)? = null,
+    check: FenrirPluginCheck? = null,
+    onTest: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
@@ -464,6 +489,7 @@ internal fun PluginRow(plugin: FenrirPluginItem, onClick: (() -> Unit)? = null, 
                 plugin.unsupportedReason,
             ).joinToString(" · ")
             Text(detail, color = Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (check != null) PluginCheckLine(check, onTest)
         }
         Spacer(Modifier.width(8.dp))
         trailing()
@@ -681,4 +707,122 @@ internal fun FenrirInstallWarningDialog(names: List<String>, reason: String, onI
             androidx.compose.material3.TextButton(onClick = onCancel) { Text("Cancel", color = Color.White) }
         },
     )
+}
+
+
+// ---------------------------------------------------------------- Fenrir: plugin check
+
+private val CheckGreen = Color(0xFF4CD787)
+private val CheckAmber = Color(0xFFFFB547)
+private val CheckRed = Color(0xFFFF6E78)
+
+@Composable
+private fun PluginCheckLine(check: FenrirPluginCheck, onTest: (() -> Unit)?) {
+    val untested = check.result == FenrirPluginCheck.Result.Testing && check.reason == "untested"
+    val (color, label) = when {
+        untested -> Muted to "Not tested · Test"
+        check.result == FenrirPluginCheck.Result.Testing -> Muted to "Testing…"
+        check.result == FenrirPluginCheck.Result.Works -> CheckGreen to "Works · ${fmtSeconds(check.seconds)}"
+        check.result == FenrirPluginCheck.Result.Slow -> CheckAmber to "Slow · ${fmtSeconds(check.seconds)}"
+        else -> CheckRed to "Down · ${check.reason ?: "not loading"}"
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(top = 2.dp)
+            .then(
+                if (onTest != null && (untested || check.result == FenrirPluginCheck.Result.Down)) {
+                    Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onTest)
+                } else Modifier,
+            ),
+    ) {
+        Box(Modifier.size(7.dp).clip(CircleShape).background(color))
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = color, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+private fun fmtSeconds(s: Double): String {
+    val tenths = (s * 10).toInt().coerceAtLeast(1)
+    return "${tenths / 10}.${tenths % 10}s"
+}
+
+@Composable
+private fun PluginCheckCard(
+    host: FenrirPluginHost,
+    plugins: List<FenrirPluginItem>,
+    filter: FenrirPluginCheck.Result?,
+    onFilter: (FenrirPluginCheck.Result?) -> Unit,
+) {
+    val checks by host.checks.collectAsStateWithLifecycle()
+    val ids = plugins.map { it.id }
+    val results = ids.mapNotNull { checks[it] }
+    val testing = results.count { it.result == FenrirPluginCheck.Result.Testing }
+    val tested = results.count { it.result != FenrirPluginCheck.Result.Testing }
+    val works = results.count { it.result == FenrirPluginCheck.Result.Works }
+    val slow = results.count { it.result == FenrirPluginCheck.Result.Slow }
+    val down = results.count { it.result == FenrirPluginCheck.Result.Down }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Card)
+                .border(1.dp, Color(0xFF34343F), RoundedCornerShape(16.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Plugin check", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(
+                    if (tested == 0 && testing == 0) "Try plugins out before installing them"
+                    else "Tested $tested of ${ids.size} · $works work · $slow slow · $down down",
+                    color = Color(0xFFBEBEC8),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (testing > 0 || tested > 0) {
+                    Spacer(Modifier.height(6.dp))
+                    Box(Modifier.fillMaxWidth().height(5.dp).clip(CircleShape).background(Color(0xFF32323C))) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth(if (ids.isEmpty()) 0f else tested.toFloat() / ids.size)
+                                .height(5.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFF4D5A)),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            if (testing > 0) {
+                Text("Testing…", color = Muted, style = MaterialTheme.typography.labelLarge)
+            } else {
+                PillButton(if (tested > 0) "Test again" else "Test all", filled = true) { host.test(ids) }
+            }
+        }
+        if (tested > 0) {
+            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(
+                    null to "All",
+                    FenrirPluginCheck.Result.Works to "Works",
+                    FenrirPluginCheck.Result.Slow to "Slow",
+                    FenrirPluginCheck.Result.Down to "Down",
+                ).forEach { (key, label) ->
+                    val on = filter == key
+                    Text(
+                        label,
+                        color = if (on) Color.White else Muted,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(if (on) Color(0xFF3C161C) else Color.Transparent)
+                            .border(1.dp, if (on) Color(0xFFFF4D5A) else Color(0xFF3C3C48), CircleShape)
+                            .clickable { onFilter(key) }
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
+            }
+        }
+    }
 }

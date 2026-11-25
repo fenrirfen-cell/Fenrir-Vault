@@ -1,6 +1,14 @@
 package com.nuvio.app.readmode
 
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+
+/** Fenrir: result of trying a plugin out before installing it. */
+data class FenrirPluginCheck(val result: Result, val seconds: Double = 0.0, val reason: String? = null) {
+    enum class Result { Testing, Works, Slow, Down }
+}
+
+internal val FenrirNoChecks: StateFlow<Map<String, FenrirPluginCheck>> = MutableStateFlow(emptyMap())
 
 /** One plugin (extension) row in the plugin manager. */
 data class FenrirPluginItem(
@@ -96,6 +104,14 @@ interface FenrirPluginHost {
     val hasSources: Boolean
 
     fun refresh()
+
+    /** Fenrir: can plugins be tried out before installing ([test])? */
+    val canTest: Boolean get() = false
+    /** Results of [test], by plugin id. */
+    val checks: StateFlow<Map<String, FenrirPluginCheck>> get() = FenrirNoChecks
+    /** Tries each plugin on its own for a moment (opens its home page) without installing it. */
+    fun test(ids: List<String>) = Unit
+
     fun addRepo(url: String)
     fun removeRepo(url: String)
     fun install(id: String)

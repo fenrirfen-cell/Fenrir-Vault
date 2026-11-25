@@ -368,76 +368,40 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
 
     // ------------------------------------------------------------------ Fenrir: plugin check
 
-    private val _checks = MutableStateFlow<Map<String, com.nuvio.app.readmode.FenrirPluginCheck>>(emptyMap())
-    override val checks: StateFlow<Map<String, com.nuvio.app.readmode.FenrirPluginCheck>> = _checks.asStateFlow()
+    private val checkStore by lazy { FenrirCheckStore(app, "cloudstream", scope) }
+    override val checks: StateFlow<Map<String, com.nuvio.app.readmode.FenrirPluginCheck>> get() = checkStore.checks
     override val canTest: Boolean get() = true
-    private val testPermits = Semaphore(3)
-    private val checkPrefs by lazy { app.getSharedPreferences("fenrir_cs_checks", Context.MODE_PRIVATE) }
 
-    init {
-        // Results from the last day stay (same plugin version), so the list doesn't start blank.
-        scope.launch {
-            val now = System.currentTimeMillis()
-            val restored = checkPrefs.all.mapNotNull { (id, raw) ->
-                val p = (raw as? String)?.split('\t') ?: return@mapNotNull null
-                if (p.size < 5) return@mapNotNull null
-                val at = p[4].toLongOrNull() ?: return@mapNotNull null
-                if (now - at > 24 * 60 * 60 * 1000L) return@mapNotNull null
-                val result = runCatching { com.nuvio.app.readmode.FenrirPluginCheck.Result.valueOf(p[1]) }.getOrNull() ?: return@mapNotNull null
-                id to (p[0] to com.nuvio.app.readmode.FenrirPluginCheck(result, p[2].toDoubleOrNull() ?: 0.0, p[3].ifBlank { null }))
-            }
-            _checks.update { old -> old + restored.filter { (id, v) -> available.none { it.internalName == id } || available.any { it.internalName == id && it.version.toString() == v.first } }.associate { it.first to it.second.second } }
-        }
-    }
+    override fun test(ids: List<String>) = checkStore.test(
+        ids,
+        versionOf = { id ->
+            (savedPlugins().firstOrNull { it.internalName == id }?.version ?: available.firstOrNull { it.internalName == id }?.version)?.toString()
+        },
+        run = ::testOne,
+    )
 
-    override fun test(ids: List<String>) {
-        val todo = ids.filter { id -> _checks.value[id]?.result != com.nuvio.app.readmode.FenrirPluginCheck.Result.Testing }
-        if (todo.isEmpty()) return
-        _checks.update { old -> old + todo.associateWith { com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Testing) } }
-        todo.forEach { id ->
-            scope.launch {
-                val result = testPermits.withPermit { runCatching { testOne(id) }.getOrElse { com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, reason = "test failed") } }
-                _checks.update { it + (id to result) }
-                val version = available.firstOrNull { it.internalName == id }?.version ?: 0
-                checkPrefs.edit().putString(id, listOf(version, result.result.name, result.seconds, result.reason.orEmpty(), System.currentTimeMillis()).joinToString("\t")).apply()
-            }
-        }
-    }
-
-    /** Loads the plugin from a throwaway copy, opens its home page (or searches), then removes it again. */
+    /**
+     * Installed: tries the plugin as it is loaded. Not installed: loads a throwaway copy, tries it,
+     * then removes it again. Opens the home page (or searches) and times it.
+     */
     private suspend fun testOne(id: String): com.nuvio.app.readmode.FenrirPluginCheck = withContext(Dispatchers.IO) {
+        val down = com.nuvio.app.readmode.FenrirPluginCheck.Result.Down
+        synchronized(loaded) { loaded[id] }?.let { runtime ->
+            if (runtime.error != null) return@withContext com.nuvio.app.readmode.FenrirPluginCheck(down, reason = runtime.error.lowercase())
+            return@withContext probe(runtime.providers)
+        }
         val site = available.firstOrNull { it.internalName == id }
-            ?: return@withContext com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, reason = "not in your repositories")
+            ?: return@withContext com.nuvio.app.readmode.FenrirPluginCheck(down, reason = "not in your repositories")
         val dir = File(app.cacheDir, "cs_test").apply { mkdirs() }
         val file = File(dir, "${id.replace(Regex("[^A-Za-z0-9_.-]"), "_")}-${System.nanoTime()}.cs3")
         try {
             runCatching { download(site.url, file) }.onFailure {
-                return@withContext com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, reason = "download failed")
+                return@withContext com.nuvio.app.readmode.FenrirPluginCheck(down, reason = "download failed")
             }
             val providers = runCatching { loadPlugin(file) }.getOrElse {
-                return@withContext com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, reason = "plugin doesn't load")
+                return@withContext com.nuvio.app.readmode.FenrirPluginCheck(down, reason = "plugin doesn't load")
             }
-            if (providers.isEmpty()) return@withContext com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, reason = "no sites in it")
-            val start = System.currentTimeMillis()
-            val ok = withTimeoutOrNull(25_000) {
-                providers.any { provider ->
-                    val home = if (provider.hasMainPage) {
-                        provider.mainPage.firstOrNull()?.let { c ->
-                            runCatching {
-                                provider.getMainPage(1, MainPageRequest(c.name, c.data, c.horizontalImages))
-                                    ?.items?.any { it.list.isNotEmpty() } == true
-                            }.getOrDefault(false)
-                        } ?: false
-                    } else false
-                    home || provider.searchAny("the").isNotEmpty() || provider.searchAny("love").isNotEmpty()
-                }
-            }
-            val seconds = (System.currentTimeMillis() - start) / 1000.0
-            when (ok) {
-                null -> com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, seconds, "site too slow")
-                false -> com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, seconds, "site not loading")
-                true -> com.nuvio.app.readmode.FenrirPluginCheck(if (seconds > 8) com.nuvio.app.readmode.FenrirPluginCheck.Result.Slow else com.nuvio.app.readmode.FenrirPluginCheck.Result.Works, seconds)
-            }
+            probe(providers)
         } finally {
             // throw the test copy away: its sites leave the app's list, the file is deleted
             runCatching {
@@ -445,6 +409,34 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
             }
             file.setWritable(true)
             file.delete()
+        }
+    }
+
+    private suspend fun probe(providers: List<MainAPI>): com.nuvio.app.readmode.FenrirPluginCheck {
+        val down = com.nuvio.app.readmode.FenrirPluginCheck.Result.Down
+        if (providers.isEmpty()) return com.nuvio.app.readmode.FenrirPluginCheck(down, reason = "no sites in it")
+        val start = System.currentTimeMillis()
+        val ok = withTimeoutOrNull(25_000) {
+            providers.take(3).any { provider ->
+                val home = if (provider.hasMainPage) {
+                    provider.mainPage.firstOrNull()?.let { c ->
+                        runCatching {
+                            provider.getMainPage(1, MainPageRequest(c.name, c.data, c.horizontalImages))
+                                ?.items?.any { it.list.isNotEmpty() } == true
+                        }.getOrDefault(false)
+                    } ?: false
+                } else false
+                home || provider.searchAny("the").isNotEmpty() || provider.searchAny("love").isNotEmpty()
+            }
+        }
+        val seconds = (System.currentTimeMillis() - start) / 1000.0
+        return when (ok) {
+            null -> com.nuvio.app.readmode.FenrirPluginCheck(down, seconds, "site too slow")
+            false -> com.nuvio.app.readmode.FenrirPluginCheck(down, seconds, "site not loading")
+            true -> com.nuvio.app.readmode.FenrirPluginCheck(
+                if (seconds > 8) com.nuvio.app.readmode.FenrirPluginCheck.Result.Slow else com.nuvio.app.readmode.FenrirPluginCheck.Result.Works,
+                seconds,
+            )
         }
     }
 

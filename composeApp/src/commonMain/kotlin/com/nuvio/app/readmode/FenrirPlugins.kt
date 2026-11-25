@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /** Fenrir: result of trying a plugin out before installing it. */
-data class FenrirPluginCheck(val result: Result, val seconds: Double = 0.0, val reason: String? = null) {
+data class FenrirPluginCheck(val result: Result, val seconds: Double = 0.0, val reason: String? = null, val version: String? = null) {
     enum class Result { Testing, Works, Slow, Down }
 }
 

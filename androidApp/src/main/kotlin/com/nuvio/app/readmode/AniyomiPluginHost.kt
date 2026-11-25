@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 /** Connects the Watch side's plugin screens and source list to Aniyomi extensions. */
-internal class AniyomiPluginHost(app: Application) : FenrirPluginHost {
+internal class AniyomiPluginHost(private val app: Application) : FenrirPluginHost {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     init {
@@ -66,6 +66,29 @@ internal class AniyomiPluginHost(app: Application) : FenrirPluginHost {
             showNsfw = showNsfw,
             busy = busy,
             message = message,
+        )
+    }
+
+    // Fenrir: extension check (installed ones as they are, others from a throwaway copy)
+    private val checkStore by lazy { FenrirCheckStore(app, "aniyomi", scope) }
+    override val checks: StateFlow<Map<String, com.nuvio.app.readmode.FenrirPluginCheck>> get() = checkStore.checks
+    override val canTest: Boolean get() = true
+    override fun test(ids: List<String>) = checkStore.test(
+        ids,
+        versionOf = { id ->
+            val s = AniyomiExtensions.state.value
+            s.installed.firstOrNull { it.pkg == id }?.versionName ?: s.available.firstOrNull { it.pkg == id }?.versionName
+        },
+    ) { id ->
+        val c = AniyomiExtensions.test(id)
+        com.nuvio.app.readmode.FenrirPluginCheck(
+            when (c.result) {
+                "Works" -> com.nuvio.app.readmode.FenrirPluginCheck.Result.Works
+                "Slow" -> com.nuvio.app.readmode.FenrirPluginCheck.Result.Slow
+                else -> com.nuvio.app.readmode.FenrirPluginCheck.Result.Down
+            },
+            c.seconds,
+            c.reason,
         )
     }
 

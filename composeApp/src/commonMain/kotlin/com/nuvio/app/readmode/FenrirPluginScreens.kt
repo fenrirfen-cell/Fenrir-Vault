@@ -195,7 +195,7 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
         }
         val checks by host.checks.collectAsStateWithLifecycle()
         var checkFilter by remember { mutableStateOf<FenrirPluginCheck.Result?>(null) }
-        FenrirTabs(listOf("Installed", "Available", "Repositories"), tab) { tab = it }
+        FenrirTabs(listOf("Installed", "Available", "Repositories"), tab) { tab = it; checkFilter = null }
         state.message?.let { message ->
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(Card).padding(12.dp),
@@ -229,8 +229,18 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
                     if (state.installed.isEmpty()) {
                         item(key = "empty-installed") { EmptyNote("Nothing installed yet. Add your repository under Repositories, then install from Available.") }
                     }
-                    items(state.installed, key = { "i-${it.id}" }) { plugin ->
-                        PluginRow(plugin, onClick = { whereFor = plugin }) {
+                    val testable = state.installed.filter { !it.needsTrust }
+                    if (host.canTest && testable.isNotEmpty()) {
+                        item(key = "plugin-check-installed") { PluginCheckCard(host, testable, checkFilter) { checkFilter = it } }
+                    }
+                    val shownInstalled = if (checkFilter == null) state.installed else state.installed.filter { checks[it.id]?.result == checkFilter }
+                    items(shownInstalled, key = { "i-${it.id}" }) { plugin ->
+                        PluginRow(
+                            plugin,
+                            onClick = { whereFor = plugin },
+                            check = if (host.canTest && !plugin.needsTrust) (checks[plugin.id] ?: FenrirPluginCheck(FenrirPluginCheck.Result.Testing, reason = "untested")) else null,
+                            onTest = if (host.canTest) ({ host.test(listOf(plugin.id)) }) else null,
+                        ) {
                             val names = host.sourceNamesOf(plugin.id)
                             if (names.isNotEmpty() && !plugin.needsTrust) {
                                 // flags is read so the chip updates as soon as it changes
@@ -775,7 +785,7 @@ private fun PluginCheckCard(
             Column(Modifier.weight(1f)) {
                 Text("Plugin check", color = Color.White, fontWeight = FontWeight.Bold)
                 Text(
-                    if (tested == 0 && testing == 0) "Try plugins out before installing them"
+                    if (tested == 0 && testing == 0) "See which ones work right now"
                     else "Tested $tested of ${ids.size} · $works work · $slow slow · $down down",
                     color = Color(0xFFBEBEC8),
                     style = MaterialTheme.typography.bodySmall,

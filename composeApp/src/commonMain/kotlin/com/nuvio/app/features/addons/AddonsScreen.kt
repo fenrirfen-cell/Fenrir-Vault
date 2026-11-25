@@ -1,6 +1,7 @@
 package com.nuvio.app.features.addons
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -147,9 +148,11 @@ internal fun AddonsSettingsPageContent(
         )
 
         SectionHeader(stringResource(Res.string.addons_section_installed))
+        val addonChecks by FenrirAddonCheck.checks.collectAsStateWithLifecycle()
         if (uiState.addons.isEmpty()) {
             EmptyStateCard(usePersonalMediaCopy = usePersonalMediaCopy)
         } else {
+            FenrirAddonCheckCard(uiState.addons.filter { it.isActive }, addonChecks)
             val lastIndex = uiState.addons.lastIndex
             uiState.addons.forEachIndexed { index, addon ->
                 val manifest = addon.manifest
@@ -161,6 +164,8 @@ internal fun AddonsSettingsPageContent(
                 val configureUrl = addon.manifestUrl.toConfigureUrl()
                 InstalledAddonCard(
                     addon = addon,
+                    check = if (addon.isActive) addonChecks[addon.manifestUrl] else null,
+                    onTest = { FenrirAddonCheck.test(listOf(addon)) },
                     onMoveUpClick = if (index > 0) {
                         { AddonRepository.moveAddon(index, index - 1) }
                     } else {
@@ -442,6 +447,8 @@ private fun EmptyStateCard(
 @Composable
 private fun InstalledAddonCard(
     addon: ManagedAddon,
+    check: com.nuvio.app.readmode.FenrirPluginCheck? = null,
+    onTest: () -> Unit = {},
     onMoveUpClick: (() -> Unit)?,
     onMoveDownClick: (() -> Unit)?,
     onRefreshClick: () -> Unit,
@@ -477,6 +484,10 @@ private fun InstalledAddonCard(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                if (addon.isActive) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    FenrirAddonCheckLine(check, onTest)
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))
@@ -668,5 +679,88 @@ private fun String.toConfigureUrl(): String {
         base.removeSuffix("/manifest.json") + "/configure"
     } else {
         "$base/configure"
+    }
+}
+
+
+// ---------------------------------------------------------------- Fenrir: add-on check
+
+private val CheckGreen = Color(0xFF4CD787)
+private val CheckAmber = Color(0xFFFFB547)
+private val CheckRed = Color(0xFFFF6E78)
+
+private fun checkSeconds(s: Double): String {
+    val tenths = (s * 10).toInt().coerceAtLeast(1)
+    return "${tenths / 10}.${tenths % 10}s"
+}
+
+@Composable
+private fun FenrirAddonCheckLine(check: com.nuvio.app.readmode.FenrirPluginCheck?, onTest: () -> Unit) {
+    val (color, label) = when (check?.result) {
+        null -> MaterialTheme.colorScheme.onSurfaceVariant to "Not tested · Test"
+        com.nuvio.app.readmode.FenrirPluginCheck.Result.Testing -> MaterialTheme.colorScheme.onSurfaceVariant to "Testing…"
+        com.nuvio.app.readmode.FenrirPluginCheck.Result.Works -> CheckGreen to "Works · ${checkSeconds(check?.seconds ?: 0.0)}"
+        com.nuvio.app.readmode.FenrirPluginCheck.Result.Slow -> CheckAmber to "Slow · ${checkSeconds(check?.seconds ?: 0.0)}"
+        com.nuvio.app.readmode.FenrirPluginCheck.Result.Down -> CheckRed to "Down · ${check?.reason ?: "not answering"}"
+    }
+    val tappable = check == null || check.result == com.nuvio.app.readmode.FenrirPluginCheck.Result.Down
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = if (tappable) Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onTest) else Modifier,
+    ) {
+        Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(color))
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = color, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun FenrirAddonCheckCard(addons: List<ManagedAddon>, checks: Map<String, com.nuvio.app.readmode.FenrirPluginCheck>) {
+    if (addons.isEmpty()) return
+    val results = addons.mapNotNull { checks[it.manifestUrl] }
+    val testing = results.count { it.result == com.nuvio.app.readmode.FenrirPluginCheck.Result.Testing }
+    val tested = results.size - testing
+    val works = results.count { it.result == com.nuvio.app.readmode.FenrirPluginCheck.Result.Works }
+    val slow = results.count { it.result == com.nuvio.app.readmode.FenrirPluginCheck.Result.Slow }
+    val down = results.count { it.result == com.nuvio.app.readmode.FenrirPluginCheck.Result.Down }
+    NuvioSurfaceCard {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Add-on check", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    if (tested == 0 && testing == 0) "See which add-ons answer right now"
+                    else "Tested $tested of ${addons.size} · $works work · $slow slow · $down down",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (tested > 0 || testing > 0) {
+                    Spacer(Modifier.height(8.dp))
+                    Box(Modifier.fillMaxWidth().height(5.dp).clip(androidx.compose.foundation.shape.CircleShape).background(MaterialTheme.colorScheme.outlineVariant)) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth(tested.toFloat() / addons.size)
+                                .height(5.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            if (testing > 0) {
+                Text("Testing…", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Text(
+                    if (tested > 0) "Test again" else "Test all",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .clickable { FenrirAddonCheck.test(addons) }
+                        .padding(horizontal = 16.dp, vertical = 9.dp),
+                )
+            }
+        }
     }
 }

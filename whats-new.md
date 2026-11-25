@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Player: Back leaves straight away; the "Not the right one?" pop-up is gone (switch links with Sources in the player)
+- Player Sources now lists your CloudStream and Aniyomi sites too, also when you started the episode from Continue watching or Home, and always for the show you're watching
 - Opening a book is more 3D: the book swings round as it leaves the case, leans toward you as the hard cover swings open on its hinge with light and shadow, and the pages fan over before the reader opens
 - Continue reading now always shows the book you read last (manga, webtoons and novels), taken straight from your reading history; before, some books never showed up or an old one stayed there
 - New opening animation: the wolf's purple eyes open in the dark, the chained wolf, then the FENRIR VAULT logo (tap to skip)

@@ -38,13 +38,7 @@ import com.nuvio.app.core.ui.PlatformBackHandler
 
 /** Back button / system back from the player. */
 internal fun PlayerScreenRuntime.requestLeavePlayer() {
-    val autoPicked = args.sourceAutoSelected || args.sourceFromLinkCache
-    if (autoPicked && !backChoicesOffered && activeVideoId != null) {
-        backChoicesOffered = true
-        showBackChoices = true
-        controlsVisible = false
-        return
-    }
+    // Fenrir: no "Not the right one?" step any more; Sources in the player does that job.
     leavePlayer()
 }
 

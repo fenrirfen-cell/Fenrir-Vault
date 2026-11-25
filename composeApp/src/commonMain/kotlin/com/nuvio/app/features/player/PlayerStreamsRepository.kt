@@ -344,33 +344,50 @@ object PlayerStreamsRepository {
 
             // Fenrir: the CloudStream / Aniyomi sites too, one section per site, so a link that
             // doesn't work can be swapped for a plugin one while watching.
-            val fenrirTitle = com.nuvio.app.readmode.FenrirPlugins.lastTitle
-            if (fenrirTitle != null) {
-                val query = com.nuvio.app.readmode.FenrirStreamQuery(
-                    title = fenrirTitle.first,
-                    year = fenrirTitle.second,
-                    isMovie = type == "movie",
-                    season = season,
-                    episode = episode,
-                )
-                com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources }.forEach { host ->
-                    launch {
-                        runCatching {
-                            com.nuvio.app.readmode.FenrirFoundLinks.find(host, query) { site, found ->
-                                if (found.isEmpty()) return@find
-                                val id = "${host.groupId()}:$site"
-                                val items = found.map { it.toFenrirStreamItem(host) }
-                                stateFlow.update { current ->
-                                    val existing = current.groups.firstOrNull { it.addonId == id }
-                                    val group = AddonStreamGroup("${host.groupName()} · $site", id, existing?.streams.orEmpty() + items, isLoading = false)
-                                    val groups = if (existing != null) current.groups.map { if (it.addonId == id) group else it } else current.groups + group
-                                    val anyLoading = groups.any { it.isLoading }
-                                    current.copy(
-                                        groups = groups,
-                                        activeAddonIds = current.activeAddonIds + id,
-                                        isAnyLoading = anyLoading,
-                                        emptyStateReason = groups.toEmptyStateReason(anyLoading),
-                                    )
+            // The show's own name: remembered when its page opened, else looked up (opened from
+            // Continue watching or Home straight into the player); the last searched title only as
+            // a last resort. Before, only that last title was used, so the plugins were often
+            // skipped (nothing searched yet) or searched for a different show.
+            val fenrirHosts = com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources }
+            if (fenrirHosts.isNotEmpty()) launch {
+                // "tt123:1:2" → tt123; "kitsu:456:3" → kitsu:456
+                val parts = videoId.split(':')
+                val metaId = if (parts.size > 1 && parts[0].all { it.isLetter() }) parts[0] + ":" + parts[1] else parts[0]
+                val fenrirTitle = runCatching {
+                    com.nuvio.app.readmode.FenrirPlugins.titleFor(metaId)
+                        ?: MetaDetailsRepository.fetch(if (season != null) "series" else type, metaId)?.let { meta ->
+                            val year = meta.releaseInfo?.let { r -> Regex("\\d{4}").find(r)?.value?.toIntOrNull() }
+                            com.nuvio.app.readmode.FenrirPlugins.rememberTitle(metaId, meta.name, year)
+                            meta.name.takeIf { it.isNotBlank() }?.let { it to year }
+                        }
+                }.getOrNull() ?: com.nuvio.app.readmode.FenrirPlugins.lastTitle ?: return@launch
+                run {
+                    val query = com.nuvio.app.readmode.FenrirStreamQuery(
+                        title = fenrirTitle.first,
+                        year = fenrirTitle.second,
+                        isMovie = type == "movie",
+                        season = season,
+                        episode = episode,
+                    )
+                    fenrirHosts.forEach { host ->
+                        launch {
+                            runCatching {
+                                com.nuvio.app.readmode.FenrirFoundLinks.find(host, query) { site, found ->
+                                    if (found.isEmpty()) return@find
+                                    val id = "${host.groupId()}:$site"
+                                    val items = found.map { it.toFenrirStreamItem(host) }
+                                    stateFlow.update { current ->
+                                        val existing = current.groups.firstOrNull { it.addonId == id }
+                                        val group = AddonStreamGroup("${host.groupName()} · $site", id, existing?.streams.orEmpty() + items, isLoading = false)
+                                        val groups = if (existing != null) current.groups.map { if (it.addonId == id) group else it } else current.groups + group
+                                        val anyLoading = groups.any { it.isLoading }
+                                        current.copy(
+                                            groups = groups,
+                                            activeAddonIds = current.activeAddonIds + id,
+                                            isAnyLoading = anyLoading,
+                                            emptyStateReason = groups.toEmptyStateReason(anyLoading),
+                                        )
+                                    }
                                 }
                             }
                         }

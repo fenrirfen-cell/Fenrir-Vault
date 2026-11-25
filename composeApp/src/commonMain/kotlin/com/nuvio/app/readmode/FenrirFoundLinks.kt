@@ -40,11 +40,17 @@ object FenrirFoundLinks {
         true
     }
 
-    private fun add(k: String, site: String, streams: List<FenrirPluginStream>) = synchronized(lock) {
-        entries[k]?.sites?.getOrPut(site) { mutableListOf() }?.addAll(streams)
+    private fun add(mine: Entry?, site: String, streams: List<FenrirPluginStream>) = synchronized(lock) {
+        mine?.sites?.getOrPut(site) { mutableListOf() }?.addAll(streams)
     }
 
-    private fun finish(k: String) = synchronized(lock) { entries[k]?.complete = true }
+    private fun finish(mine: Entry?) = synchronized(lock) { mine?.complete = true }
+
+    /** A search that was stopped half-way (a link was picked, the screen closed) isn't kept as done. */
+    private fun drop(k: String, mine: Entry?) = synchronized(lock) {
+        // only our own search: a newer one (Reload) may have taken its place meanwhile
+        if (mine != null && entries[k] === mine) entries.remove(k)
+    }
 
     /** Links per site already known for this episode (whether or not the search is done). */
     fun known(host: FenrirPluginHost, q: FenrirStreamQuery): Map<String, List<FenrirPluginStream>> = synchronized(lock) {
@@ -60,34 +66,47 @@ object FenrirFoundLinks {
         onFound: suspend (site: String, streams: List<FenrirPluginStream>) -> Unit,
     ) {
         val k = key(host.id, q)
-        if (claim(k, forceRefresh)) {
-            try {
-                host.findStreams(q) { site, found ->
-                    if (found.isNotEmpty()) add(k, site, found)
-                    onFound(site, found)
-                }
-            } finally {
-                finish(k)
-            }
-            return
+        // links already passed to onFound, per site, so nothing is sent twice
+        val sent = HashMap<String, MutableSet<String>>()
+        suspend fun send(site: String, streams: List<FenrirPluginStream>) {
+            val seen = sent.getOrPut(site) { HashSet() }
+            val fresh = streams.filter { seen.add(it.url) }
+            if (fresh.isNotEmpty()) onFound(site, fresh)
         }
-        // Follow the results (and a search still running) instead of searching again.
-        val sent = HashMap<String, Int>()
-        val until = now() + FOLLOW_MS
-        while (true) {
-            val (snapshot, complete) = synchronized(lock) {
-                val e = entries[k] ?: return
-                e.sites.mapValues { it.value.toList() } to e.complete
-            }
-            for ((site, list) in snapshot) {
-                val from = sent[site] ?: 0
-                if (list.size > from) {
-                    sent[site] = list.size
-                    onFound(site, list.subList(from, list.size))
+        var force = forceRefresh
+        // At most twice: a search followed here can be stopped elsewhere (a link was picked, the
+        // screen closed); then this one searches by itself instead of keeping half the links.
+        repeat(2) {
+            if (claim(k, force)) {
+                val mine = synchronized(lock) { entries[k] }
+                try {
+                    host.findStreams(q) { site, found ->
+                        if (found.isNotEmpty()) add(mine, site, found)
+                        if (found.isEmpty()) onFound(site, found) else send(site, found)
+                    }
+                    finish(mine)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    // only some sites had answered: next time search again instead of showing just those
+                    drop(k, mine)
+                    throw e
+                } catch (e: Throwable) {
+                    finish(mine)
+                    throw e
                 }
+                return
             }
-            if (complete || now() > until) return
-            delay(250)
+            force = false
+            // Follow the results (and a search still running) instead of searching again.
+            val until = now() + FOLLOW_MS
+            while (true) {
+                val current = synchronized(lock) {
+                    entries[k]?.let { e -> e.sites.mapValues { it.value.toList() } to e.complete }
+                } ?: break // stopped half-way elsewhere: search again ourselves
+                val (snapshot, complete) = current
+                for ((site, list) in snapshot) send(site, list)
+                if (complete || now() > until) return
+                delay(250)
+            }
         }
     }
 }

@@ -75,6 +75,16 @@ import com.nuvio.app.features.watchprogress.WatchProgressStorage
 import com.nuvio.app.readmode.MainActivityLaunchRedirect
 
 open class MainActivity : AppCompatActivity() {
+    // Fenrir: windows a source's own code tries to open are blocked (see SourcePopupGuard)
+    private var fenrirGuardedWindowManager: Any? = null
+
+    override fun getSystemService(name: String): Any? {
+        val service = super.getSystemService(name)
+        if (name != android.content.Context.WINDOW_SERVICE || service == null) return service
+        return fenrirGuardedWindowManager
+            ?: com.nuvio.app.core.SourcePopupGuard.wrap(this, service).also { fenrirGuardedWindowManager = it }
+    }
+
     private var pipRemoteActionReceiver: PipRemoteActionReceiver? = null
     private var redirectedToReadMode = false
 

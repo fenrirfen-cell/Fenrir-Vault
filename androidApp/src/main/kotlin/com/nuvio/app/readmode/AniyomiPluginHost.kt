@@ -98,6 +98,68 @@ internal class AniyomiPluginHost(private val app: Application) : FenrirPluginHos
     override fun install(id: String) = AniyomiExtensions.install(id)
     override fun uninstall(id: String) = AniyomiExtensions.uninstall(id)
     override fun trust(id: String) = AniyomiExtensions.trust(id)
+
+    // ------------------------------------------------------------------ Fenrir: backup
+    // Same settings file AniyomiExtensions keeps ("fenrir_aniyomi"): repositories, trusted
+    // extensions (package + signing key, so only that exact extension is trusted again) and NSFW.
+
+    private fun aniyomiPrefs() = app.getSharedPreferences("fenrir_aniyomi", android.content.Context.MODE_PRIVATE)
+
+    override fun backup(): String? {
+        val prefs = aniyomiPrefs()
+        val repos = prefs.getStringSet("repos", emptySet()).orEmpty()
+        val trusted = prefs.getStringSet("trusted", emptySet()).orEmpty()
+        // Extensions installed inside Fenrir are lost with the app; ones installed as their own
+        // app stay on the phone and only need trusting again.
+        val inApp = AniyomiExtensions.state.value.installed.filter { it.isPrivate }.map { it.pkg }
+        if (repos.isEmpty() && trusted.isEmpty() && inApp.isEmpty()) return null
+        return org.json.JSONObject()
+            .put("repos", org.json.JSONArray(repos.sorted()))
+            .put("trusted", org.json.JSONArray(trusted.sorted()))
+            .put("inApp", org.json.JSONArray(inApp.sorted()))
+            .put("showNsfw", prefs.getBoolean("show_nsfw", false))
+            .toString()
+    }
+
+    override suspend fun restore(data: String): Int = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        val o = org.json.JSONObject(data)
+        fun list(key: String) = o.optJSONArray(key)?.let { a -> (0 until a.length()).map { a.optString(it) }.filter { it.isNotBlank() } }.orEmpty()
+        val before = AniyomiExtensions.state.value
+        val waitingBefore = before.untrusted.map { it.pkg }.toSet()
+        // trusted entries are "package:signature"; keep only well-formed ones
+        val trusted = list("trusted").filter { it.contains(':') }
+        val prefs = aniyomiPrefs()
+        prefs.edit().putStringSet("trusted", prefs.getStringSet("trusted", emptySet()).orEmpty() + trusted).apply()
+        if (o.has("showNsfw")) AniyomiExtensions.setShowNsfw(o.optBoolean("showNsfw"))
+        list("repos").filter { it !in before.repos }.forEach { AniyomiExtensions.addRepo(it) }
+        AniyomiExtensions.refresh()
+        kotlinx.coroutines.delay(1_500) // let the reload with the restored trust list start
+
+        // Extensions that were installed inside Fenrir: install them again from the repositories.
+        val wanted = list("inApp").filter { pkg -> AniyomiExtensions.state.value.installed.none { it.pkg == pkg } }
+        kotlinx.coroutines.withTimeoutOrNull(60_000) {
+            while (true) {
+                val s = AniyomiExtensions.state.value
+                if (!s.busy && wanted.all { pkg -> s.available.any { it.pkg == pkg } }) break
+                if (!s.busy && s.available.isNotEmpty() && s.repos.isNotEmpty()) break
+                kotlinx.coroutines.delay(500)
+            }
+        }
+        var installed = 0
+        for (pkg in wanted) {
+            if (AniyomiExtensions.state.value.available.none { it.pkg == pkg }) continue
+            AniyomiExtensions.install(pkg)
+            // one at a time: each install shows its own progress and reloads the list
+            kotlinx.coroutines.delay(300)
+            kotlinx.coroutines.withTimeoutOrNull(120_000) {
+                while (AniyomiExtensions.state.value.busy) kotlinx.coroutines.delay(300)
+            }
+            if (AniyomiExtensions.state.value.installed.any { it.pkg == pkg }) installed++
+        }
+        // ones on the phone that were trusted before and are trusted again now
+        val trustedAgain = AniyomiExtensions.state.value.installed.count { it.pkg in waitingBefore }
+        installed + trustedAgain
+    }
     override fun setShowNsfw(show: Boolean) = AniyomiExtensions.setShowNsfw(show)
     override fun clearMessage() = AniyomiExtensions.clearMessage()
 

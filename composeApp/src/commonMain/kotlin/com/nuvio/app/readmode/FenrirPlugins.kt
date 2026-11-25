@@ -117,6 +117,19 @@ interface FenrirPluginHost {
     fun install(id: String)
     fun uninstall(id: String)
     fun trust(id: String)
+
+    /** Fenrir: trusts every extension that's waiting for it, in one go. */
+    fun trustAll() = state.value.installed.filter { it.needsTrust }.forEach { trust(it.id) }
+
+    /**
+     * Fenrir: this kind's settings for a backup file (repositories, what's installed, what's
+     * trusted) as a JSON object, or null when there's nothing to keep.
+     */
+    fun backup(): String? = null
+
+    /** Puts a [backup] back: adds the repositories and installs and trusts what was there. Returns how many plugins came back. */
+    suspend fun restore(data: String): Int = 0
+
     fun setShowNsfw(show: Boolean)
     fun clearMessage()
 

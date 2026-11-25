@@ -208,6 +208,9 @@ class NuvioReadApplication : App() {
         FenrirPlugins.aniyomi = AniyomiPluginHost(this)
         // CloudStream plugins (.cs3 from the user's own repositories).
         FenrirPlugins.cloudStream = CloudStreamPluginHost(this)
+        // Backup of both (Downloads/Fenrir Vault, kept when the app is deleted; restore in Settings → Sources).
+        com.nuvio.app.readmode.FenrirPluginBackup.files = com.nuvio.app.readmode.FenrirBackupFilesAndroid(this)
+        com.nuvio.app.readmode.FenrirPluginBackup.startAutoSave()
         // Which CloudStream source Home shows (picked from the FENRIR READ drop-down); none = Nuvio home.
         // Where each plugin source is used (Home menu, pinned, search, streams).
         com.nuvio.app.readmode.FenrirSourceFlags.install(aniDramaPrefs.getString(KEY_SOURCE_FLAGS, null)) { text ->

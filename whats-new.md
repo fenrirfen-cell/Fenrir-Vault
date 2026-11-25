@@ -3,6 +3,8 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- Fixed: menus and buttons with drop-downs work again (the pop-up block in r160 caught the app's own menus)
+- Ani-drama: FENRIR WATCH ▾ opens the Home source picker again
 - No more pop-ups from sources: when a CloudStream plugin or Aniyomi / Tsundoku extension tries to open its own window (ads, donation boxes, notices), it's blocked and a short "Blocked a pop-up from a source" note shows instead
 - CloudStream / Aniyomi: links already found on the show page (Found in) show instantly when you tap the site or open the links or the player's Sources; a search still running is joined instead of started again
 - Reader page flip (manga and novels): turns like a real book both ways. Tapping gives a smooth full turn; going back, the previous page lifts off the spine and lays down; swiping back keeps the fold under your finger. Soft shadow under the curl and the print shows faintly through the back of the page
@@ -25,7 +27,6 @@ Short notes for the next build, shown in the app after updating. Edit these befo
 - Player: the Sources list now includes your CloudStream and Aniyomi sites, so you can switch to a plugin link while watching
 
 - Fixed: a show page that couldn't load kept spinning forever; it now stops after 30 seconds with Retry
-- Ani-drama: FENRIR WATCH is just the name there (the Home source picker stays on Watch)
 - Fixed: Search on the Ani-drama page opens the search screen (it did nothing when a CloudStream site was picked for Home)
 - Fixed: tapping FENRIR WATCH ▾ opens the Home / source picker again
 - New Regular library look: a big Continue Reading card over the book's own cover, category tabs with book counts, and covers showing type, unread chapters and reading progress

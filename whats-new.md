@@ -3,6 +3,7 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- Checks run by themselves when the app opens and every 4–5 hours while it's on. A Stremio/Nuvio add-on is only turned off after its server hasn't answered for 2 days (an add-on that answers but finds nothing is never turned off), and it turns back on by itself once it answers again
 - Checks everywhere: Installed CloudStream plugins, Aniyomi extensions (installed and available) and Nuvio/Stremio add-ons can be tested too: Test all, or tap Test on one
 - Fixed: the app closing over and over after the WatchParty CloudStream plugin was installed or tested; plugins that hook into the app's screens can't crash it anymore
 - When a book is gone from its site (page not found / can't reach the site), a clear message replaces the error code; the app looks for the same book on your other sources and offers Switch (your progress moves with it), Search other sources, or Open in WebView

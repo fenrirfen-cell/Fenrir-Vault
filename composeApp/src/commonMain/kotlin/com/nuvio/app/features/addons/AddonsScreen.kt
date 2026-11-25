@@ -183,6 +183,7 @@ internal fun AddonsSettingsPageContent(
                         )
                     },
                     onEnabledChange = { enabled ->
+                        FenrirAddonCheck.userToggled(addon.manifestUrl)
                         AddonRepository.setAddonEnabled(addon.manifestUrl, enabled)
                     },
                     onConfigureClick = if (showConfigureAction && !configureUrl.isNullOrBlank()) {
@@ -488,6 +489,13 @@ private fun InstalledAddonCard(
                 if (addon.isActive) {
                     Spacer(modifier = Modifier.height(6.dp))
                     FenrirAddonCheckLine(check, onTest)
+                } else if (!addon.enabled && addon.manifestUrl in FenrirAddonCheck.autoOff()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "Turned off: not answering for 2 days. Turns back on by itself when it works again.",
+                        color = CheckRed,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))

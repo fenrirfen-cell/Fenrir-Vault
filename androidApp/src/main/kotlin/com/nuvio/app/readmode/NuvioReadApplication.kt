@@ -43,6 +43,38 @@ class NuvioReadApplication : App() {
         super.unregisterActivityLifecycleCallbacks(guarded ?: callback)
     }
 
+    /**
+     * Fenrir: checks add-ons, CloudStream plugins and Aniyomi extensions by themselves: when the
+     * app opens (once the last check is over 4.5 hours old) and again every 4.5 hours while it runs.
+     */
+    private fun fenrirAutoChecks() {
+        val prefs = getSharedPreferences("fenrir_auto_check", MODE_PRIVATE)
+        com.nuvio.app.features.addons.FenrirAddonCheck.store = object : com.nuvio.app.features.addons.FenrirAddonCheck.Store {
+            override fun get(key: String): String? = prefs.getString(key, null)
+            override fun put(key: String, value: String?) {
+                prefs.edit().apply { if (value == null) remove(key) else putString(key, value) }.apply()
+            }
+        }
+        val every = 4L * 60 * 60 * 1000 + 30 * 60 * 1000
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default +
+                kotlinx.coroutines.CoroutineExceptionHandler { _, _ -> },
+        ).launch {
+            kotlinx.coroutines.delay(20_000) // let the app finish starting first
+            while (true) {
+                val now = System.currentTimeMillis()
+                if (now - prefs.getLong("last_run", 0L) >= every) {
+                    prefs.edit().putLong("last_run", now).apply()
+                    runCatching { com.nuvio.app.features.addons.FenrirAddonCheck.runAutomatic() }
+                    listOfNotNull(com.nuvio.app.readmode.FenrirPlugins.cloudStream, com.nuvio.app.readmode.FenrirPlugins.aniyomi).forEach { host ->
+                        runCatching { host.test(host.state.value.installed.filter { !it.needsTrust }.map { it.id }) }
+                    }
+                }
+                kotlinx.coroutines.delay(30L * 60 * 1000)
+            }
+        }
+    }
+
     private class GuardedLifecycleCallbacks(private val inner: ActivityLifecycleCallbacks) : ActivityLifecycleCallbacks {
         @Volatile private var broken = false
         private inline fun safe(block: () -> Unit) {
@@ -104,6 +136,7 @@ class NuvioReadApplication : App() {
             FenrirUpdates.buildOf(packageManager.getPackageInfo(packageName, 0).versionName)
         }.getOrNull()
         fenrirWhatsNew()
+        fenrirAutoChecks()
         // Background update check + "Update available" notifications (even with the app closed).
         runCatching { com.nuvio.app.readmode.FenrirUpdateNotifier.install(this) }
         EmbeddedHost.updateSettings = { com.nuvio.app.readmode.FenrirUpdateSettingsCard() }

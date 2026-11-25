@@ -215,6 +215,7 @@ internal fun FenrirUpdatesGroup(isTablet: Boolean) {
     val on by n.enabled.collectAsStateWithLifecycle()
     val hours by n.hours.collectAsStateWithLifecycle()
     val prefetch by n.prefetch.collectAsStateWithLifecycle()
+    val beta by n.beta.collectAsStateWithLifecycle()
     SettingsSection(title = "App updates", isTablet = isTablet) {
         SettingsGroup(isTablet = isTablet) {
             SettingsSwitchRow(
@@ -243,6 +244,14 @@ internal fun FenrirUpdatesGroup(isTablet: Boolean) {
                 enabled = on,
                 isTablet = isTablet,
                 onCheckedChange = n::setPrefetch,
+            )
+            SettingsGroupDivider(isTablet = isTablet)
+            SettingsSwitchRow(
+                title = "Get beta builds",
+                description = if (beta) "On: new builds come to you first, before everyone else" else "Off: only builds that were tried and released to everyone",
+                checked = beta,
+                isTablet = isTablet,
+                onCheckedChange = n::setBeta,
             )
             SettingsGroupDivider(isTablet = isTablet)
             SettingsNavigationRow(

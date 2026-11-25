@@ -32,24 +32,33 @@ class FenrirBackupFilesAndroid(context: Context) : FenrirBackupFiles {
     override val autoSaveLocation: String?
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) "Downloads › $FOLDER" else null
 
-    override fun autoSave(text: String): Boolean {
+    /** The file this install wrote under Downloads/Fenrir Vault (Android hides other installs' files). */
+    private fun ownFile(name: String): android.net.Uri? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        return app.contentResolver.query(
+            collection,
+            arrayOf(MediaStore.Downloads._ID),
+            "${MediaStore.Downloads.DISPLAY_NAME} = ? AND ${MediaStore.Downloads.RELATIVE_PATH} = ?",
+            arrayOf(name, "${Environment.DIRECTORY_DOWNLOADS}/$FOLDER/"),
+            null,
+        )?.use { c -> if (c.moveToFirst()) android.content.ContentUris.withAppendedId(collection, c.getLong(0)) else null }
+    }
+
+    override fun readAutoSave(name: String): String? = runCatching {
+        ownFile(name)?.let { uri -> app.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } }
+    }.getOrNull()
+
+    override fun autoSave(text: String, name: String): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
         return runCatching {
             val resolver = app.contentResolver
             val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
             val relativePath = "${Environment.DIRECTORY_DOWNLOADS}/$FOLDER/"
-            // Only finds the file this install made (Android hides other apps' and older installs' files).
-            val existing = resolver.query(
-                collection,
-                arrayOf(MediaStore.Downloads._ID),
-                "${MediaStore.Downloads.DISPLAY_NAME} = ? AND ${MediaStore.Downloads.RELATIVE_PATH} = ?",
-                arrayOf(FenrirPluginBackup.FILE_NAME, relativePath),
-                null,
-            )?.use { c -> if (c.moveToFirst()) android.content.ContentUris.withAppendedId(collection, c.getLong(0)) else null }
-            val uri = existing ?: resolver.insert(
+            val uri = ownFile(name) ?: resolver.insert(
                 collection,
                 ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, FenrirPluginBackup.FILE_NAME)
+                    put(MediaStore.Downloads.DISPLAY_NAME, name)
                     put(MediaStore.Downloads.MIME_TYPE, MIME)
                     put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
                 },

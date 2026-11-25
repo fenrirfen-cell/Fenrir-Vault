@@ -1,0 +1,39 @@
+name: Promote Fenrir release
+
+# Sends a beta build to everyone: it stops being a beta and becomes the release the app's updater
+# and Obtainium offer. Leave "tag" empty to promote the newest beta.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to promote (e.g. fenrir-1.1.0-beta.3-r190). Empty = newest beta"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Promote
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_INPUT: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          TAG="$TAG_INPUT"
+          if [ -z "$TAG" ]; then
+            TAG=$(gh release list -R "$GITHUB_REPOSITORY" --limit 50 --json tagName,isPrerelease \
+              --jq '[.[] | select(.isPrerelease and (.tagName | startswith("fenrir-")))][0].tagName // empty')
+          fi
+          if [ -z "$TAG" ]; then
+            echo "::error::No beta to promote."
+            exit 1
+          fi
+          TITLE=$(gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json name --jq .name | sed 's/ beta$//')
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json body --jq .body \
+            | sed '/^\*\*Beta:\*\*/,+1d' > notes.md
+          gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --prerelease=false --latest --title "$TITLE" --notes-file notes.md
+          echo "Promoted $TAG: everyone gets it now." >> "$GITHUB_STEP_SUMMARY"

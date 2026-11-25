@@ -40,6 +40,8 @@ object FenrirUpdateNotify {
     val enabled = MutableStateFlow(true)
     val hours = MutableStateFlow(6)
     val prefetch = MutableStateFlow(false)
+    /** Fenrir: also offer beta builds (published first, before they go to everyone). Off by default. */
+    val beta = MutableStateFlow(false)
 
     /** Set by the Android side: saves the settings and re-plans the background check. */
     var onChange: (() -> Unit)? = null
@@ -52,6 +54,7 @@ object FenrirUpdateNotify {
     fun setEnabled(on: Boolean) { enabled.value = on; onChange?.invoke() }
     fun setHours(h: Int) { hours.value = h; onChange?.invoke() }
     fun setPrefetch(on: Boolean) { prefetch.value = on; onChange?.invoke() }
+    fun setBeta(on: Boolean) { beta.value = on; onChange?.invoke() }
 }
 
 private val Purple = Color(0xFF9650E6)

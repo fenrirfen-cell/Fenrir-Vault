@@ -37,13 +37,19 @@ jobs:
 
       - name: Prepare runtime properties
         env:
+          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
           LOCAL_PROPERTIES_BASE64: ${{ secrets.NUVIO_LOCAL_PROPERTIES_BASE64 }}
         run: |
-          if [ -n "$LOCAL_PROPERTIES_BASE64" ]; then
-            printf '%s' "$LOCAL_PROPERTIES_BASE64" | base64 --decode > local.properties
-            sed -i -E '/^[[:space:]]*(sdk\.dir|NUVIO_RELEASE_STORE_FILE)[[:space:]]*=/d' local.properties
-          else
-            touch local.properties
+          # Use the same client-side configuration as the Fenrir release build.
+          # Only include settings already embedded in the published Android app.
+          if [ -n "$LOCAL_PROPERTIES" ]; then
+            printf '%s\n' "$LOCAL_PROPERTIES" | tr -d '\r' | sed 's/^[[:space:]]*//'
+          elif [ -n "$LOCAL_PROPERTIES_BASE64" ]; then
+            printf '%s' "$LOCAL_PROPERTIES_BASE64" | base64 --decode
+          fi | grep -E '^(NUVIO_SUPABASE_URL|NUVIO_SUPABASE_ANON_KEY|NUVIO_SUPABASE_FALLBACK_URL|TMDB_API_KEY)[[:space:]]*=' > local.properties || true
+          if ! grep -qE '^NUVIO_SUPABASE_URL[[:space:]]*=[[:space:]]*[^[:space:]]' local.properties || ! grep -qE '^NUVIO_SUPABASE_ANON_KEY[[:space:]]*=[[:space:]]*[^[:space:]]' local.properties; then
+            echo '::error::Missing Nuvio client sign-in configuration; configure the same runtime properties used by the official APK.'
+            exit 1
           fi
 
       - name: Build fullDebug APK

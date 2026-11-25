@@ -3,7 +3,7 @@ name: PR Full Debug Build
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [cmp-rewrite]
+    branches: [cmp-rewrite, read-mode]
   workflow_dispatch:
 
 permissions:
@@ -22,11 +22,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Checkout Read mode dependency
+        run: git submodule update --init tsundoku
+
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 25
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
@@ -52,3 +55,6 @@ jobs:
           archive: false
           if-no-files-found: error
           retention-days: 7
+
+      - name: Run Android host unit tests
+        run: ./gradlew :composeApp:testAndroidHostTest -Pnuvio.android.distribution=full -Pnuvio.ios.distribution=appstore --stacktrace

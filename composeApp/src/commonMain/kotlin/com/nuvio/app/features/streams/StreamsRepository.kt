@@ -172,13 +172,21 @@ object StreamsRepository {
         val fenrirLinkMetaId = parentMetaId ?: videoId.substringBefore(':')
         val fenrirOnlySite = com.nuvio.app.readmode.FenrirLinkChoice.takeOnlySite(fenrirLinkMetaId)
         val fenrirLinkMode = com.nuvio.app.readmode.FenrirLinkChoice.modeFor(fenrirLinkMetaId)
+        // mayHaveSources: plugins still loading right after the app opens count too (waited for below)
         val fenrirPluginsOnly = (fenrirLinkMode == com.nuvio.app.readmode.FenrirLinkChoice.Mode.Plugins || fenrirOnlySite != null) &&
-            com.nuvio.app.readmode.FenrirPlugins.all.any { it.hasSources }
+            com.nuvio.app.readmode.FenrirPlugins.all.any { it.mayHaveSources }
         // Fenrir: in a watch party playing a plugin site's link, always look on the plugins too
         val fenrirPartyOnPlugin = com.nuvio.app.features.party.PartyRepository.state.value.party?.media?.source?.addonId
             ?.startsWith("fenrir:") == true
         val fenrirNoPlugins = fenrirLinkMode == com.nuvio.app.readmode.FenrirLinkChoice.Mode.Nuvio && fenrirOnlySite == null &&
             !fenrirPartyOnPlugin
+
+        // Fenrir: Aniyomi / CloudStream plugins look the show up by name and add their own groups.
+        val fenrirHosts = if (fenrirNoPlugins) {
+            emptyList()
+        } else {
+            com.nuvio.app.readmode.FenrirPlugins.all.filter { it.mayHaveSources && (fenrirOnlySite == null || it.id == fenrirOnlySite.first) }
+        }
 
         val isNativeServerRequest = ServerStreams.isNativeRequest(videoId)
         val serverSources = if (fenrirPluginsOnly) emptyList() else ServerStreams.sources(type, videoId, season, episode, forceRefresh)
@@ -194,7 +202,8 @@ object StreamsRepository {
             groupByRepository = pluginUiState.groupStreamsByRepository,
         )
 
-        if (!fenrirPluginsOnly && installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
+        // Fenrir: no Nuvio add-ons for this isn't the end when the plugins can still look
+        if (!fenrirPluginsOnly && fenrirHosts.isEmpty() && installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
             _uiState.value = StreamsUiState(
                 requestToken = requestToken,
                 isAnyLoading = false,
@@ -218,7 +227,7 @@ object StreamsRepository {
 
         log.d { "Found ${streamAddons.size} addons for stream type=$type id=$videoId" }
 
-        if (!fenrirPluginsOnly && streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
+        if (!fenrirPluginsOnly && fenrirHosts.isEmpty() && streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
             _uiState.value = StreamsUiState(
                 requestToken = requestToken,
                 isAnyLoading = false,
@@ -266,12 +275,6 @@ object StreamsRepository {
             showDirectAutoPlayOverlay = isDirectAutoPlayFlow,
         )
 
-        // Fenrir: Aniyomi / CloudStream plugins look the show up by name and add their own groups.
-        val fenrirHosts = if (fenrirNoPlugins) {
-            emptyList()
-        } else {
-            com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources && (fenrirOnlySite == null || it.id == fenrirOnlySite.first) }
-        }
         val fenrirMetaId = parentMetaId ?: videoId.substringBefore(':')
         fun fenrirQueryFor(name: String, year: Int?) = com.nuvio.app.readmode.FenrirStreamQuery(
             title = name,
@@ -501,6 +504,21 @@ object StreamsRepository {
             }
             val fenrirJobs = if (fenrirQuery == null) emptyList() else fenrirHosts.map { host ->
                 launch {
+                    // plugins still loading right after the app opened: wait for them
+                    if (!host.awaitSources()) {
+                        _uiState.update { current ->
+                            val groups = current.groups.filter { it.addonId != host.groupId() }
+                            val anyLoading = groups.any { it.isLoading }
+                            current.copy(
+                                groups = groups,
+                                activeAddonIds = current.activeAddonIds - host.groupId(),
+                                isAnyLoading = anyLoading,
+                                emptyStateReason = groups.toEmptyStateReason(anyLoading),
+                            )
+                        }
+                        updateAutoPlayAfterStreamsChanged()
+                        return@launch
+                    }
                     val query = if (fenrirQuery.title.isNotBlank()) {
                         fenrirQuery
                     } else {
@@ -525,7 +543,7 @@ object StreamsRepository {
                     val bySource = linkedMapOf<String, MutableList<StreamItem>>()
                     runCatching {
                         // Fenrir: links found a moment ago (show page "Found in") come straight away
-                        com.nuvio.app.readmode.FenrirFoundLinks.find(host, query) { sourceName, found ->
+                        com.nuvio.app.readmode.FenrirFoundLinks.find(host, query, forceRefresh = forceRefresh) { sourceName, found ->
                             if (found.isEmpty()) return@find
                             if (fenrirOnlySite != null && sourceName != fenrirOnlySite.second) return@find
                             val snapshot = lock.withLock {

@@ -28,6 +28,14 @@ internal class AniyomiPluginHost(private val app: Application) : FenrirPluginHos
 
     override val hasSources: Boolean get() = AniyomiExtensions.hasSources
 
+    /** Fenrir: extensions that may still be loading (right after the app starts). */
+    override val mayHaveSources: Boolean
+        get() = hasSources || (
+            AniyomiExtensions.state.value.let { it.installed.isEmpty() && it.untrusted.isEmpty() } &&
+                (aniyomiPrefs().getStringSet("trusted", emptySet()).orEmpty().isNotEmpty() ||
+                    java.io.File(app.filesDir, "anime_exts").listFiles().orEmpty().any { it.extension == "ext" })
+            )
+
     private fun AniyomiExtensions.State.toPluginState(): FenrirPluginState {
         val availableByPkg = available.associateBy { it.pkg }
         return FenrirPluginState(

@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Links: CloudStream and Aniyomi now always look for links, even when none of your Stremio add-ons has this title, and right after the app opens (they wait for your plugins to finish loading instead of being skipped)
+- Reload (the first chip in the player's Sources list and on the links screen) now really searches the plugin sites again; before, "nothing found" was kept for 15 minutes
+- Player Sources: CloudStream and Aniyomi no longer show just a few old links after you picked one while they were still searching; a search that was stopped half-way runs again
 - Plugin backup: your CloudStream plugins and Aniyomi extensions (repositories, what's installed, what you trusted) are saved by themselves to Downloads › Fenrir Vault, and the file stays there if you delete the app. After installing again: Settings → Sources → Plugin backup → Restore. "Save a copy" puts one anywhere you like
 - Trust all: when several Aniyomi extensions are waiting to be trusted, trust them in one go from the top of the Installed list
 - The built-in Fenrir Catalogs add-on is gone. Any copy left on this phone or your Nuvio account is removed by itself. If your add-ons went missing, add them back once and they stay

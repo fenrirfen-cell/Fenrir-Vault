@@ -36,7 +36,8 @@ class TmdbSettingsRepositoryTest {
 
     @Test
     fun enrichmentCanBeEnabledAndReloadedWithoutAPersonalKey() {
-        assertFalse(TmdbSettingsRepository.snapshot().enabled)
+        // Fenrir: on by default when the build has a TMDB key (Nuvio: off)
+        assertEquals(TmdbConfig.API_KEY.isNotBlank(), TmdbSettingsRepository.snapshot().enabled)
 
         TmdbSettingsRepository.setEnabled(true)
         TmdbSettingsRepository.onProfileChanged()
@@ -55,7 +56,8 @@ class TmdbSettingsRepositoryTest {
 
         assertEquals("personal-key", TmdbSettingsRepository.snapshot().apiKey)
         assertEquals("personal-key", TmdbSettingsRepository.effectiveApiKey())
-        assertFalse(TmdbSettingsRepository.snapshot().enabled)
+        // a personal key doesn't switch it on by itself (Fenrir: on already when the build has a key)
+        assertEquals(TmdbConfig.API_KEY.isNotBlank(), TmdbSettingsRepository.snapshot().enabled)
         assertNull(TmdbSettingsStorage.exportToSyncPayload()["tmdb_api_key"])
     }
 

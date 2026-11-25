@@ -3,6 +3,7 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- When a book is gone from its site (page not found / can't reach the site), a clear message replaces the error code; the app looks for the same book on your other sources and offers Switch (your progress moves with it), Search other sources, or Open in WebView
 - Plugin check: test CloudStream plugins before installing (Available → Test all); each shows Works / Slow / Down, with filters
 - Opening a book from the shelf: no second cover while it flies out, and no flash of the library before the reader
 - Not working list: the same source in many languages shows once with a ×N count; sources that are only empty (like some MangaDex languages) aren't turned off anymore, and the ones that were are back on

@@ -5,6 +5,7 @@ import com.nuvio.app.readmode.FenrirPluginCheck
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,7 +78,7 @@ object FenrirAddonCheck {
         if (addons.isEmpty()) return
         _checks.update { old -> old + addons.associate { it.manifestUrl to FenrirPluginCheck(FenrirPluginCheck.Result.Testing) } }
         val results = kotlinx.coroutines.coroutineScope {
-            addons.map { a -> kotlinx.coroutines.async { a to run(a) } }.map { it.await() }
+            addons.map { a -> async { a to run(a) } }.map { it.await() }
         }
         _checks.update { old -> old + results.associate { (a, r) -> a.manifestUrl to r } }
         // Nothing answered at all: most likely no internet, so change nothing.

@@ -406,19 +406,18 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
 
     /** Loads the plugin from a throwaway copy, opens its home page (or searches), then removes it again. */
     private suspend fun testOne(id: String): com.nuvio.app.readmode.FenrirPluginCheck = withContext(Dispatchers.IO) {
-        val CR = com.nuvio.app.readmode.FenrirPluginCheck.Result
         val site = available.firstOrNull { it.internalName == id }
-            ?: return@withContext com.nuvio.app.readmode.FenrirPluginCheck(CR.Down, reason = "not in your repositories")
+            ?: return@withContext com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, reason = "not in your repositories")
         val dir = File(app.cacheDir, "cs_test").apply { mkdirs() }
         val file = File(dir, "${id.replace(Regex("[^A-Za-z0-9_.-]"), "_")}-${System.nanoTime()}.cs3")
         try {
             runCatching { download(site.url, file) }.onFailure {
-                return@withContext com.nuvio.app.readmode.FenrirPluginCheck(CR.Down, reason = "download failed")
+                return@withContext com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, reason = "download failed")
             }
             val providers = runCatching { loadPlugin(file) }.getOrElse {
-                return@withContext com.nuvio.app.readmode.FenrirPluginCheck(CR.Down, reason = "plugin doesn't load")
+                return@withContext com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, reason = "plugin doesn't load")
             }
-            if (providers.isEmpty()) return@withContext com.nuvio.app.readmode.FenrirPluginCheck(CR.Down, reason = "no sites in it")
+            if (providers.isEmpty()) return@withContext com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, reason = "no sites in it")
             val start = System.currentTimeMillis()
             val ok = withTimeoutOrNull(25_000) {
                 providers.any { provider ->
@@ -435,9 +434,9 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
             }
             val seconds = (System.currentTimeMillis() - start) / 1000.0
             when (ok) {
-                null -> com.nuvio.app.readmode.FenrirPluginCheck(CR.Down, seconds, "site too slow")
-                false -> com.nuvio.app.readmode.FenrirPluginCheck(CR.Down, seconds, "site not loading")
-                true -> com.nuvio.app.readmode.FenrirPluginCheck(if (seconds > 8) CR.Slow else CR.Works, seconds)
+                null -> com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, seconds, "site too slow")
+                false -> com.nuvio.app.readmode.FenrirPluginCheck(com.nuvio.app.readmode.FenrirPluginCheck.Result.Down, seconds, "site not loading")
+                true -> com.nuvio.app.readmode.FenrirPluginCheck(if (seconds > 8) com.nuvio.app.readmode.FenrirPluginCheck.Result.Slow else com.nuvio.app.readmode.FenrirPluginCheck.Result.Works, seconds)
             }
         } finally {
             // throw the test copy away: its sites leave the app's list, the file is deleted

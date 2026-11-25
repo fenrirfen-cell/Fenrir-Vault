@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Import a book from a link: when the site asks for a human check, tap Open site, pass it, then tap Check link again
 - About: "Update channel" now switches beta builds on and off (same as Settings → Notifications → App updates → Get beta builds), and the version line shows your Fenrir build number
 - Read side: the white bar that showed behind the bottom bar when you reload your library is gone; messages now show above it in the dark look
 - Import a book from a link: plain http:// links are tried over https, and when a link still doesn't open you're told why

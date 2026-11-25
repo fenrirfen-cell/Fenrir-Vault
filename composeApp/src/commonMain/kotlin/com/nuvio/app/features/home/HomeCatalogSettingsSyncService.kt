@@ -6,6 +6,7 @@ import com.nuvio.app.core.auth.AuthState
 import com.nuvio.app.core.network.SupabaseProvider
 import com.nuvio.app.core.sync.HOME_CATALOG_SHARED_SYNC_PLATFORM
 import com.nuvio.app.core.sync.putSyncOriginClientId
+import com.nuvio.app.features.anidrama.FenrirCatalogs
 import com.nuvio.app.features.profiles.ProfileRepository
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
@@ -68,6 +69,9 @@ internal fun mergeHomeCatalogSettingsJson(
     localJson.forEach { (key, value) -> put(key, value) }
 }
 
+private fun SyncCatalogItem.isFenrirBuiltInRow(): Boolean =
+    !isCollection && (addonId == FenrirCatalogs.ADDON_ID || FenrirCatalogs.isHomeKey(key))
+
 object HomeCatalogSettingsSyncService {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val log = Logger.withTag("HomeCatalogSettingsSyncService")
@@ -125,6 +129,8 @@ object HomeCatalogSettingsSyncService {
             applyRemotePayload(remotePayload)
             log.i { "pullFromServer — applied ${remotePayload.items.size} items from remote" }
             markInitialPullComplete(pullToken)
+            // Fenrir: older builds sent the built-in add-on's rows to the account; take them back out.
+            if (remotePayload.items.any { it.isFenrirBuiltInRow() }) triggerPush()
         }.onFailure { e ->
             isSyncingFromRemote = false
             log.e(e) { "pullFromServer — FAILED" }

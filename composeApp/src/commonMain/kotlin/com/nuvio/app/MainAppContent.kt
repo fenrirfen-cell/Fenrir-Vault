@@ -306,15 +306,6 @@ internal fun MainAppContent(
         var pendingTrackingRemoval by remember { mutableStateOf<PendingTrackingMembershipRemoval?>(null) }
         val trackingListsUpdateFailedMessage = stringResource(Res.string.tracking_lists_update_failed)
         remember { AddonRepository.initialize() }
-        // Fenrir: add the built-in catalog add-on once per profile
-        LaunchedEffect(Unit) {
-            val store = com.nuvio.app.features.addons.FenrirAddonCheck.store
-            if (store != null && com.nuvio.app.features.anidrama.AniDramaBridge.isAvailable.value) {
-                runCatching {
-                    com.nuvio.app.features.anidrama.FenrirCatalogs.ensureInstalled({ store.get(it) == "1" }, { store.put(it, "1") })
-                }
-            }
-        }
         val librarySourceMode by remember {
             LibraryRepository.ensureLoaded()
             LibraryRepository.uiState

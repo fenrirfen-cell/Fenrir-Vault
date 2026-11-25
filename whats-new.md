@@ -2,7 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
-- Nuvio account sync fixed: after a fresh install the app could replace your account's add-ons with just Fenrir Catalogs. It now waits for your account's add-ons first, and Fenrir Catalogs stays on this device only (never sent to your account)
+- The built-in Fenrir Catalogs add-on is gone. Any copy left on this phone or your Nuvio account is removed by itself. If your add-ons went missing, add them back once and they stay
+- Nuvio account sync fixed: the app waits for your account's add-ons before changing anything, and the "main lists only" first-run setup no longer switches off the Home rows you picked on your Nuvio account
 - Add-ons the automatic check turns off (after 2 days of not answering) are now only turned off on this phone, not on your Nuvio account or your other devices
 - Player: Back leaves straight away; the "Not the right one?" pop-up is gone (switch links with Sources in the player)
 - Player Sources now lists your CloudStream and Aniyomi sites too, also when you started the episode from Continue watching or Home, and always for the show you're watching

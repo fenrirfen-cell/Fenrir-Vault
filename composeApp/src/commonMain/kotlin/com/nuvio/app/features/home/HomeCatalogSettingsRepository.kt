@@ -2,6 +2,7 @@ package com.nuvio.app.features.home
 
 import androidx.compose.ui.text.intl.Locale
 import com.nuvio.app.features.addons.ManagedAddon
+import com.nuvio.app.features.anidrama.FenrirCatalogs
 import com.nuvio.app.features.collection.Collection
 import com.nuvio.app.features.collection.CollectionRepository
 import com.nuvio.app.features.servers.ServerCatalog
@@ -492,7 +493,10 @@ object HomeCatalogSettingsRepository {
         ensureLoaded()
         val catalogDefinitionsByKey = definitions.associateBy { it.key }
         val collectionDefinitionsByKey = collectionDefinitions.associateBy { it.key }
-        val items = preferences.values.filterNot { ServerCatalog.isServerKey(it.key) }.sortedBy { it.order }.map { pref ->
+        // Fenrir: the built-in catalog add-on's rows stay on this device, never sent to the account
+        val items = preferences.values
+            .filterNot { ServerCatalog.isServerKey(it.key) || FenrirCatalogs.isHomeKey(it.key) }
+            .sortedBy { it.order }.map { pref ->
             val catalogDefinition = catalogDefinitionsByKey[pref.key]
             val collectionDefinition = collectionDefinitionsByKey[pref.key]
             val isCollection = collectionDefinition != null || pref.key.startsWith("collection_")
@@ -533,9 +537,17 @@ object HomeCatalogSettingsRepository {
         ensureLoaded()
         showCatalogType = payload.showCatalogType
         hideUnreleasedContent = payload.hideUnreleasedContent
-        if (payload.items.isNotEmpty()) {
+        // Fenrir: rows of the built-in add-on that older builds sent to the account are ignored;
+        // this device keeps its own settings for them.
+        val accountItems = payload.items.filterNot { it.isFenrirBuiltIn() }
+        if (accountItems.isNotEmpty()) {
+            // Fenrir: the account's Home layout wins; Fenrir's first-run "main lists only"
+            // setup must not switch off the rows you picked on your Nuvio account.
+            com.nuvio.app.readmode.FenrirHomeFilter.markCurated(
+                com.nuvio.app.features.profiles.ProfileRepository.activeProfileId,
+            )
             val existingHeroState = preferences.mapValues { it.value.heroSourceEnabled }
-            val remotePreferences = payload.items.associate { item ->
+            val remotePreferences = accountItems.associate { item ->
                 val key = item.preferenceKey()
                 key to StoredHomeCatalogPreference(
                     key = key,
@@ -625,6 +637,9 @@ object HomeCatalogSettingsRepository {
                 "$addonId:$type:$catalogId"
             }
         }
+
+    private fun SyncCatalogItem.isFenrirBuiltIn(): Boolean =
+        !isCollection && (addonId == FenrirCatalogs.ADDON_ID || FenrirCatalogs.isHomeKey(preferenceKey()))
 
     private fun String.requiresExplicitSyncKey(): Boolean =
         !startsWith("collection_") && count { it == ':' } > 2

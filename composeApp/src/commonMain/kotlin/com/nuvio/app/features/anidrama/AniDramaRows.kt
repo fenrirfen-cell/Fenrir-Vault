@@ -21,8 +21,6 @@ object AniDramaRows {
 
     /** Which side of the tab a Home row belongs to, or null if it stays on Home. */
     fun regionOf(section: HomeCatalogSection): AniDramaRegion? {
-        // Fenrir's own catalog rows are made for Home: they stay where you put them
-        if (section.addonName == FenrirCatalogs.NAME) return null
         val type = section.target.contentType.lowercase()
         val text = " ${section.title} ${section.subtitle} ${section.addonName} ".lowercase()
         if (type == "anime" || animeWords.any { it in text }) return AniDramaRegion.Anime

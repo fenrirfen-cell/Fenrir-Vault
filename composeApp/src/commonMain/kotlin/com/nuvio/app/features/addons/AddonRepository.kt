@@ -92,7 +92,9 @@ object AddonRepository {
         currentProfileId = effectiveProfileId
         log.d { "initialize() — loading local addons for profile $currentProfileId" }
 
+        // Fenrir: drop the removed built-in "Fenrir Catalogs" add-on if an older build left it here
         val storedUrls = dedupeManifestUrls(AddonStorage.loadInstalledAddonUrls(currentProfileId))
+            .filterNot { it == FenrirCatalogs.MANIFEST_URL }
         val enabledByUrl = loadLocalEnabledStates()
         log.d { "initialize() — local addon count: ${storedUrls.size}" }
         if (storedUrls.isEmpty()) return
@@ -155,12 +157,10 @@ object AddonRepository {
                 }
             }
 
-            // Fenrir: the built-in catalog add-on lives on this device only; keep it across pulls.
-            // Older builds sent it to the account; if it's there, take it back out below.
+            // Fenrir: the removed built-in "Fenrir Catalogs" add-on; older builds sent it to the
+            // account. If it's there, take it back out below.
             val accountHadBuiltIn = rowsByUrl.remove(FenrirCatalogs.MANIFEST_URL) != null
-            val keepLocal = _uiState.value.addons.any { it.manifestUrl == FenrirCatalogs.MANIFEST_URL } ||
-                FenrirCatalogs.MANIFEST_URL in AddonStorage.loadInstalledAddonUrls(currentProfileId)
-            val urls = rowsByUrl.keys.toList() + listOfNotNull(FenrirCatalogs.MANIFEST_URL.takeIf { keepLocal })
+            val urls = rowsByUrl.keys.toList()
             log.i { "pullFromServer() — server returned ${rows.size} addons" }
             urls.forEachIndexed { i, u -> log.d { "  server[$i]: $u" } }
 
@@ -417,7 +417,7 @@ object AddonRepository {
         }
         val autoOff = FenrirAddonCheck.autoOff()
         val addons = _uiState.value.addons
-            .filter { it.manifestUrl != FenrirCatalogs.MANIFEST_URL } // Fenrir: device-only add-on
+            .filter { it.manifestUrl != FenrirCatalogs.MANIFEST_URL } // Fenrir: removed built-in add-on
             .distinctBy { it.manifestUrl }
             .mapIndexed { index, addon ->
                 AddonPushItem(

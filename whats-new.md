@@ -3,6 +3,7 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- New built-in add-on, Fenrir Catalogs: anime from AniList (New episodes with episode number and day, This season, Coming soon, Trending, Most popular, Top rated) and K-dramas from TMDB (Airing now, New releases, Coming soon, Popular, Top rated). It adds itself once; pick which rows go on Home like any other catalog. Cinemeta stays
 - Smoother start-up animation: the pace builds, pauses on the howl, speeds up for the run and slows on the bite; drawings blend into each other, the camera follows the run, and FENRIR VAULT comes in letter by letter
 - Add-on check is now on the Fenrir add-ons screen (Sources → Stremio add-ons → Installed), not only in Nuvio's old settings page
 - Checks run by themselves when the app opens and every 4–5 hours while it's on. A Stremio/Nuvio add-on is only turned off after its server hasn't answered for 2 days (an add-on that answers but finds nothing is never turned off), and it turns back on by itself once it answers again

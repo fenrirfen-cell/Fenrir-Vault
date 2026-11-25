@@ -44,3 +44,12 @@ apply-*.ps1
 /TextPageTurner.kt
 *.bak
 patch-backups/
+
+# Fenrir: local scratch files (crash logs, before-change copies, dumps)
+hs_err_pid*.log
+*-backup-20[0-9][0-9]*/
+/errors.txt
+/jslog.txt
+/deps.txt
+/*info*.txt
+/paged-reader.txt

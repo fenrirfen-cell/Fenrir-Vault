@@ -1,4 +1,0 @@
-AndroidManifest-1.xml = J:\NuvioMobile1.0.0\androidApp\src\benchmark\AndroidManifest.xml
-AndroidManifest-2.xml = J:\NuvioMobile1.0.0\androidApp\src\debug\AndroidManifest.xml
-AndroidManifest-3.xml = J:\NuvioMobile1.0.0\androidApp\src\main\AndroidManifest.xml
-AndroidManifest-4.xml = J:\NuvioMobile1.0.0\androidApp\src\playstore\AndroidManifest.xml

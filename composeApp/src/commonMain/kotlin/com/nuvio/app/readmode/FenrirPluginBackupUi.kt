@@ -54,7 +54,7 @@ internal fun FenrirPluginBackupCard() {
     val open = files.rememberOpen { text ->
         when {
             text == null -> message = "Couldn't read that file."
-            !FenrirPluginBackup.isBackup(text) -> message = "That file isn't a Fenrir plugin backup."
+            !FenrirPluginBackup.isBackup(text) -> message = "That file isn't a Fenrir backup."
             else -> pendingRestore = text
         }
     }
@@ -66,13 +66,13 @@ internal fun FenrirPluginBackupCard() {
             Icon(Icons.Rounded.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Plugin backup", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text("Backup", color = Color.White, fontWeight = FontWeight.SemiBold)
                 Text(
                     files.autoSaveLocation?.let { where ->
-                        "Your CloudStream plugins and Aniyomi extensions are saved to $where by themselves, " +
+                        "Your Stremio add-ons, Home rows, CloudStream plugins and Aniyomi extensions are saved to $where by themselves, " +
                             (if (lastSaved != null) "just now. " else "whenever they change. ") +
-                            "The file stays there if you delete the app."
-                    } ?: "Save a copy to keep your CloudStream plugins and Aniyomi extensions if you delete the app.",
+                            "The file stays there if you delete the app. If something goes missing, the bigger list before it is kept as the \"previous\" file."
+                    } ?: "Save a copy to keep your Stremio add-ons, CloudStream plugins and Aniyomi extensions if you delete the app.",
                     color = BackupMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -95,12 +95,12 @@ internal fun FenrirPluginBackupCard() {
     pendingRestore?.let { text ->
         AlertDialog(
             onDismissRequest = { pendingRestore = null },
-            title = { Text("Restore plugins?") },
+            title = { Text("Restore backup?") },
             text = {
                 Text(
-                    "Adds the backup's repositories, downloads its CloudStream plugins and Aniyomi extensions again " +
-                        "from them, and trusts the extensions you trusted before (only the exact same ones). " +
-                        "Nothing you have now is removed.",
+                    "Adds back the Stremio add-ons that are missing (and their Home rows), the repositories, " +
+                        "downloads the CloudStream plugins and Aniyomi extensions again, and trusts the extensions " +
+                        "you trusted before (only the exact same ones). Nothing you have now is removed.",
                 )
             },
             confirmButton = {

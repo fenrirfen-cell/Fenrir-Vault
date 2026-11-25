@@ -61,7 +61,7 @@ internal object AppUpdaterRepository {
     private suspend fun fenrirLatest(repo: String): AppUpdate {
         val response = httpRequestRaw(
             method = "GET",
-            url = "https://api.github.com/repos/$repo/releases/latest",
+            url = com.nuvio.app.readmode.FenrirUpdates.releasesUrl(repo),
             headers = mapOf(
                 "Accept" to "application/vnd.github+json",
                 "User-Agent" to "FenrirRead",
@@ -73,8 +73,17 @@ internal object AppUpdaterRepository {
         if (response.status !in 200..299) {
             error(getString(Res.string.updates_github_api_error, response.status))
         }
-        val release = json.decodeFromString<GitHubReleaseDto>(response.body)
-        val asset = chooseBestApkAsset(release.assets, AppUpdaterPlatform.getSupportedAbis())
+        val abis = AppUpdaterPlatform.getSupportedAbis()
+        // beta builds on: a list of releases; take the highest build that has an APK
+        val release = if (response.body.trimStart().startsWith("[")) {
+            json.decodeFromString<List<GitHubReleaseDto>>(response.body)
+                .filter { !it.draft && chooseBestApkAsset(it.assets, abis) != null }
+                .maxByOrNull { r -> com.nuvio.app.readmode.FenrirUpdates.buildOf(r.tagName) ?: com.nuvio.app.readmode.FenrirUpdates.buildOf(r.name) ?: -1 }
+                ?: throw NoChannelReleaseException()
+        } else {
+            json.decodeFromString<GitHubReleaseDto>(response.body)
+        }
+        val asset = chooseBestApkAsset(release.assets, abis)
             ?: throw NoChannelReleaseException()
         val tag = release.tagName ?: release.name.orEmpty()
         return AppUpdate(

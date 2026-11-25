@@ -14,6 +14,10 @@ on:
         description: "Build even if there is no new official Nuvio or Tsundoku update"
         type: boolean
         default: true
+      beta:
+        description: "Publish as a beta (only phones with 'Get beta builds' on get it; use 'Promote Fenrir release' to send it to everyone)"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -176,6 +180,11 @@ jobs:
           chmod +x gradlew
           ./gradlew :androidApp:assembleFullFast --stacktrace
 
+      - name: Run tests (a failing test stops the release)
+        if: steps.go.outputs.build == 'true'
+        run: |
+          ./gradlew :composeApp:testAndroidHostTest --stacktrace --continue
+
       - name: Save merged code
         if: steps.go.outputs.build == 'true' && (steps.merge.outputs.changed == 'true' || steps.tsundoku.outputs.changed == 'true')
         # Can't save when the official update touches Nuvio's own workflow files (GitHub blocks
@@ -214,8 +223,20 @@ jobs:
           if [ -f whats-new.md ] && { [ -z "$PREV" ] || ! git diff --quiet "$PREV" HEAD -- whats-new.md 2>/dev/null; }; then
             NOTES="$(printf "## What's new\n%s\n\n%s" "$(grep -E '^[-*] ' whats-new.md)" "$NOTES")"
           fi
-          gh release create "$TAG" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk" \
-            --title "Fenrir Vault ${VER} (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --target "$(git rev-parse HEAD)"
-          # keep only the 5 newest Fenrir releases
+          # Daily (scheduled) builds are always betas; by hand, the "beta" switch decides.
+          BETA="${{ github.event_name == 'schedule' || inputs.beta != false }}"
+          if [ "$BETA" = "true" ]; then
+            NOTES="$(printf '**Beta:** only phones with Settings → App updates → Get beta builds get this. Run "Promote Fenrir release" to send it to everyone.\n\n%s' "$NOTES")"
+            gh release create "$TAG" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk" --prerelease \
+              --title "Fenrir Vault ${VER} (build ${GITHUB_RUN_NUMBER}) beta" --notes "$NOTES" --target "$(git rev-parse HEAD)"
+          else
+            gh release create "$TAG" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk" --latest \
+              --title "Fenrir Vault ${VER} (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --target "$(git rev-parse HEAD)"
+          fi
+          # keep the 5 newest Fenrir releases, and always the one everyone is on (latest non-beta)
+          STABLE=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name 2>/dev/null || true)
           gh release list --limit 100 --json tagName --jq '.[].tagName' | grep '^fenrir-' | tail -n +6 | \
-            while read -r old; do gh release delete "$old" --yes --cleanup-tag; done
+            while read -r old; do
+              [ "$old" = "$STABLE" ] && continue
+              gh release delete "$old" --yes --cleanup-tag
+            done

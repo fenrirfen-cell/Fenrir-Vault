@@ -56,11 +56,13 @@ object FenrirUpdateNotifier {
         FenrirUpdateNotify.enabled.value = p.getBoolean("enabled", true)
         FenrirUpdateNotify.hours.value = p.getInt("hours", 6)
         FenrirUpdateNotify.prefetch.value = p.getBoolean("prefetch", false)
+        FenrirUpdateNotify.beta.value = p.getBoolean("beta", false)
         FenrirUpdateNotify.onChange = {
             prefs().edit()
                 .putBoolean("enabled", FenrirUpdateNotify.enabled.value)
                 .putInt("hours", FenrirUpdateNotify.hours.value)
                 .putBoolean("prefetch", FenrirUpdateNotify.prefetch.value)
+                .putBoolean("beta", FenrirUpdateNotify.beta.value)
                 .apply()
             runCatching { schedule(replace = true) }
         }
@@ -100,7 +102,7 @@ object FenrirUpdateNotifier {
 
     internal fun fetchLatest(): Release? {
         val repo = FenrirUpdates.repo ?: return null
-        val conn = (URL("https://api.github.com/repos/$repo/releases/latest").openConnection() as HttpURLConnection).apply {
+        val conn = (URL(FenrirUpdates.releasesUrl(repo)).openConnection() as HttpURLConnection).apply {
             setRequestProperty("Accept", "application/vnd.github+json")
             setRequestProperty("User-Agent", "FenrirVault")
             connectTimeout = 15_000
@@ -108,7 +110,18 @@ object FenrirUpdateNotifier {
         }
         try {
             if (conn.responseCode !in 200..299) return null
-            val json = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
+            val text = conn.inputStream.bufferedReader().use { it.readText() }
+            // beta builds on: a list of releases; take the highest build that has an APK
+            val json = if (text.trimStart().startsWith("[")) {
+                val arr = org.json.JSONArray(text)
+                (0 until arr.length()).map { arr.getJSONObject(it) }
+                    .filter { !it.optBoolean("draft") }
+                    .filter { r -> r.optJSONArray("assets")?.let { a -> (0 until a.length()).any { a.getJSONObject(it).optString("name").endsWith(".apk", true) } } == true }
+                    .maxByOrNull { FenrirUpdates.buildOf(it.optString("tag_name")) ?: FenrirUpdates.buildOf(it.optString("name")) ?: -1 }
+                    ?: return null
+            } else {
+                JSONObject(text)
+            }
             val tag = json.optString("tag_name")
             val build = FenrirUpdates.buildOf(tag) ?: FenrirUpdates.buildOf(json.optString("name")) ?: return null
             val assets = json.optJSONArray("assets") ?: return null

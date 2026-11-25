@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Backup now includes your Stremio add-ons and Home rows too, so one Restore brings everything back. If add-ons or plugins ever disappear, the bigger list before it is kept as "fenrir-plugins-backup-previous.json" in Downloads › Fenrir Vault
+- Beta builds: new builds come out as betas first. Turn on Settings → App updates → Get beta builds to get them; everyone else only gets them once they're released to all
 - Links: CloudStream and Aniyomi now always look for links, even when none of your Stremio add-ons has this title, and right after the app opens (they wait for your plugins to finish loading instead of being skipped)
 - Reload (the first chip in the player's Sources list and on the links screen) now really searches the plugin sites again; before, "nothing found" was kept for 15 minutes
 - Player Sources: CloudStream and Aniyomi no longer show just a few old links after you picked one while they were still searching; a search that was stopped half-way runs again

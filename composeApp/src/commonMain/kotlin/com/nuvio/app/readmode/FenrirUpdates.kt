@@ -11,6 +11,14 @@ object FenrirUpdates {
     /** This install's build number (from "...-r17"). */
     var currentBuild: Int? = null
 
+    /**
+     * GitHub address listing the releases to look at: only the newest finished one ("latest",
+     * never a beta) unless beta builds are switched on, then the recent ones including betas.
+     */
+    fun releasesUrl(repo: String): String =
+        if (FenrirUpdateNotify.beta.value) "https://api.github.com/repos/$repo/releases?per_page=20"
+        else "https://api.github.com/repos/$repo/releases/latest"
+
     fun buildOf(tagOrName: String?): Int? =
         tagOrName?.let { Regex("-r(\\d+)(?:\\D|$)").find(it)?.groupValues?.get(1)?.toIntOrNull() }
 }

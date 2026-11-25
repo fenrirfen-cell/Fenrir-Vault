@@ -169,6 +169,9 @@ private fun SourcesHub() {
                     ).joinToString(" · ").ifBlank { host.subtitle },
                 ) { FenrirSourcesHub.go(FenrirSourcesHub.Screen.Plugins(host.id)) }
             }
+            if (FenrirPlugins.all.isNotEmpty() && FenrirPluginBackup.files != null) {
+                item(key = "plugin-backup") { FenrirPluginBackupCard() }
+            }
             if (sources.openReadExtensions != null) {
                 item {
                     Text("Read", color = HubMuted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 6.dp, top = 16.dp, bottom = 6.dp))

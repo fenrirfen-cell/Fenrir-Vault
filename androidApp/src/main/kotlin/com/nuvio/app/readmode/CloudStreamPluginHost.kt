@@ -211,6 +211,70 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
 
     override fun trust(id: String) = Unit // Plugins only come from repositories the user added.
 
+    // ------------------------------------------------------------------ Fenrir: backup
+
+    override fun backup(): String? {
+        val repos = repos()
+        val installed = prefs().getString(KEY_INSTALLED, "[]") ?: "[]"
+        if (repos.isEmpty() && savedPlugins().isEmpty()) return null
+        return JSONObject()
+            .put("repos", JSONArray(repos))
+            .put("showNsfw", prefs().getBoolean(KEY_SHOW_NSFW, false))
+            .put("installed", JSONArray(installed))
+            .toString()
+    }
+
+    /** Adds the backup's repositories, then downloads each plugin again (newest from its repository). */
+    override suspend fun restore(data: String): Int = withContext(Dispatchers.IO) {
+        val o = JSONObject(data)
+        val backupRepos = o.optJSONArray("repos")?.let { a -> (0 until a.length()).mapNotNull { normalizeRepo(a.optString(it)) } }.orEmpty()
+        val editor = prefs().edit().putStringSet(KEY_REPOS, (repos() + backupRepos).toSet())
+        if (o.has("showNsfw")) editor.putBoolean(KEY_SHOW_NSFW, o.optBoolean("showNsfw"))
+        editor.apply()
+        publish(busy = true, message = "Restoring CloudStream plugins…")
+        refreshAvailable()
+        val wanted = o.optJSONArray("installed") ?: JSONArray()
+        var restored = 0
+        val failed = mutableListOf<String>()
+        for (i in 0 until wanted.length()) {
+            val w = wanted.optJSONObject(i) ?: continue
+            val internalName = w.optString("internalName")
+            if (internalName.isBlank()) continue
+            if (savedPlugins().any { it.internalName == internalName } && fileFor(internalName).exists()) continue
+            val site = available.firstOrNull { it.internalName == internalName }
+            val saved = Saved(
+                internalName = internalName,
+                name = site?.name ?: w.optString("name", internalName),
+                version = site?.version ?: w.optInt("version"),
+                url = site?.url ?: w.optString("url"),
+                language = site?.language ?: w.optString("language"),
+                iconUrl = site?.iconUrl ?: w.optString("iconUrl").takeIf { it.isNotBlank() },
+                nsfw = site?.let { "NSFW" in it.tvTypes } ?: w.optBoolean("nsfw"),
+            )
+            val ok = runCatching {
+                if (saved.url.isBlank()) error("no download link")
+                val target = fileFor(internalName)
+                val temp = File(app.cacheDir, target.name)
+                download(saved.url, temp) // https only, like a normal install
+                unload(internalName)
+                target.setWritable(true)
+                target.delete()
+                temp.copyTo(target, overwrite = true)
+                temp.delete()
+                target.setReadOnly()
+                saveSaved(savedPlugins().filter { it.internalName != internalName } + saved)
+            }.onFailure { Log.w(TAG, "Restore failed: $internalName", it) }.isSuccess
+            if (ok) restored++ else failed += saved.name
+        }
+        reload()
+        publish(
+            busy = false,
+            message = if (failed.isEmpty()) null else "Couldn't bring back: ${failed.joinToString()}",
+            keepMessage = false,
+        )
+        restored
+    }
+
     // ------------------------------------------------------------------ repositories
 
     private fun normalizeRepo(raw: String): String? {

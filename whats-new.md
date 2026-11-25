@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Plugin backup: your CloudStream plugins and Aniyomi extensions (repositories, what's installed, what you trusted) are saved by themselves to Downloads › Fenrir Vault, and the file stays there if you delete the app. After installing again: Settings → Sources → Plugin backup → Restore. "Save a copy" puts one anywhere you like
+- Trust all: when several Aniyomi extensions are waiting to be trusted, trust them in one go from the top of the Installed list
 - The built-in Fenrir Catalogs add-on is gone. Any copy left on this phone or your Nuvio account is removed by itself. If your add-ons went missing, add them back once and they stay
 - Nuvio account sync fixed: the app waits for your account's add-ons before changing anything, and the "main lists only" first-run setup no longer switches off the Home rows you picked on your Nuvio account
 - Add-ons the automatic check turns off (after 2 days of not answering) are now only turned off on this phone, not on your Nuvio account or your other devices

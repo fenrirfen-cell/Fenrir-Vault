@@ -229,6 +229,10 @@ private fun FenrirPluginManager(host: FenrirPluginHost, onBack: () -> Unit, onBr
                     if (state.installed.isEmpty()) {
                         item(key = "empty-installed") { EmptyNote("Nothing installed yet. Add your repository under Repositories, then install from Available.") }
                     }
+                    val waiting = state.installed.filter { it.needsTrust }
+                    if (waiting.size >= 2) {
+                        item(key = "trust-all") { FenrirTrustAllCard(host, waiting) }
+                    }
                     val testable = state.installed.filter { !it.needsTrust }
                     if (host.canTest && testable.isNotEmpty()) {
                         item(key = "plugin-check-installed") { PluginCheckCard(host, testable, checkFilter) { checkFilter = it } }

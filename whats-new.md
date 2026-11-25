@@ -3,6 +3,7 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- For you moved from the bottom bar into the FENRIR WATCH ▾ menu (on Watch and Ani-drama); the bottom bar is Home, Assistant, My list, Settings
 - Fixed: menus and buttons with drop-downs work again (the pop-up block in r160 caught the app's own menus)
 - Ani-drama: FENRIR WATCH ▾ opens the Home source picker again
 - No more pop-ups from sources: when a CloudStream plugin or Aniyomi / Tsundoku extension tries to open its own window (ads, donation boxes, notices), it's blocked and a short "Blocked a pop-up from a source" note shows instead

@@ -108,13 +108,7 @@ internal fun MainTabsDestination(
                 onClick = { onTabSelected(AppScreenTab.Home) },
                 icon = Icons.Filled.Home,
             ),
-            // ✨ For you: opens the suggestions panel.
-            com.nuvio.app.readmode.FenrirNavItem(
-                label = "For you",
-                selected = forYouOpen,
-                onClick = { com.nuvio.app.readmode.FenrirForYou.show() },
-                icon = Icons.Rounded.Recommend,
-            ),
+            // For you moved into the FENRIR WATCH ▾ menu.
             // Search moved to the round button at the top of Home (FenrirTopBar).
             if (ReadModeBridge.isAvailable) {
                 com.nuvio.app.readmode.FenrirNavItem(

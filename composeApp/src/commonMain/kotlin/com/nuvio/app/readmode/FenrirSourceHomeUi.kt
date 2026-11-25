@@ -46,6 +46,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -199,6 +200,35 @@ private fun FenrirSourcePickerPanel(
                 var csShowHidden by remember { mutableStateOf(false) }
                 var ayShowHidden by remember { mutableStateOf(false) }
                 LazyColumn(Modifier.weight(1f, fill = false)) {
+                    // Fenrir: For you lives here (it left the bottom bar)
+                    item {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 6.dp, vertical = 4.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(1.dp, Red.copy(alpha = 0.85f), RoundedCornerShape(16.dp))
+                                .clickable {
+                                    onDismiss()
+                                    FenrirForYou.show()
+                                }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                Modifier.size(34.dp).clip(CircleShape).background(Color(0xFF2D2D38)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = Color(0xFFFF6B73), modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("For you", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Picks based on what you watch", color = Muted, fontSize = 12.sp)
+                            }
+                        }
+                        Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp).height(1.dp).background(Color(0xFF3A3A46)))
+                    }
                     item {
                         val off by FenrirSourceHealth.turnedOff.collectAsStateWithLifecycle()
                         if (off.isNotEmpty()) {

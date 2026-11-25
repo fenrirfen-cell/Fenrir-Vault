@@ -26,10 +26,15 @@ object FenrirFoundLinks {
     private fun key(hostId: String, q: FenrirStreamQuery) =
         "$hostId|${q.title.lowercase()}|${q.year}|${q.isMovie}|${q.season}|${q.episode}"
 
-    /** True when the caller should run the search itself (nothing recent to follow). */
-    private fun claim(k: String): Boolean = synchronized(lock) {
+    /**
+     * True when the caller should run the search itself (nothing recent to follow). A finished
+     * search that found nothing isn't reused, so trying again really searches again; [force] (the
+     * Reload button) always searches again.
+     */
+    private fun claim(k: String, force: Boolean): Boolean = synchronized(lock) {
         val e = entries[k]
-        if (e != null && now() - e.at < KEEP_MS) return false
+        val reusable = e != null && now() - e.at < KEEP_MS && !(e.complete && e.sites.isEmpty())
+        if (!force && reusable) return false
         entries[k] = Entry(now())
         if (entries.size > 60) entries.keys.firstOrNull()?.let { entries.remove(it) }
         true
@@ -51,10 +56,11 @@ object FenrirFoundLinks {
     suspend fun find(
         host: FenrirPluginHost,
         q: FenrirStreamQuery,
+        forceRefresh: Boolean = false,
         onFound: suspend (site: String, streams: List<FenrirPluginStream>) -> Unit,
     ) {
         val k = key(host.id, q)
-        if (claim(k)) {
+        if (claim(k, forceRefresh)) {
             try {
                 host.findStreams(q) { site, found ->
                     if (found.isNotEmpty()) add(k, site, found)

@@ -60,7 +60,8 @@ internal fun FenrirFoundInRow(metaId: String, modifier: Modifier = Modifier, onP
     val target = FenrirFoundIn.targets[metaId] ?: return
     val modes by com.nuvio.app.readmode.FenrirLinkChoice.modes.collectAsState()
     val mode = modes[metaId] ?: com.nuvio.app.readmode.FenrirLinkChoice.Mode.All
-    val hosts = remember { com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources } }
+    // mayHaveSources: plugins still loading right after the app opened count (waited for below)
+    val hosts = remember { com.nuvio.app.readmode.FenrirPlugins.all.filter { it.mayHaveSources } }
     val usePlugins = hosts.isNotEmpty() && mode != com.nuvio.app.readmode.FenrirLinkChoice.Mode.Nuvio
     val useNuvio = mode != com.nuvio.app.readmode.FenrirLinkChoice.Mode.Plugins || hosts.isEmpty()
 
@@ -85,6 +86,7 @@ internal fun FenrirFoundInRow(metaId: String, modifier: Modifier = Modifier, onP
         coroutineScope {
             hosts.map { host ->
                 launch {
+                    if (!host.awaitSources()) return@launch
                     runCatching {
                         com.nuvio.app.readmode.FenrirFoundLinks.find(host, query) { site, found ->
                             if (found.isNotEmpty()) {

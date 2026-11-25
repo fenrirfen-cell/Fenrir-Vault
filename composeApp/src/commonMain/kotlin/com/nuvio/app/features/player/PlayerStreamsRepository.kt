@@ -245,7 +245,11 @@ object PlayerStreamsRepository {
             groupByRepository = pluginUiState.groupStreamsByRepository,
         )
 
-        if (installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
+        // Fenrir: CloudStream / Aniyomi sites (still-loading ones count; they're waited for below).
+        // With no Nuvio add-ons for this, the plugins can still find links.
+        val fenrirHosts = if (isNativeServerRequest) emptyList() else com.nuvio.app.readmode.FenrirPlugins.all.filter { it.mayHaveSources }
+
+        if (installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty() && fenrirHosts.isEmpty()) {
             stateFlow.value = StreamsUiState(
                 isAnyLoading = false,
                 emptyStateReason = com.nuvio.app.features.streams.StreamsEmptyStateReason.NoAddonsInstalled,
@@ -265,7 +269,7 @@ object PlayerStreamsRepository {
                 )
             }
 
-        if (streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
+        if (streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty() && fenrirHosts.isEmpty()) {
             stateFlow.value = StreamsUiState(
                 isAnyLoading = false,
                 emptyStateReason = com.nuvio.app.features.streams.StreamsEmptyStateReason.NoCompatibleAddons,
@@ -297,7 +301,10 @@ object PlayerStreamsRepository {
                 streams = emptyList(),
                 isLoading = true,
             )
-        } + serverSources.map { it.loadingGroup() }, installedAddonOrder, preferredGroupIds)
+        } + serverSources.map { it.loadingGroup() } + fenrirHosts.map { host ->
+            // "searching…" until the plugin sites answer (then one section per site)
+            AddonStreamGroup(host.groupName(), host.groupId(), emptyList(), isLoading = true)
+        }, installedAddonOrder, preferredGroupIds)
         val isInitiallyLoading = initialGroups.any { it.isLoading }
         stateFlow.value = StreamsUiState(
             groups = initialGroups,
@@ -345,11 +352,24 @@ object PlayerStreamsRepository {
             // Fenrir: the CloudStream / Aniyomi sites too, one section per site, so a link that
             // doesn't work can be swapped for a plugin one while watching.
             // The show's own name: remembered when its page opened, else looked up (opened from
-            // Continue watching or Home straight into the player); the last searched title only as
-            // a last resort. Before, only that last title was used, so the plugins were often
-            // skipped (nothing searched yet) or searched for a different show.
-            val fenrirHosts = com.nuvio.app.readmode.FenrirPlugins.all.filter { it.hasSources }
-            if (fenrirHosts.isNotEmpty()) launch {
+            // Continue watching or Home straight into the player). Never another show's title.
+            fun finishFenrirHost(host: com.nuvio.app.readmode.FenrirPluginHost, found: Boolean, error: String?) {
+                stateFlow.update { current ->
+                    val groups = if (found || error == null) {
+                        current.groups.filter { it.addonId != host.groupId() }
+                    } else {
+                        current.groups.map { if (it.addonId == host.groupId()) it.copy(isLoading = false, error = error) else it }
+                    }
+                    val anyLoading = groups.any { it.isLoading }
+                    current.copy(
+                        groups = groups,
+                        activeAddonIds = if (groups.any { it.addonId == host.groupId() }) current.activeAddonIds else current.activeAddonIds - host.groupId(),
+                        isAnyLoading = anyLoading,
+                        emptyStateReason = groups.toEmptyStateReason(anyLoading),
+                    )
+                }
+            }
+            val fenrirJob = if (fenrirHosts.isNotEmpty()) launch {
                 // "tt123:1:2" → tt123; "kitsu:456:3" → kitsu:456
                 val parts = videoId.split(':')
                 val metaId = if (parts.size > 1 && parts[0].all { it.isLetter() }) parts[0] + ":" + parts[1] else parts[0]
@@ -360,7 +380,10 @@ object PlayerStreamsRepository {
                             com.nuvio.app.readmode.FenrirPlugins.rememberTitle(metaId, meta.name, year)
                             meta.name.takeIf { it.isNotBlank() }?.let { it to year }
                         }
-                }.getOrNull() ?: com.nuvio.app.readmode.FenrirPlugins.lastTitle ?: return@launch
+                }.getOrNull() ?: run {
+                    fenrirHosts.forEach { finishFenrirHost(it, found = false, error = "Couldn't look up this title") }
+                    return@launch
+                }
                 run {
                     val query = com.nuvio.app.readmode.FenrirStreamQuery(
                         title = fenrirTitle.first,
@@ -371,9 +394,16 @@ object PlayerStreamsRepository {
                     )
                     fenrirHosts.forEach { host ->
                         launch {
+                            // plugins still loading right after the app opened: wait for them
+                            if (!host.awaitSources()) {
+                                finishFenrirHost(host, found = false, error = null)
+                                return@launch
+                            }
+                            var anyFound = false
                             runCatching {
-                                com.nuvio.app.readmode.FenrirFoundLinks.find(host, query) { site, found ->
+                                com.nuvio.app.readmode.FenrirFoundLinks.find(host, query, forceRefresh = forceRefresh) { site, found ->
                                     if (found.isEmpty()) return@find
+                                    anyFound = true
                                     val id = "${host.groupId()}:$site"
                                     val items = found.map { it.toFenrirStreamItem(host) }
                                     stateFlow.update { current ->
@@ -390,10 +420,11 @@ object PlayerStreamsRepository {
                                     }
                                 }
                             }
+                            finishFenrirHost(host, found = anyFound, error = "Not found in your ${host.title.lowercase()}")
                         }
                     }
                 }
-            }
+            } else null
 
             StreamSearchSessions.search(
                 profileId = ProfileRepository.activeProfileId,
@@ -450,6 +481,8 @@ object PlayerStreamsRepository {
                 }
             }
 
+            // the plugin sites answer on their own time; wait for them before settling the list
+            fenrirJob?.join()
             // A search dropped before it finished leaves its remaining sources without a result.
             stateFlow.update { it.withoutPendingGroups() }
 

@@ -198,6 +198,15 @@ internal class CloudStreamPluginHost(private val app: Application) : FenrirPlugi
     override val hasSources: Boolean
         get() = synchronized(loaded) { loaded.values.any { it.providers.isNotEmpty() } }
 
+    /** Fenrir: plugins saved on the phone that may still be loading (right after the app starts). */
+    override val mayHaveSources: Boolean
+        get() = hasSources || run {
+            val showNsfw = prefs().getBoolean(KEY_SHOW_NSFW, false)
+            savedPlugins().any { (showNsfw || !it.nsfw) && fileFor(it.internalName).exists() } &&
+                // loaded and still none: they don't work, don't wait for them
+                synchronized(loaded) { loaded.isEmpty() }
+        }
+
     override fun clearMessage() = _state.update { it.copy(message = null) }
 
     override fun refresh() {

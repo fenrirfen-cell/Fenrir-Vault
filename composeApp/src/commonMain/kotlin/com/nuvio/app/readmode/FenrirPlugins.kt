@@ -103,6 +103,22 @@ interface FenrirPluginHost {
     val state: StateFlow<FenrirPluginState>
     val hasSources: Boolean
 
+    /**
+     * Fenrir: has plugins installed, even if they're still loading (right after the app starts).
+     * Link searches include these hosts and wait for them with [awaitSources].
+     */
+    val mayHaveSources: Boolean get() = hasSources
+
+    /** Waits until this host's plugins are loaded; false if there are none or it took too long. */
+    suspend fun awaitSources(timeoutMs: Long = 20_000): Boolean {
+        if (hasSources) return true
+        if (!mayHaveSources) return false
+        return kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+            while (!hasSources) kotlinx.coroutines.delay(250)
+            true
+        } ?: false
+    }
+
     fun refresh()
 
     /** Fenrir: can plugins be tried out before installing ([test])? */

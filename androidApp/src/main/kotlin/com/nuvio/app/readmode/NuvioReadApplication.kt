@@ -20,6 +20,53 @@ import eu.kanade.tachiyomi.EmbeddedHost
  */
 class NuvioReadApplication : App() {
 
+    // Fenrir: plugins (CloudStream, extensions) can hook into every screen of the app. Some are
+    // written for the CloudStream app itself and break here (WatchParty looks for CloudStream's
+    // own screen and crashed the app on every resume). Their hooks now run guarded: a failing
+    // one is switched off instead of taking the app down.
+    private val guardedCallbacks = java.util.WeakHashMap<ActivityLifecycleCallbacks, ActivityLifecycleCallbacks>()
+
+    private fun fromOutside(cb: Any): Boolean {
+        val loader = cb.javaClass.classLoader ?: return false
+        return loader !== classLoader && loader !== android.app.Application::class.java.classLoader
+    }
+
+    override fun registerActivityLifecycleCallbacks(callback: ActivityLifecycleCallbacks) {
+        if (!fromOutside(callback)) return super.registerActivityLifecycleCallbacks(callback)
+        val guarded = GuardedLifecycleCallbacks(callback)
+        synchronized(guardedCallbacks) { guardedCallbacks[callback] = guarded }
+        super.registerActivityLifecycleCallbacks(guarded)
+    }
+
+    override fun unregisterActivityLifecycleCallbacks(callback: ActivityLifecycleCallbacks) {
+        val guarded = synchronized(guardedCallbacks) { guardedCallbacks.remove(callback) }
+        super.unregisterActivityLifecycleCallbacks(guarded ?: callback)
+    }
+
+    private class GuardedLifecycleCallbacks(private val inner: ActivityLifecycleCallbacks) : ActivityLifecycleCallbacks {
+        @Volatile private var broken = false
+        private inline fun safe(block: () -> Unit) {
+            if (broken) return
+            try {
+                block()
+            } catch (t: Throwable) {
+                broken = true
+                android.util.Log.w("FenrirPluginGuard", "A plugin's screen hook failed and was switched off", t)
+            }
+        }
+        override fun onActivityCreated(a: android.app.Activity, b: android.os.Bundle?) = safe { inner.onActivityCreated(a, b) }
+        override fun onActivityStarted(a: android.app.Activity) = safe { inner.onActivityStarted(a) }
+        override fun onActivityResumed(a: android.app.Activity) = safe { inner.onActivityResumed(a) }
+        override fun onActivityPaused(a: android.app.Activity) = safe { inner.onActivityPaused(a) }
+        override fun onActivityStopped(a: android.app.Activity) = safe { inner.onActivityStopped(a) }
+        override fun onActivitySaveInstanceState(a: android.app.Activity, b: android.os.Bundle) = safe { inner.onActivitySaveInstanceState(a, b) }
+        override fun onActivityDestroyed(a: android.app.Activity) = safe { inner.onActivityDestroyed(a) }
+        override fun onActivityPreCreated(a: android.app.Activity, b: android.os.Bundle?) = safe { inner.onActivityPreCreated(a, b) }
+        override fun onActivityPostCreated(a: android.app.Activity, b: android.os.Bundle?) = safe { inner.onActivityPostCreated(a, b) }
+        override fun onActivityPreResumed(a: android.app.Activity) = safe { inner.onActivityPreResumed(a) }
+        override fun onActivityPostResumed(a: android.app.Activity) = safe { inner.onActivityPostResumed(a) }
+    }
+
     override fun onCreate() {
         super.onCreate()
 

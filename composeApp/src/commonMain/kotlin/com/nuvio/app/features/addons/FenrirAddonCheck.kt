@@ -91,13 +91,13 @@ object FenrirAddonCheck {
             if (serverFailing) {
                 val since = store?.get(key)?.toLongOrNull() ?: now.also { store?.put(key, it.toString()) }
                 if (now - since >= TWO_DAYS_MS && addon.enabled) {
-                    AddonRepository.setAddonEnabled(addon.manifestUrl, false)
+                    AddonRepository.setAddonEnabled(addon.manifestUrl, false, syncToAccount = false)
                     newOff += addon.manifestUrl
                 }
             } else {
                 store?.put(key, null)
                 if (addon.manifestUrl in newOff && r.result != FenrirPluginCheck.Result.Down) {
-                    AddonRepository.setAddonEnabled(addon.manifestUrl, true)
+                    AddonRepository.setAddonEnabled(addon.manifestUrl, true, syncToAccount = false)
                     newOff -= addon.manifestUrl
                 }
             }

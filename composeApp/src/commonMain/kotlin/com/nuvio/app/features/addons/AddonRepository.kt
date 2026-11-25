@@ -165,13 +165,16 @@ object AddonRepository {
             urls.forEachIndexed { i, u -> log.d { "  server[$i]: $u" } }
 
             val existingByUrl = _uiState.value.addons.associateBy(ManagedAddon::manifestUrl)
+            val autoOff = FenrirAddonCheck.autoOff()
             _uiState.value = AddonsUiState(
                 addons = urls.map { url ->
                     val row = rowsByUrl[url]
                     existingByUrl[url].toPendingAddon(
                         manifestUrl = url,
                         userSetName = row?.name?.takeIf { it.isNotBlank() },
-                        enabled = row?.enabled ?: existingByUrl[url]?.enabled ?: loadLocalEnabledStates()[url],
+                        // Fenrir: add-ons the automatic check turned off stay off on this device only
+                        enabled = if (url in autoOff) false
+                            else row?.enabled ?: existingByUrl[url]?.enabled ?: loadLocalEnabledStates()[url],
                     )
                 },
             )
@@ -310,7 +313,8 @@ object AddonRepository {
         pushToServer()
     }
 
-    fun setAddonEnabled(manifestUrl: String, enabled: Boolean) {
+    /** [syncToAccount] false: the change stays on this device (Fenrir's automatic add-on check). */
+    fun setAddonEnabled(manifestUrl: String, enabled: Boolean, syncToAccount: Boolean = true) {
         if (isUsingPrimaryAddonsFromSecondaryProfile()) return
         var shouldRefresh = false
         var changed = false
@@ -329,7 +333,7 @@ object AddonRepository {
         }
         if (!changed) return
         persist()
-        pushToServer()
+        if (syncToAccount) pushToServer()
         if (shouldRefresh) {
             refreshAddon(manifestUrl)
         }
@@ -411,6 +415,7 @@ object AddonRepository {
             log.w { "pushToServer() — skipped: account add-ons not read yet for profile $profileId" }
             return
         }
+        val autoOff = FenrirAddonCheck.autoOff()
         val addons = _uiState.value.addons
             .filter { it.manifestUrl != FenrirCatalogs.MANIFEST_URL } // Fenrir: device-only add-on
             .distinctBy { it.manifestUrl }
@@ -418,7 +423,8 @@ object AddonRepository {
                 AddonPushItem(
                     url = addon.manifestUrl,
                     name = addon.userSetName?.takeIf { it.isNotBlank() } ?: addon.manifest?.name ?: "",
-                    enabled = addon.enabled,
+                    // Fenrir: an automatic (device-only) turn-off isn't sent to the account
+                    enabled = addon.enabled || addon.manifestUrl in autoOff,
                     sortOrder = index,
                 )
             }

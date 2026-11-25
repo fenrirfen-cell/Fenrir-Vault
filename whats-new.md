@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Read side: the white bar that showed behind the bottom bar when you reload your library is gone; messages now show above it in the dark look
+- Import a book from a link: plain http:// links are tried over https, and when a link still doesn't open you're told why
 - Backup now includes your Stremio add-ons and Home rows too, so one Restore brings everything back. If add-ons or plugins ever disappear, the bigger list before it is kept as "fenrir-plugins-backup-previous.json" in Downloads › Fenrir Vault
 - Beta builds: new builds come out as betas first. Turn on Settings → App updates → Get beta builds to get them; everyone else only gets them once they're released to all
 - Links: CloudStream and Aniyomi now always look for links, even when none of your Stremio add-ons has this title, and right after the app opens (they wait for your plugins to finish loading instead of being skipped)

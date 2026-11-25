@@ -5,6 +5,7 @@ import com.nuvio.app.core.auth.AuthRepository
 import com.nuvio.app.core.auth.AuthState
 import com.nuvio.app.core.network.SupabaseProvider
 import com.nuvio.app.core.sync.putSyncOriginClientId
+import com.nuvio.app.features.anidrama.FenrirCatalogs
 import com.nuvio.app.features.profiles.ProfileRepository
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -64,6 +66,24 @@ object AddonRepository {
     private var currentProfileId: Int = 1
     private val activeRefreshJobs = mutableMapOf<String, Job>()
     private val pushJobsByProfile = mutableMapOf<Int, Job>()
+
+    // Fenrir: profiles whose add-on list has been read from the account in this session. Until
+    // then the list on this phone can be empty or stale (a fresh install, for example), and
+    // sending it would replace the account's add-ons, so nothing is sent before that.
+    private val _pulledProfiles = MutableStateFlow<Set<Int>>(emptySet())
+
+    /** True once local add-on changes can safely be sent to the account (or there's no account). */
+    fun canChangeAddons(): Boolean = when (val auth = AuthRepository.state.value) {
+        AuthState.Loading -> false
+        else -> !shouldPushAddonsToServer(auth) || currentProfileId in _pulledProfiles.value
+    }
+
+    /** Waits until [canChangeAddons]; false if that didn't happen in time. */
+    suspend fun awaitReadyForChanges(timeoutMs: Long): Boolean =
+        withTimeoutOrNull(timeoutMs) {
+            while (!canChangeAddons()) delay(500)
+            true
+        } ?: false
 
     fun initialize() {
         val effectiveProfileId = resolveEffectiveProfileId(ProfileRepository.activeProfileId)
@@ -111,6 +131,7 @@ object AddonRepository {
         pushJobsByProfile.clear()
         currentProfileId = 1
         initialized = false
+        _pulledProfiles.value = emptySet()
         _uiState.value = AddonsUiState()
     }
 
@@ -134,7 +155,12 @@ object AddonRepository {
                 }
             }
 
-            val urls = rowsByUrl.keys.toList()
+            // Fenrir: the built-in catalog add-on lives on this device only; keep it across pulls.
+            // Older builds sent it to the account; if it's there, take it back out below.
+            val accountHadBuiltIn = rowsByUrl.remove(FenrirCatalogs.MANIFEST_URL) != null
+            val keepLocal = _uiState.value.addons.any { it.manifestUrl == FenrirCatalogs.MANIFEST_URL } ||
+                FenrirCatalogs.MANIFEST_URL in AddonStorage.loadInstalledAddonUrls(currentProfileId)
+            val urls = rowsByUrl.keys.toList() + listOfNotNull(FenrirCatalogs.MANIFEST_URL.takeIf { keepLocal })
             log.i { "pullFromServer() — server returned ${rows.size} addons" }
             urls.forEachIndexed { i, u -> log.d { "  server[$i]: $u" } }
 
@@ -145,7 +171,7 @@ object AddonRepository {
                     existingByUrl[url].toPendingAddon(
                         manifestUrl = url,
                         userSetName = row?.name?.takeIf { it.isNotBlank() },
-                        enabled = row?.enabled,
+                        enabled = row?.enabled ?: existingByUrl[url]?.enabled ?: loadLocalEnabledStates()[url],
                     )
                 },
             )
@@ -158,6 +184,8 @@ object AddonRepository {
                 }
             }
             initialized = true
+            _pulledProfiles.update { it + currentProfileId }
+            if (accountHadBuiltIn) pushToServer()
             log.i { "pullFromServer() — applied ${urls.size} addons to state" }
         }.onFailure { e ->
             log.e(e) { "pullFromServer() — FAILED" }
@@ -379,7 +407,12 @@ object AddonRepository {
             return
         }
         val profileId = currentProfileId
+        if (profileId !in _pulledProfiles.value) {
+            log.w { "pushToServer() — skipped: account add-ons not read yet for profile $profileId" }
+            return
+        }
         val addons = _uiState.value.addons
+            .filter { it.manifestUrl != FenrirCatalogs.MANIFEST_URL } // Fenrir: device-only add-on
             .distinctBy { it.manifestUrl }
             .mapIndexed { index, addon ->
                 AddonPushItem(

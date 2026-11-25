@@ -145,6 +145,9 @@ object FenrirCatalogs {
     /** Adds the built-in add-on once per profile; if you remove it later it stays removed. */
     suspend fun ensureInstalled(isDone: (String) -> Boolean, markDone: (String) -> Unit) {
         AddonRepository.initialize()
+        // Signed in: wait until your account's add-ons are loaded, so adding this one never
+        // replaces them (it stays on this device and is never sent to your Nuvio account).
+        if (!AddonRepository.awaitReadyForChanges(90_000)) return
         withTimeoutOrNull(20_000) { AddonRepository.uiState.first { st -> st.addons.none { it.isRefreshing } } }
         val key = "builtin_catalogs_${ProfileRepository.activeProfileId}"
         if (isDone(key)) return

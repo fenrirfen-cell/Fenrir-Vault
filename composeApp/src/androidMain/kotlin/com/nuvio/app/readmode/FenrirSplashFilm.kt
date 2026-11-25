@@ -36,12 +36,17 @@ fun FenrirSplashFilm(onEnd: () -> Unit) {
                 surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                     override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
                         val ok = runCatching {
-                            val afd = ctx.resources.openRawResourceFd(com.nuvio.app.R.raw.fenrir_splash_video)
                             val mp = MediaPlayer()
                             holder[0] = mp
-                            mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-                            afd.close()
-                            mp.setSurface(Surface(st))
+                            ctx.resources.openRawResourceFd(com.nuvio.app.R.raw.fenrir_splash_video).use { afd ->
+                                mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                            }
+                            val surface = Surface(st)
+                            try {
+                                mp.setSurface(surface)
+                            } finally {
+                                surface.release()
+                            }
                             mp.setVolume(0f, 0f)
                             mp.isLooping = false
                             mp.setOnCompletionListener { end() }

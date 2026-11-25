@@ -71,6 +71,7 @@ object StreamsRepository {
     }
 
     private fun load(type: String, videoId: String, parentMetaId: String?, season: Int?, episode: Int?, manualSelection: Boolean, forceRefresh: Boolean) {
+        AddonRepository.initialize()
         val pluginUiState = if (AppFeaturePolicy.pluginsEnabled) {
             PluginRepository.initialize()
             PluginRepository.uiState.value
@@ -194,7 +195,8 @@ object StreamsRepository {
             groupByRepository = pluginUiState.groupStreamsByRepository,
         )
 
-        if (!fenrirPluginsOnly && installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
+        val hasFenrirSources = !fenrirNoPlugins && com.nuvio.app.readmode.FenrirPlugins.all.any { it.hasSources }
+        if (!fenrirPluginsOnly && !hasFenrirSources && installedAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
             _uiState.value = StreamsUiState(
                 requestToken = requestToken,
                 isAnyLoading = false,
@@ -218,7 +220,7 @@ object StreamsRepository {
 
         log.d { "Found ${streamAddons.size} addons for stream type=$type id=$videoId" }
 
-        if (!fenrirPluginsOnly && streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
+        if (!fenrirPluginsOnly && !hasFenrirSources && streamAddons.isEmpty() && pluginProviderGroups.isEmpty() && serverSources.isEmpty()) {
             _uiState.value = StreamsUiState(
                 requestToken = requestToken,
                 isAnyLoading = false,
@@ -525,7 +527,7 @@ object StreamsRepository {
                     val bySource = linkedMapOf<String, MutableList<StreamItem>>()
                     runCatching {
                         // Fenrir: links found a moment ago (show page "Found in") come straight away
-                        com.nuvio.app.readmode.FenrirFoundLinks.find(host, query) { sourceName, found ->
+                        com.nuvio.app.readmode.FenrirFoundLinks.find(host, query, forceRefresh = forceRefresh) { sourceName, found ->
                             if (found.isEmpty()) return@find
                             if (fenrirOnlySite != null && sourceName != fenrirOnlySite.second) return@find
                             val snapshot = lock.withLock {

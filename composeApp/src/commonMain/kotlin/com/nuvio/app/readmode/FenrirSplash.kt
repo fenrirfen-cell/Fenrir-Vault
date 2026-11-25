@@ -27,6 +27,7 @@ import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -117,7 +118,11 @@ fun FenrirSplash() {
     val film = FenrirSplashVideo.player
     if (film != null) {
         val leave = remember { androidx.compose.animation.core.Animatable(1f) }
+        val reveal = remember { androidx.compose.animation.core.Animatable(0f) }
         var ending by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            reveal.animateTo(1f, androidx.compose.animation.core.tween(350))
+        }
         fun end() {
             ending = true
         }
@@ -138,11 +143,11 @@ fun FenrirSplash() {
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer { alpha = leave.value }
-                .background(Color.Black)
+                .background(Brush.radialGradient(listOf(Color(0xFF180B29), Color.Black)))
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { end() },
             contentAlignment = Alignment.Center,
         ) {
-            Box(Modifier.fillMaxSize().aspectRatio(9f / 16f)) {
+            Box(Modifier.aspectRatio(9f / 16f).graphicsLayer { alpha = reveal.value }) {
                 film { end() }
             }
         }

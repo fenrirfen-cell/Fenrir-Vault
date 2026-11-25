@@ -3,6 +3,7 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- Add-on check is now on the Fenrir add-ons screen (Sources → Stremio add-ons → Installed), not only in Nuvio's old settings page
 - Checks run by themselves when the app opens and every 4–5 hours while it's on. A Stremio/Nuvio add-on is only turned off after its server hasn't answered for 2 days (an add-on that answers but finds nothing is never turned off), and it turns back on by itself once it answers again
 - Checks everywhere: Installed CloudStream plugins, Aniyomi extensions (installed and available) and Nuvio/Stremio add-ons can be tested too: Test all, or tap Test on one
 - Fixed: the app closing over and over after the WatchParty CloudStream plugin was installed or tested; plugins that hook into the app's screens can't crash it anymore

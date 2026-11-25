@@ -432,6 +432,8 @@ private fun ConfirmDialog(title: String, text: String, confirm: String, onConfir
 @Composable
 private fun StremioManager() {
     val ui by AddonRepository.uiState.collectAsStateWithLifecycle()
+    val addonChecks by com.nuvio.app.features.addons.FenrirAddonCheck.checks.collectAsStateWithLifecycle()
+    var checkFilter by remember { mutableStateOf<FenrirPluginCheck.Result?>(null) }
     var tab by remember { mutableIntStateOf(0) }
     var message by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -464,7 +466,7 @@ private fun StremioManager() {
             PillButton("Refresh", filled = false) { AddonRepository.refreshAll() }
             Spacer(Modifier.width(6.dp))
         }
-        FenrirTabs(listOf("Installed", "Available", "Repositories"), tab) { tab = it }
+        FenrirTabs(listOf("Installed", "Available", "Repositories"), tab) { tab = it; checkFilter = null }
         message?.let { text ->
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(Card).padding(12.dp),
@@ -478,8 +480,20 @@ private fun StremioManager() {
             when (tab) {
                 0 -> {
                     if (on.isEmpty()) item { EmptyNote("No add-ons turned on. Add one under Repositories.") }
-                    items(on, key = { "on-${it.manifestUrl}" }) { addon ->
-                        AddonRow(addon.displayTitle, addon.manifest?.description ?: addon.errorMessage ?: addon.manifestUrl, addon.manifest?.logoUrl) {
+                    if (on.isNotEmpty()) {
+                        item(key = "addon-check") {
+                            FenrirCheckCard("Add-on check", on.map { it.manifestUrl }, addonChecks, { com.nuvio.app.features.addons.FenrirAddonCheck.test(on) }, checkFilter) { checkFilter = it }
+                        }
+                    }
+                    val shownOn = if (checkFilter == null) on else on.filter { addonChecks[it.manifestUrl]?.result == checkFilter }
+                    items(shownOn, key = { "on-${it.manifestUrl}" }) { addon ->
+                        AddonRow(
+                            addon.displayTitle,
+                            addon.manifest?.description ?: addon.errorMessage ?: addon.manifestUrl,
+                            addon.manifest?.logoUrl,
+                            check = addonChecks[addon.manifestUrl] ?: FenrirPluginCheck(FenrirPluginCheck.Result.Testing, reason = "untested"),
+                            onTest = { com.nuvio.app.features.addons.FenrirAddonCheck.test(listOf(addon)) },
+                        ) {
                             // Fenrir: change the add-on on its own page, then reload it here
                             fenrirConfigureUrl(addon)?.let { url ->
                                 Icon(
@@ -498,15 +512,27 @@ private fun StremioManager() {
                                     message = "Refreshing ${addon.displayTitle}…"
                                 }.padding(8.dp).size(20.dp),
                             )
-                            Switch(checked = true, onCheckedChange = { AddonRepository.setAddonEnabled(addon.manifestUrl, false) })
+                            Switch(checked = true, onCheckedChange = {
+                                com.nuvio.app.features.addons.FenrirAddonCheck.userToggled(addon.manifestUrl)
+                                AddonRepository.setAddonEnabled(addon.manifestUrl, false)
+                            })
                         }
                     }
                 }
                 1 -> {
                     item { EmptyNote(if (off.isEmpty()) "Add-ons you turn off show here, ready to turn back on." else "Turned off. Turn one on to use it again.") }
+                    val autoOff = com.nuvio.app.features.addons.FenrirAddonCheck.autoOff()
                     items(off, key = { "off-${it.manifestUrl}" }) { addon ->
-                        AddonRow(addon.displayTitle, addon.manifest?.description ?: addon.manifestUrl, addon.manifest?.logoUrl) {
-                            PillButton("Turn on", filled = true) { AddonRepository.setAddonEnabled(addon.manifestUrl, true) }
+                        AddonRow(
+                            addon.displayTitle,
+                            if (addon.manifestUrl in autoOff) "Turned off: not answering for 2 days. Comes back on by itself when it works."
+                            else addon.manifest?.description ?: addon.manifestUrl,
+                            addon.manifest?.logoUrl,
+                        ) {
+                            PillButton("Turn on", filled = true) {
+                                com.nuvio.app.features.addons.FenrirAddonCheck.userToggled(addon.manifestUrl)
+                                AddonRepository.setAddonEnabled(addon.manifestUrl, true)
+                            }
                         }
                     }
                 }
@@ -569,7 +595,14 @@ private fun StremioManager() {
 }
 
 @Composable
-private fun AddonRow(title: String, subtitle: String, logo: String?, trailing: @Composable () -> Unit) {
+private fun AddonRow(
+    title: String,
+    subtitle: String,
+    logo: String?,
+    check: FenrirPluginCheck? = null,
+    onTest: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit,
+) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF22232C)), contentAlignment = Alignment.Center) {
             Text(title.take(1).uppercase(), color = Color(0xFFB4B2A9), fontWeight = FontWeight.SemiBold)
@@ -581,6 +614,7 @@ private fun AddonRow(title: String, subtitle: String, logo: String?, trailing: @
         Column(Modifier.weight(1f)) {
             Text(title, color = Color.White, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(subtitle, color = HubMuted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (check != null) PluginCheckLine(check, onTest)
         }
         Spacer(Modifier.width(8.dp))
         trailing()

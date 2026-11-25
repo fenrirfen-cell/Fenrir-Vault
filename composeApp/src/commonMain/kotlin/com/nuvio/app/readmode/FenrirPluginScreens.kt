@@ -727,7 +727,7 @@ private val CheckAmber = Color(0xFFFFB547)
 private val CheckRed = Color(0xFFFF6E78)
 
 @Composable
-private fun PluginCheckLine(check: FenrirPluginCheck, onTest: (() -> Unit)?) {
+internal fun PluginCheckLine(check: FenrirPluginCheck, onTest: (() -> Unit)?) {
     val untested = check.result == FenrirPluginCheck.Result.Testing && check.reason == "untested"
     val (color, label) = when {
         untested -> Muted to "Not tested · Test"
@@ -765,7 +765,19 @@ private fun PluginCheckCard(
     onFilter: (FenrirPluginCheck.Result?) -> Unit,
 ) {
     val checks by host.checks.collectAsStateWithLifecycle()
-    val ids = plugins.map { it.id }
+    FenrirCheckCard("Plugin check", plugins.map { it.id }, checks, { host.test(plugins.map { it.id }) }, filter, onFilter)
+}
+
+/** Fenrir: the check summary card (plugins, extensions, add-ons): progress, Test all, filters. */
+@Composable
+internal fun FenrirCheckCard(
+    title: String,
+    ids: List<String>,
+    checks: Map<String, FenrirPluginCheck>,
+    onTestAll: () -> Unit,
+    filter: FenrirPluginCheck.Result?,
+    onFilter: (FenrirPluginCheck.Result?) -> Unit,
+) {
     val results = ids.mapNotNull { checks[it] }
     val testing = results.count { it.result == FenrirPluginCheck.Result.Testing }
     val tested = results.count { it.result != FenrirPluginCheck.Result.Testing }
@@ -783,7 +795,7 @@ private fun PluginCheckCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Plugin check", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(title, color = Color.White, fontWeight = FontWeight.Bold)
                 Text(
                     if (tested == 0 && testing == 0) "See which ones work right now"
                     else "Tested $tested of ${ids.size} · $works work · $slow slow · $down down",
@@ -807,7 +819,7 @@ private fun PluginCheckCard(
             if (testing > 0) {
                 Text("Testing…", color = Muted, style = MaterialTheme.typography.labelLarge)
             } else {
-                PillButton(if (tested > 0) "Test again" else "Test all", filled = true) { host.test(ids) }
+                PillButton(if (tested > 0) "Test again" else "Test all", filled = true) { onTestAll() }
             }
         }
         if (tested > 0) {

@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Nuvio account sync: Fenrir Catalogs' Home rows now stay on this phone too (they were still sent to your account's Home layout), and the "main lists only" first-run setup no longer switches off the Home rows you picked on your Nuvio account
 - Nuvio account sync fixed: after a fresh install the app could replace your account's add-ons with just Fenrir Catalogs. It now waits for your account's add-ons first, and Fenrir Catalogs stays on this device only (never sent to your account)
 - Add-ons the automatic check turns off (after 2 days of not answering) are now only turned off on this phone, not on your Nuvio account or your other devices
 - Player: Back leaves straight away; the "Not the right one?" pop-up is gone (switch links with Sources in the player)

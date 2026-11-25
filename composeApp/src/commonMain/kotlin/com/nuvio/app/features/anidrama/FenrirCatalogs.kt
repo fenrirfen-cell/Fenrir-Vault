@@ -26,6 +26,9 @@ object FenrirCatalogs {
 
     fun handles(url: String): Boolean = url.startsWith("$BASE/")
 
+    /** Home row settings of this add-on ("fenrir.catalogs:type:id"); they stay on this device. */
+    fun isHomeKey(key: String): Boolean = key.startsWith("$ADDON_ID:")
+
     private data class Cat(val id: String, val type: String, val name: String)
 
     private val CATALOGS = listOf(

@@ -43,6 +43,12 @@ import org.jetbrains.compose.resources.decodeToImageBitmap
 /** Shown once per app start (not again when switching between Watch and Read). */
 private var splashShown = false
 
+/** Set on Android: plays the opening film and calls back when it ends (or can't play). */
+object FenrirSplashVideo {
+    const val MAX_MS = 7000L
+    var player: (@Composable (onEnd: () -> Unit) -> Unit)? = null
+}
+
 /** 61 frames: the 16 drawn frames plus 3 blended in-betweens each. */
 private const val FRAME_COUNT = 61
 private const val HOWL_FRAME = 12 // the wolf throws its head back
@@ -106,6 +112,42 @@ fun FenrirSplash() {
     }
     var done by remember { mutableStateOf(false) }
     if (done) return
+    // Fenrir: the opening film (the wolf's eyes, the chains, FENRIR VAULT), played by the phone's
+    // video player. Falls back to the drawn animation below where there's no player.
+    val film = FenrirSplashVideo.player
+    if (film != null) {
+        val leave = remember { androidx.compose.animation.core.Animatable(1f) }
+        var ending by remember { mutableStateOf(false) }
+        fun end() {
+            ending = true
+        }
+        LaunchedEffect(ending) {
+            if (ending) {
+                leave.animateTo(0f, androidx.compose.animation.core.tween(280))
+                splashShown = true
+                FenrirWhatsNew.splashDone.value = true
+                done = true
+            }
+        }
+        // never stuck on black if the film can't play or never reports its end
+        LaunchedEffect(Unit) {
+            delay(FenrirSplashVideo.MAX_MS)
+            end()
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = leave.value }
+                .background(Color.Black)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { end() },
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(Modifier.fillMaxSize().aspectRatio(9f / 16f)) {
+                film { end() }
+            }
+        }
+        return
+    }
     val frames = remember { arrayOfNulls<ImageBitmap>(FRAME_COUNT) }
     var decoded by remember { mutableStateOf(-1) }
     var base by remember { mutableStateOf<ImageBitmap?>(null) }

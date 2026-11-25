@@ -299,4 +299,5 @@ fun fenrirInstallHowl(context: android.content.Context) {
     com.nuvio.app.readmode.FenrirHowl.save = { on -> prefs.edit().putBoolean("howl_on_open", on).apply() }
     com.nuvio.app.readmode.FenrirHowl.play = { fenrirPlayHowl(app) }
     com.nuvio.app.readmode.FenrirHowl.openHowl = { fenrirOpenHowl(app) }
+    com.nuvio.app.readmode.FenrirSplashVideo.player = { onEnd -> com.nuvio.app.readmode.FenrirSplashFilm(onEnd) }
 }

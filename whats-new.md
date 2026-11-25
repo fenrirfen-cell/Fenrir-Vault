@@ -3,6 +3,8 @@
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
 - Home: the same list from two add-ons now shows once
+- Novels in page mode: tap the right side for the next page and the left side to go back, with the book flip (the middle still opens the menu)
+- FENRIR WATCH ▾ always opens now; with no plugins it still has For you
 - For you moved from the bottom bar into the FENRIR WATCH ▾ menu (on Watch and Ani-drama); the bottom bar is Home, Assistant, My list, Settings
 - Fixed: menus and buttons with drop-downs work again (the pop-up block in r160 caught the app's own menus)
 - Ani-drama: FENRIR WATCH ▾ opens the Home source picker again

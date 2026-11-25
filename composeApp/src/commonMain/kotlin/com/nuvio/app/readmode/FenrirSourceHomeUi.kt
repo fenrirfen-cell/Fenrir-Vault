@@ -105,19 +105,18 @@ object FenrirSourceHomeUi {
 /** "FENRIR READ ▾": tapping it opens the list of sources to show on Home. */
 @Composable
 fun FenrirWordmarkSourceButton(onPicked: () -> Unit, modifier: Modifier = Modifier) {
-    val host = FenrirPlugins.cloudStream ?: FenrirPlugins.aniyomi
     var open by remember { mutableStateOf(false) }
     val selected by FenrirSourceHome.selected.collectAsStateWithLifecycle()
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .then(if (host != null) Modifier.clickable { open = true } else Modifier)
+            .clickable { open = true }
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // A little bigger in the top bar, centred on the Watch / Search buttons.
         FenrirWordmark(scale = 1.15f, word = "WATCH")
-        if (host != null) {
+        run {
             Spacer(Modifier.width(4.dp))
             Icon(
                 if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
@@ -127,7 +126,7 @@ fun FenrirWordmarkSourceButton(onPicked: () -> Unit, modifier: Modifier = Modifi
             )
         }
     }
-    if (open && host != null) {
+    if (open) {
         FenrirSourcePickerPanel(
             selected = selected,
             onPick = { id ->
@@ -150,6 +149,7 @@ private fun FenrirSourcePickerPanel(
 ) {
     val cs = FenrirPlugins.cloudStream
     val ay = FenrirPlugins.aniyomi
+    val noPlugins = cs == null && ay == null
     val csState = cs?.state?.collectAsStateWithLifecycle()?.value
     val ayState = ay?.state?.collectAsStateWithLifecycle()?.value
     val flags by FenrirSourceFlags.flags.collectAsStateWithLifecycle()
@@ -229,6 +229,19 @@ private fun FenrirSourcePickerPanel(
                         }
                         Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp).height(1.dp).background(Color(0xFF3A3A46)))
                     }
+                    if (noPlugins) {
+                        item {
+                            Column(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) {
+                                GroupLabel("Sources")
+                                Text(
+                                    "No CloudStream or Aniyomi plugins yet. When you add some, they'll show up here so you can pick a home.",
+                                    color = Color(0xFFCDCDD7),
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+                                )
+                            }
+                        }
+                    } else {
                     item {
                         val off by FenrirSourceHealth.turnedOff.collectAsStateWithLifecycle()
                         if (off.isNotEmpty()) {
@@ -329,7 +342,9 @@ private fun FenrirSourcePickerPanel(
                             )
                         }
                     }
+                    }
                 }
+                if (!noPlugins) {
                 Box(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp).height(1.dp).background(Color(0xFF2A2A34)))
                 Row(
                     Modifier.fillMaxWidth().padding(4.dp),
@@ -359,6 +374,7 @@ private fun FenrirSourcePickerPanel(
                     ) {
                         Text("+ Add extensions", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
+                }
                 }
             }
         }

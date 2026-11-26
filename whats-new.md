@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Auto extensions follow a book's full chapter-list page (More chapters / Catalog).
 - Auto extensions can now copy chapter lists that sites load with scripts.
 - Make extension → Auto now reads custom sites' pages when no known design fits.
 - Auto extensions: fixed "cannot read property 'genres'".

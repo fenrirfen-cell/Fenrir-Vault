@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Catalogs: tap covers (or Select all) to pick several books, then Get them all at once.
 - Novels: Remove extra paragraph spacing (like LNReader) takes out the line breaks sites put between paragraphs, so gaps are even; switch in the reader settings
 - Browse: the browser stays open after a download, so you can grab several books and tap Import once; ⋮ → Get all books on this page lists every book on the page to download together
 - Browse (Import a book) blocks ads: no pop-ups or new-tab ads, no surprise jumps to other sites, ad networks don't load. Turn it off in the browser's ⋮ menu if a site needs its ads

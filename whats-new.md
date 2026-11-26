@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Browse (Import a book) blocks ads: no pop-ups or new-tab ads, no surprise jumps to other sites, ad networks don't load. Turn it off in the browser's ⋮ menu if a site needs its ads
 - Novels: lines that only hold invisible characters are treated as empty too, so paragraph gaps stay even
 - Import a book: new Browse button opens a browser in the app; sign in or pass checks there, tap a book's download, and it's imported
 - Import a book from a link and the in-app browser now ask sites like a phone browser does, so sites that open in Chrome but refused the app (403) should open here too

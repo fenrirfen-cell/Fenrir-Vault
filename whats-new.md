@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Import a book from a link and the in-app browser now ask sites like a phone browser does, so sites that open in Chrome but refused the app (403) should open here too
 - Novels: no more big empty gaps between paragraphs or empty space at the top of a page; the gap is now just your paragraph spacing setting
 - Import a book from a link: when the site asks for a human check, tap Open site, pass it, then tap Check link again; when a site simply doesn't let visitors open a folder, you're told that instead
 - About: "Update channel" now switches beta builds on and off (same as Settings → Notifications → App updates → Get beta builds), and the version line shows your Fenrir build number

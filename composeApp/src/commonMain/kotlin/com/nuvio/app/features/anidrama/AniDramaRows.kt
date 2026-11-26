@@ -19,6 +19,11 @@ object AniDramaRows {
     private val japaneseWords = listOf("j-drama", "jdrama", "j drama", "japanese drama", "dorama", "japan")
     private val asianWords = listOf("asian drama", "asian series", "mydramalist", "dramacool", "kisskh", "viki")
 
+    // Fenrir: Asian streaming services, so their rows (iQIYI - Movies, WeTV - Series…) move too.
+    private val koreanServices = listOf("kocowa", "tving", "wavve", "coupang", " viu ", "viu -", "ondemandkorea")
+    private val chineseServices = listOf("iqiyi", "iq.com", "wetv", "youku", "tencent", "mgtv", "mango tv", "bilibili")
+    private val japaneseServices = listOf("abema", "u-next", "unext", "tver", "fod ", "hulu japan")
+
     /** Which side of the tab a Home row belongs to, or null if it stays on Home. */
     fun regionOf(section: HomeCatalogSection): AniDramaRegion? {
         val type = section.target.contentType.lowercase()
@@ -27,6 +32,9 @@ object AniDramaRows {
         if (koreanWords.any { it in text }) return AniDramaRegion.KDrama
         if (chineseWords.any { it in text }) return AniDramaRegion.CDrama
         if (japaneseWords.any { it in text }) return AniDramaRegion.JDrama
+        if (koreanServices.any { it in text }) return AniDramaRegion.KDrama
+        if (chineseServices.any { it in text }) return AniDramaRegion.CDrama
+        if (japaneseServices.any { it in text }) return AniDramaRegion.JDrama
         if (asianWords.any { it in text }) return AniDramaRegion.KDrama
         return null
     }

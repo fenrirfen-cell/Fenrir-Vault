@@ -183,7 +183,9 @@ internal object DramaRepository {
             "air_date.gte" to AniDramaTime.addDays(today, -21),
             "air_date.lte" to today,
         )
-        val pages = (1..3).map { number -> fetch<DiscoverResponse>("discover/tv", query + ("page" to "$number")) }
+        val pages = coroutineScope {
+            (1..3).map { number -> async { fetch<DiscoverResponse>("discover/tv", query + ("page" to "$number")) } }.awaitAll()
+        }
         if (pages.all { it == null }) return@withLock null
         val ids = pages.flatMap { it?.results.orEmpty() }.map { it.id }.distinct()
         val permits = Semaphore(6)
@@ -408,7 +410,7 @@ internal object DramaRepository {
 
     private suspend inline fun <reified T> fetch(endpoint: String, query: Map<String, String>): T? {
         val url = buildTmdbUrl(endpoint = endpoint, apiKey = apiKey(), query = query)
-        return runCatching { json.decodeFromString<T>(httpGetText(url)) }
+        return runCatching { json.decodeFromString<T>(AniDramaDiskCache.text(url, 3 * AniDramaDiskCache.HOUR) { httpGetText(url) }) }
             .onFailure { log.w { "TMDB $endpoint failed: ${it.message}" } }
             .getOrNull()
     }

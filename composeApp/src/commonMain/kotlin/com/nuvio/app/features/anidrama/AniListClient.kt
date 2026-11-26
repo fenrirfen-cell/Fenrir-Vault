@@ -131,7 +131,7 @@ internal object AniListClient {
             put("query", query.trimIndent())
             put("variables", variables)
         }.toString()
-        return runCatching { json.decodeFromString<T>(httpPostJson(ENDPOINT, body)) }
+        return runCatching { json.decodeFromString<T>(AniDramaDiskCache.text("anilist|$body", 2 * AniDramaDiskCache.HOUR) { httpPostJson(ENDPOINT, body) }) }
             .onFailure { log.w { "AniList request failed: ${it.message}" } }
             .getOrNull()
     }

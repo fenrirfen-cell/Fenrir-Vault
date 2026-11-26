@@ -96,13 +96,18 @@ object FenrirHomeFilter {
 
     fun apply(state: HomeUiState): HomeUiState {
         val kept = mutableListOf<HomeCatalogSection>()
+        // Fenrir: add-ons use different IDs for the same title (IMDb vs TMDB), so also match by name.
+        fun ids(s: HomeCatalogSection) = s.items.take(20).map { it.stableKey() }.toSet()
+        fun names(s: HomeCatalogSection) = s.items.take(20).map { "${it.type}:${norm(it.name)}" }.filter { it.length > 6 }.toSet()
+        fun overlap(a: Set<String>, b: Set<String>) =
+            if (a.isEmpty() || b.isEmpty()) 0.0 else a.intersect(b).size.toDouble() / minOf(a.size, b.size)
         for (section in state.sections) {
-            val keys = section.items.take(20).map { it.stableKey() }.toSet()
+            val keys = ids(section)
+            val titles = names(section)
             val dupe = kept.any { other ->
-                val otherKeys = other.items.take(20).map { it.stableKey() }.toSet()
-                val overlap = if (keys.isEmpty() || otherKeys.isEmpty()) 0.0 else keys.intersect(otherKeys).size.toDouble() / minOf(keys.size, otherKeys.size)
+                val shared = maxOf(overlap(keys, ids(other)), overlap(titles, names(other)))
                 val sameName = norm(other.title) == norm(section.title) && other.target.contentType == section.target.contentType
-                (sameName && (overlap >= 0.4 || keys.isEmpty())) || overlap >= 0.8
+                (sameName && (shared >= 0.4 || keys.isEmpty())) || shared >= 0.8
             }
             if (!dupe) kept += section
         }

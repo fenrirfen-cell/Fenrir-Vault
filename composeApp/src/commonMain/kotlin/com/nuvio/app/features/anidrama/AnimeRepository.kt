@@ -3,6 +3,8 @@ package com.nuvio.app.features.anidrama
 import co.touchlab.kermit.Logger
 import com.nuvio.app.features.addons.httpGetText
 import com.nuvio.app.features.addons.httpPostJson
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -48,7 +50,7 @@ internal object AnimeRepository {
     suspend fun dubbedIds(): Set<Int> = dubMutex.withLock {
         dubbedMalIds?.let { return@withLock it }
         val ids = runCatching {
-            val root = json.parseToJsonElement(httpGetText(DUB_LIST_URL)).jsonObject
+            val root = json.parseToJsonElement(AniDramaDiskCache.text(DUB_LIST_URL, 3 * AniDramaDiskCache.DAY, survivesRefresh = true) { httpGetText(DUB_LIST_URL) }).jsonObject
             root["dubbed"]?.jsonArray?.mapNotNull { it.jsonPrimitive.intOrNull }?.toSet().orEmpty()
         }.onFailure { log.w { "Dub list failed: ${it.message}" } }.getOrNull()
         if (ids != null && ids.isNotEmpty()) dubbedMalIds = ids
@@ -62,8 +64,12 @@ internal object AnimeRepository {
     suspend fun page(query: AniListClient.MediaQuery, page: Int): AniDramaPage? {
         val cacheKey = "$query#$page"
         pageCache[cacheKey]?.let { (items, more) -> return AniDramaPage(items, more) }
-        val (media, hasMore) = AniListClient.page(query, page, PER_PAGE) ?: return null
-        val dubbed = dubbedIds()
+        // Fenrir: fetch the dub list alongside the page instead of after it.
+        val (fetched, dubbed) = coroutineScope {
+            val dub = async { dubbedIds() }
+            AniListClient.page(query, page, PER_PAGE) to dub.await()
+        }
+        val (media, hasMore) = fetched ?: return null
         mapIds(media.map { it.id })
         val byDate = query.sort.startsWith("START_DATE")
         val items = media.mapIndexed { index, it ->
@@ -107,9 +113,11 @@ internal object AnimeRepository {
         val today = AniDramaTime.todayIso()
         latestCache?.takeIf { it.first == today }?.let { return it.second }
         val now = AniDramaTime.nowEpochMs() / 1000
-        val airings = AniListClient.schedule(now - 21L * 24 * 3600, now + 1, maxPages = 20, newestFirst = true)
+        val (airings, dubbed) = coroutineScope {
+            val dub = async { dubbedIds() }
+            AniListClient.schedule(now - 21L * 24 * 3600, now + 1, maxPages = 20, newestFirst = true) to dub.await()
+        }
         if (airings.isEmpty()) return null
-        val dubbed = dubbedIds()
         val latest = airings.filter { it.media != null }.groupBy { it.media!!.id }.values.map { list -> list.maxBy { it.airingAt } }
         mapIds(latest.map { it.media!!.id })
         val items = latest.sortedByDescending { it.airingAt }.map { airing ->
@@ -240,7 +248,7 @@ internal object AnimeRepository {
             val body = buildJsonArray {
                 chunk.forEach { id -> add(buildJsonObject { put("anilist", id) }) }
             }.toString()
-            val results = runCatching { json.parseToJsonElement(httpPostJson(ID_MAP_URL, body)).jsonArray }
+            val results = runCatching { json.parseToJsonElement(AniDramaDiskCache.text("$ID_MAP_URL|$body", 7 * AniDramaDiskCache.DAY, survivesRefresh = true) { httpPostJson(ID_MAP_URL, body) }).jsonArray }
                 .onFailure { log.w { "ID matching failed: ${it.message}" } }
                 .getOrNull() ?: return@forEach
             results.forEachIndexed { index, element ->

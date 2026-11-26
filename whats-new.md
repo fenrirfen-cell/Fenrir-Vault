@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Make your own novel extension: Browse → Novel → + → Make your own extension (Simple builder or Code).
 - Removed the book Catalogs downloader from Browse.
 - Ani-drama opens faster; iQIYI/WeTV rows move to Ani-drama; fewer duplicate Home rows.
 - Browse: badge fixed; island no longer covers the last row.

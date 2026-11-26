@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Ani-drama opens faster; iQIYI/WeTV rows move to Ani-drama; fewer duplicate Home rows.
+- Catalogs: Open site / Try again for Cloudflare checks, and on the Manga side too.
+- Browse: badge fixed; island no longer covers the last row.
 - Catalogs: tap covers (or Select all) to pick several books, then Get them all at once.
 - Novels: Remove extra paragraph spacing (like LNReader) takes out the line breaks sites put between paragraphs, so gaps are even; switch in the reader settings
 - Browse: the browser stays open after a download, so you can grab several books and tap Import once; ⋮ → Get all books on this page lists every book on the page to download together

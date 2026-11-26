@@ -122,6 +122,21 @@ class NuvioReadApplication : App() {
             keepRowsOnHome = aniDramaPrefs.getBoolean(KEY_KEEP_ROWS_ON_HOME, false),
         ) { keep -> aniDramaPrefs.edit().putBoolean(KEY_KEEP_ROWS_ON_HOME, keep).apply() }
 
+        // Ani-drama keeps its downloaded lists on the phone so the tab opens straight away.
+        val aniDramaCacheDir = java.io.File(cacheDir, "anidrama").apply { mkdirs() }
+        com.nuvio.app.features.anidrama.AniDramaDiskCache.install(
+            read = { name ->
+                val f = java.io.File(aniDramaCacheDir, name)
+                if (f.isFile) f.lastModified() to f.readText() else null
+            },
+            write = { name, body ->
+                val f = java.io.File(aniDramaCacheDir, name)
+                val tmp = java.io.File(aniDramaCacheDir, "$name.tmp")
+                tmp.writeText(body)
+                if (!tmp.renameTo(f)) { f.delete(); tmp.renameTo(f) }
+            },
+        )
+
         // Try the next source automatically when a link fails (on by default in Fenrir).
         com.nuvio.app.features.player.FenrirSourceFallback.install(
             enabled = aniDramaPrefs.getBoolean(KEY_SOURCE_FALLBACK, true),

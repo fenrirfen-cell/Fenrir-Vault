@@ -13,7 +13,9 @@ internal object AniDramaRefresh {
     val generation = MutableStateFlow(0)
     private var lastLoadMs = 0L
 
-    fun refresh() {
+    /** [manual] = pulled down by the user: also skip the lists saved on the phone. */
+    fun refresh(manual: Boolean = true) {
+        if (manual) AniDramaDiskCache.forgetLists()
         AnimeRepository.clearLists()
         DramaRepository.clearLists()
         lastLoadMs = AniDramaTime.nowEpochMs()
@@ -26,7 +28,7 @@ internal object AniDramaRefresh {
         if (lastLoadMs == 0L) {
             lastLoadMs = now
         } else if (now - lastLoadMs > STALE_MS) {
-            refresh()
+            refresh(manual = false)
         }
     }
 }

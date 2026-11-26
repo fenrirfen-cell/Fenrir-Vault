@@ -183,7 +183,25 @@ jobs:
       - name: Run tests (a failing test stops the release)
         if: steps.go.outputs.build == 'true'
         run: |
-          ./gradlew :composeApp:testAndroidHostTest --stacktrace --continue
+          # Maven Central sometimes answers "429 Too Many Requests" while the test tools download;
+          # that isn't a failing test, so wait and try again (up to 3 times). Real test failures
+          # stop the release straight away.
+          for attempt in 1 2 3; do
+            set +e
+            ./gradlew :composeApp:testAndroidHostTest --stacktrace --continue 2>&1 | tee test-output.log
+            status=${PIPESTATUS[0]}
+            set -e
+            [ "$status" -eq 0 ] && exit 0
+            if grep -qE "status code 429|Too Many Requests|Could not download|Could not GET|Could not resolve|Read timed out|Connection reset" test-output.log \
+              && ! grep -qE "tests completed, [0-9]+ failed" test-output.log; then
+              echo "::warning::Download problem while preparing the tests (attempt $attempt); retrying in $((attempt * 60)) s."
+              sleep $((attempt * 60))
+              continue
+            fi
+            exit "$status"
+          done
+          echo "::error::The test tools couldn't be downloaded after 3 tries."
+          exit 1
 
       - name: Save merged code
         if: steps.go.outputs.build == 'true' && (steps.merge.outputs.changed == 'true' || steps.tsundoku.outputs.changed == 'true')

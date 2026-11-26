@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Browse: the browser stays open after a download, so you can grab several books and tap Import once; ⋮ → Get all books on this page lists every book on the page to download together
 - Browse (Import a book) blocks ads: no pop-ups or new-tab ads, no surprise jumps to other sites, ad networks don't load. Turn it off in the browser's ⋮ menu if a site needs its ads
 - Novels: lines that only hold invisible characters are treated as empty too, so paragraph gaps stay even
 - Import a book: new Browse button opens a browser in the app; sign in or pass checks there, tap a book's download, and it's imported

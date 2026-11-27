@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Catalog row titles: ivory serif with a small gold telescope (Trending, streaming services) or compass, the source underneath, a thin bronze line and a gold "See All ›"; Top 10 Movies / Top 10 TV Shows sit on parchment
 - Catalog rows match MugiVerse: gold italic row titles with a gold "See all ›", a thin gold rim on every poster and serif titles; on Ani-Drama each poster is a violet-edged card with its episode line and a ⋮ menu
 - The profile picker, sign-in and loading screens show the MugiVerse logo
 - Read: one cabin picture now runs from the top through Continue Reading (no repeat), the book and text sit inside the gold frame, and the shelf spotlights and ivy are gone

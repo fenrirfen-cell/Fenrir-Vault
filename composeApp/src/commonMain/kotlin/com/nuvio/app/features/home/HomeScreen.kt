@@ -1330,7 +1330,7 @@ fun HomeScreen(
                         if (topSection != null) {
                             item(key = "fenrir_top10", contentType = "fenrir_top10") {
                                 com.nuvio.app.readmode.FenrirTop10Row(
-                                    title = "Top 10 today",
+                                    title = if (mugiHome) (if (mugiKind == com.nuvio.app.mugi.WatchKind.MOVIES) "Top 10 Movies" else "Top 10 TV Shows") else "Top 10 today",
                                     subtitle = topSection.title,
                                     entries = topSection.items.take(10).map { m ->
                                         com.nuvio.app.readmode.FenrirTopEntry("${m.type}:${m.id}", m.name, m.poster) { onPosterClick?.invoke(m) }

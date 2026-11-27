@@ -189,35 +189,24 @@ private fun MugiAniBox(
     }
 }
 
-/** Row title in gold italic serif, its source in small muted serif, and a gold "See all ›". */
+/**
+ * Every catalog row heading in MugiVerse: ivory serif title with a gold nautical glyph (telescope
+ * for trending and streaming-provider rows, compass otherwise), the real source underneath, a
+ * bronze line and a gold "See All ›" (only when the row had See all). Accent follows the mode.
+ */
 @Composable
 fun MugiRowHeader(title: String, subtitle: String?, horizontalPadding: androidx.compose.ui.unit.Dp, onSeeAll: (() -> Unit)?) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = horizontalPadding),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                color = Color(0xFFE9D3A0),
-                fontSize = 20.sp,
-                fontFamily = FontFamily.Serif,
-                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Text(subtitle, color = MugiPalette.Muted, fontSize = 11.5.sp, fontFamily = FontFamily.Serif, maxLines = 1)
-            }
-        }
-        if (onSeeAll != null) {
-            Text(
-                "See all ›",
-                color = Color(0xFFD9B26A),
-                fontSize = 13.sp,
-                fontFamily = FontFamily.Serif,
-                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClickLabel = "See all", onClick = onSeeAll).padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-        }
-    }
+    val t = title.lowercase()
+    val sub = subtitle.orEmpty().lowercase()
+    val glyph = if ("trend" in t || "stream" in sub || "stream" in t) CatalogGlyph.TELESCOPE else CatalogGlyph.COMPASS
+    val parchment = if (t.startsWith("top 10") || t.startsWith("top 100")) rememberMugiArt().parchment else null
+    MugiCatalogHeader(
+        title = title,
+        subtitle = subtitle,
+        glyph = glyph,
+        accent = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+        parchment = parchment,
+        onSeeAll = onSeeAll,
+        modifier = Modifier.padding(horizontal = (horizontalPadding - 16.dp).coerceAtLeast(0.dp)),
+    )
 }

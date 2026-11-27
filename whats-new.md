@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- New app icon: the straw hat on the gold compass
+- Compass menu: the three coloured lines now start at the compass and stay attached to the ship, fruit and chest as they fan out and fold back
 - Watch: Movies / TV Shows switch under the logo (the banner, Continue Watching, Top 10 and every row show only that kind), navy colours, red Play button and Continue Watching on rope-framed cards with a little ship on the progress line
 - Ani-Drama: violet everywhere, parchment Anime / K-Drama / C-Drama / J-Drama, and boxed Airing · Trending · Popular · Top 100 · Seasons, Genres · Upcoming · Calendar and Dub · Sub · Both
 - Read: the captain's cabin header with the MugiVerse logo, Continue Reading in the carved gold frame (your book still flies out and opens), the category on parchment, and the compass now sits in the middle of the bar instead of over History

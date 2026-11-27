@@ -103,7 +103,7 @@ fun MugiModeShell(
             Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = .64f * reveal.value))
                 .clickable(enabled = expanded, onClickLabel = "Close mode selector") { onExpandedChange(false) })
             // Align to the navigation compass. Root should handle system insets once.
-            BoxWithConstraints(Modifier.align(Alignment.BottomCenter).padding(bottom = 52.dp)
+            BoxWithConstraints(Modifier.align(Alignment.BottomCenter).padding(bottom = 49.dp)
                 .fillMaxWidth().height(282.dp)) {
                 val menuWidth = minOf(maxWidth, 520.dp)
                 val badgeSize = if (menuWidth < 360.dp) 60.dp else 72.dp
@@ -112,28 +112,26 @@ fun MugiModeShell(
                 val topOffsets = listOf(97.dp, 18.dp, 97.dp)
                 Box(Modifier.align(Alignment.BottomCenter).width(menuWidth).height(282.dp)) {
                     Canvas(Modifier.matchParentSize()) {
+                        // Fenrir: every line starts at the compass centre and ends under its medallion,
+                        // following it while the menu opens or closes, so they always stay connected.
                         val origin = Offset(size.width * .5f, size.height)
+                        val p = reveal.value.coerceIn(0f,1f)
                         targets.forEachIndexed { index, item ->
-                            val x = size.width * item.second
-                            val y = (topOffsets[index] + badgeSize + 34.dp).toPx()
-                            val progress = reveal.value.coerceIn(0f,1f)
-                            val end = Offset(x, y)
-                            // Draw a cubic route from the compass outwards. The curve never crosses a label.
-                            val p1 = Offset(origin.x + (end.x-origin.x)*.10f, origin.y - 79.dp.toPx())
-                            val p2 = Offset(end.x, end.y + 64.dp.toPx())
+                            val cx = size.width * .5f + (size.width * item.second - size.width * .5f) * p
+                            val top = topOffsets[index] * p + 210.dp * (1 - p)
+                            val end = Offset(cx, (top + badgeSize + 8.dp + 25.dp + 14.dp).toPx())
+                            val rise = origin.y - end.y
+                            val p1 = Offset(origin.x + (end.x-origin.x)*.10f, origin.y - rise * .38f)
+                            val p2 = Offset(end.x, end.y + rise * .32f)
                             val curve = Path().apply {
                                 moveTo(origin.x, origin.y)
-                                for (step in 1..45) {
-                                    val t = progress * step / 45f
-                                    val v = 1f-t
-                                    lineTo(v*v*v*origin.x+3*v*v*t*p1.x+3*v*t*t*p2.x+t*t*t*end.x,
-                                        v*v*v*origin.y+3*v*v*t*p1.y+3*v*t*t*p2.y+t*t*t*end.y)
-                                }
+                                cubicTo(p1.x, p1.y, p2.x, p2.y, end.x, end.y)
                             }
                             val c = item.first.accent
-                            drawPath(curve,c.copy(alpha=.10f*progress),style=Stroke(9.dp.toPx()))
-                            drawPath(curve,c.copy(alpha=.25f*progress),style=Stroke(4.dp.toPx()))
-                            drawPath(curve,c.copy(alpha=.9f*progress),style=Stroke(1.3.dp.toPx()))
+                            drawPath(curve,c.copy(alpha=.10f*p),style=Stroke(9.dp.toPx()))
+                            drawPath(curve,c.copy(alpha=.25f*p),style=Stroke(4.dp.toPx()))
+                            drawPath(curve,c.copy(alpha=.9f*p),style=Stroke(1.3.dp.toPx()))
+                            drawCircle(c.copy(alpha=.9f*p), 2.5.dp.toPx(), end)
                         }
                     }
                     targets.forEachIndexed { index, item ->

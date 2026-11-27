@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -319,35 +320,36 @@ internal fun MainTabsDestination(
                     }
                     if (mugi) {
                         val mugiArt = com.nuvio.app.mugi.rememberMugiArt()
+                        // Watch's Home (not a CloudStream source's home): Movies / TV Shows in the header
+                        val mugiSource by com.nuvio.app.readmode.FenrirSourceHome.selected.collectAsStateWithLifecycle()
+                        val showKind = selectedTab == AppScreenTab.Home && mugiSource == null
+                        androidx.compose.runtime.SideEffect { com.nuvio.app.mugi.MugiWatch.selectorShown.value = false }
                         com.nuvio.app.mugi.MugiTopBar(
                             mode = if (selectedTab == AppScreenTab.AniDrama) com.nuvio.app.mugi.MugiMode.ANI_DRAMA else com.nuvio.app.mugi.MugiMode.WATCH,
                             art = mugiArt,
-                            onSearch = { onTabSelected(AppScreenTab.Search) },
                             onSourcePicked = { if (selectedTab != AppScreenTab.Home) onTabSelected(AppScreenTab.Home) },
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
                                 .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 2.dp),
+                            trailing = {
+                                if (selectedTab == AppScreenTab.AniDrama) {
+                                    val region by com.nuvio.app.mugi.MugiAniState.region.collectAsStateWithLifecycle()
+                                    com.nuvio.app.mugi.AniDramaCategorySelector(
+                                        categories = com.nuvio.app.features.anidrama.AniDramaRegion.entries.map { it.label },
+                                        selectedIndex = region,
+                                        onSelected = { com.nuvio.app.mugi.MugiAniState.region.value = it },
+                                    )
+                                } else if (showKind) {
+                                    val kind by com.nuvio.app.mugi.MugiWatch.kind.collectAsStateWithLifecycle()
+                                    com.nuvio.app.mugi.WatchKindSelector(
+                                        value = kind,
+                                        onChange = { com.nuvio.app.mugi.MugiWatch.kind.value = it },
+                                        compact = true,
+                                    )
+                                }
+                            },
                         )
-                        // Movies / TV Shows under the header (Watch's Home, not a CloudStream source's home)
-                        val mugiSource by com.nuvio.app.readmode.FenrirSourceHome.selected.collectAsStateWithLifecycle()
-                        val showKind = selectedTab == AppScreenTab.Home && mugiSource == null
-                        androidx.compose.runtime.SideEffect { com.nuvio.app.mugi.MugiWatch.selectorShown.value = showKind }
-                        if (showKind) {
-                            val kind by com.nuvio.app.mugi.MugiWatch.kind.collectAsStateWithLifecycle()
-                            com.nuvio.app.mugi.WatchKindSelector(
-                                value = kind,
-                                onChange = { com.nuvio.app.mugi.MugiWatch.kind.value = it },
-                                modifier = Modifier
-                                    .align(Alignment.TopStart)
-                                    .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
-                                    .padding(
-                                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 2.dp + 68.dp,
-                                        start = 40.dp,
-                                        end = 40.dp,
-                                    ),
-                            )
-                        }
                         if (selectedTab == AppScreenTab.Home) {
                             com.nuvio.app.readmode.FenrirSourcePillOverlay(
                                 modifier = Modifier
@@ -454,6 +456,13 @@ internal fun MainTabsDestination(
                                 com.nuvio.app.mugi.MugiMode.READ -> ReadModeBridge.openRead?.invoke()
                             }
                         },
+                        extras = listOf(
+                            com.nuvio.app.mugi.MugiMenuAction(
+                                label = "Assistant",
+                                icon = Icons.Rounded.AutoAwesome,
+                                onClick = { com.nuvio.app.assistant.AssistantController.show() },
+                            ),
+                        ),
                     )
                     val islandHidden by androidx.compose.animation.core.animateFloatAsState(
                         targetValue = if (com.nuvio.app.readmode.FenrirBarScroll.visible || mugiMenuOpen) 0f else 1f,
@@ -480,11 +489,18 @@ internal fun MainTabsDestination(
                                     onClick = { onTabSelected(if (inAni && aniDramaAvailable) AppScreenTab.AniDrama else AppScreenTab.Home) },
                                     icon = Icons.Filled.Home,
                                 ),
+                                // Search sits where Assistant was; Assistant moved into the compass menu.
                                 com.nuvio.app.mugi.MugiNavItem(
-                                    label = "Assistant",
-                                    selected = assistantOpen,
-                                    onClick = { com.nuvio.app.assistant.AssistantController.show() },
-                                    icon = Icons.Rounded.AutoAwesome,
+                                    label = "Search",
+                                    selected = selectedTab == AppScreenTab.Search,
+                                    onClick = {
+                                        com.nuvio.app.mugi.mugiSearch(
+                                            onSearchTab = { onTabSelected(AppScreenTab.Search) },
+                                            inWatch = !inAni,
+                                            onWatchHome = { if (selectedTab != AppScreenTab.Home) onTabSelected(AppScreenTab.Home) },
+                                        )
+                                    },
+                                    icon = Icons.Rounded.Search,
                                 ),
                                 com.nuvio.app.mugi.MugiNavItem(
                                     label = "My List",

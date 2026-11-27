@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -90,6 +91,7 @@ fun MugiModeShell(
     modifier: Modifier = Modifier,
     // Existing navigation receives compass tap callback. Keep original tabs and routes.
     navigation: @Composable (menuExpanded: Boolean, onCompassClick: () -> Unit) -> Unit,
+    extras: List<MugiMenuAction> = emptyList(),
     content: @Composable () -> Unit
 ) {
     com.nuvio.app.core.ui.PlatformBackHandler(enabled = expanded) { onExpandedChange(false) }
@@ -177,6 +179,29 @@ fun MugiModeShell(
                 }
             }
         }
+            // extra actions (Assistant) as gold-rimmed pills above the Ani-Drama medallion; the three-mode
+            // animation underneath is unchanged
+            if (extras.isNotEmpty() && (expanded || reveal.value > 0.001f)) {
+                val p = reveal.value.coerceIn(0f,1f)
+                Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 49.dp + 282.dp + 10.dp)
+                    .graphicsLayer { alpha = p; translationY = (1f - p) * 24.dp.toPx() },
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    extras.forEach { action ->
+                        val shape = RoundedCornerShape(50)
+                        Row(Modifier.heightIn(min=44.dp).clip(shape).background(Color(0xF00E1822))
+                            .border(1.dp, MugiPalette.Gold, shape)
+                            .clickable(enabled = expanded, role = Role.Button, onClickLabel = action.label) {
+                                onExpandedChange(false)
+                                action.onClick()
+                            }
+                            .padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                            androidx.compose.material3.Icon(action.icon, null, tint = MugiPalette.Gold, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(action.label, color = MugiPalette.Ivory, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
+                        }
+                    }
+                }
+            }
         Box(Modifier.align(Alignment.BottomCenter)) { navigation(expanded) { onExpandedChange(!expanded) } }
     }
 }
@@ -213,16 +238,30 @@ fun MugiHeader(mode: MugiMode, art: MugiArt, modifier: Modifier = Modifier,
 }
 
 @Composable
-fun WatchKindSelector(value: WatchKind,onChange:(WatchKind)->Unit,modifier:Modifier=Modifier) {
-    Row(modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(24.dp))
-        .background(MugiPalette.Navy).border(1.dp,MugiPalette.Gold,RoundedCornerShape(24.dp))) {
-        WatchKind.values().forEach { kind ->
-            Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(24.dp))
-                .background(if(kind==value) Brush.verticalGradient(listOf(Color(0xFFDE3038),Color(0xFF8B1019))) else Brush.verticalGradient(listOf(MugiPalette.Navy,MugiPalette.Navy)))
-                .clickable(role=Role.Tab,onClickLabel=kind.label){onChange(kind)},contentAlignment=Alignment.Center) {
-                Text(kind.label,color=MugiPalette.Ivory,fontFamily=FontFamily.Serif,fontSize=16.sp)
+fun WatchKindSelector(value: WatchKind,onChange:(WatchKind)->Unit,modifier:Modifier=Modifier,compact:Boolean=false) {
+    // See-through pill so the art behind shows through. [compact] is the small one in the header.
+    val shape=RoundedCornerShape(50)
+    val pill = @Composable { m: Modifier ->
+        Row(m.clip(shape)
+            .background(MugiPalette.Navy.copy(alpha=if(compact) .7f else .55f)).border(1.dp,MugiPalette.Gold.copy(alpha=.6f),shape)
+            .padding(if(compact) 2.5.dp else 3.dp)) {
+            WatchKind.values().forEach { kind ->
+                val selected=kind==value
+                Box(Modifier.weight(1f).fillMaxHeight().clip(shape)
+                    .then(if(selected) Modifier.background(Brush.verticalGradient(listOf(Color(0xFFDE3038),Color(0xFF8B1019)))) else Modifier)
+                    .clickable(role=Role.Tab,onClickLabel=kind.label){onChange(kind)},contentAlignment=Alignment.Center) {
+                    Text(kind.label,color=if(selected) MugiPalette.Ivory else MugiPalette.Ivory.copy(alpha=.85f),
+                        fontFamily=FontFamily.Serif,fontWeight=if(selected) FontWeight.Bold else FontWeight.Normal,
+                        fontSize=if(compact) 12.sp else 14.sp,maxLines=1)
+                }
             }
         }
+    }
+    if (compact) {
+        // 48dp tall touch area around the 32dp pill
+        Box(modifier.width(164.dp).heightIn(min=48.dp),contentAlignment=Alignment.Center) { pill(Modifier.fillMaxWidth().height(32.dp)) }
+    } else {
+        Box(modifier.fillMaxWidth(),contentAlignment=Alignment.Center) { pill(Modifier.widthIn(max=220.dp).fillMaxWidth().height(34.dp)) }
     }
 }
 

@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.nuvio.app.core.ui.nuvioSafeBottomPadding
@@ -103,6 +104,7 @@ internal fun AniDramaCalendarView(
     val byDay = remember(entries) { entries.groupBy { it.dateIso } }
     val dayEntries = byDay[selectedIso].orEmpty().sortedBy { it.sortKey }
 
+    val mugi = com.nuvio.app.mugi.mugiOn()
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -123,7 +125,8 @@ internal fun AniDramaCalendarView(
                             text = "${AniDramaTime.monthName(month)} $year",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            fontFamily = if (mugi) androidx.compose.ui.text.font.FontFamily.Serif else null,
+                            color = if (mugi) MugiCal.Ivory else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(horizontal = 8.dp),
                         )
                         RoundIcon(Icons.Rounded.ChevronRight, "Next month") {
@@ -172,12 +175,22 @@ internal fun AniDramaCalendarView(
                     )
                 }
             }
+            if (mugi) item(key = "gold-divider") {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp)
+                        .height(1.dp)
+                        .background(MugiCal.Gold.copy(alpha = 0.55f)),
+                )
+            }
             item(key = "day-title") {
                 Text(
                     text = AniDramaTime.longDayLabel(selectedIso),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = if (mugi) androidx.compose.ui.text.font.FontFamily.Serif else null,
+                    color = if (mugi) MugiCal.Ivory else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
                 )
             }
@@ -193,6 +206,15 @@ internal fun AniDramaCalendarView(
                     )
                 }
                 else -> items(dayEntries, key = { it.item.key + "#" + it.episode + "#" + it.dateIso }) { entry ->
+                    if (mugi && entry !== dayEntries.first()) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = 76.dp, end = 16.dp, bottom = 8.dp)
+                                .height(1.dp)
+                                .background(MugiCal.Divider.copy(alpha = 0.6f)),
+                        )
+                    }
                     CalendarRow(
                         entry = entry,
                         showDubBadge = showDubBadge,
@@ -234,7 +256,7 @@ private fun MonthGrid(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (com.nuvio.app.mugi.mugiOn()) MugiCal.Ivory.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f),
                 )
@@ -257,7 +279,7 @@ private fun MonthGrid(
                             modifier = Modifier.weight(1f),
                         )
                     } else {
-                        Spacer(Modifier.weight(1f).height(42.dp))
+                        Spacer(Modifier.weight(1f).height(if (com.nuvio.app.mugi.mugiOn()) 48.dp else 42.dp))
                     }
                 }
             }
@@ -279,7 +301,7 @@ private fun WeekStrip(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (com.nuvio.app.mugi.mugiOn()) MugiCal.Ivory.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f),
                 )
@@ -316,6 +338,39 @@ private fun DayCell(
     val colors = MaterialTheme.colorScheme
     val episodes = entries.count { !it.isPremiere }
     val premieres = entries.count { it.isPremiere }
+    if (com.nuvio.app.mugi.mugiOn()) {
+        // MugiVerse: round day, purple when chosen, a thin gold ring on today, small dots for episodes
+        Box(
+            modifier = modifier
+                .height(48.dp)
+                .clickable(onClickLabel = label) { onSelect(iso) },
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .then(if (selected) Modifier.background(MugiCal.PurpleDark) else Modifier)
+                    .then(if (today) Modifier.border(1.5.dp, MugiCal.Gold, CircleShape) else Modifier),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = label,
+                    fontSize = 15.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    color = MugiCal.Ivory,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.height(5.dp).padding(top = 1.5.dp)) {
+                    repeat(episodes.coerceAtMost(if (premieres > 0) 2 else 3)) {
+                        Box(Modifier.size(3.5.dp).clip(CircleShape).background(MugiCal.Secondary))
+                    }
+                    if (premieres > 0) Box(Modifier.size(3.5.dp).clip(CircleShape).background(PremiereColor))
+                }
+            }
+        }
+        return
+    }
     Column(
         modifier = modifier
             .height(42.dp)
@@ -355,6 +410,7 @@ private fun CalendarRow(
     onLongClick: () -> Unit,
     onBell: () -> Unit,
 ) {
+    val mugi = com.nuvio.app.mugi.mugiOn()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -379,19 +435,21 @@ private fun CalendarRow(
                 text = entry.item.title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (mugi) MugiCal.Ivory else MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = entry.episodeLabel,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (entry.isPremiere) PremiereColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (entry.isPremiere) PremiereColor else if (mugi) MugiCal.Secondary else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (showDubBadge && entry.item.hasEnglishDub) {
+        if (mugi && showDubBadge && entry.item.hasEnglishDub) {
+            Box(Modifier.padding(end = 6.dp)) { com.nuvio.app.mugi.EpisodeLanguageBadge(isDub = true) }
+        } else if (showDubBadge && entry.item.hasEnglishDub) {
             Text(
                 text = "DUB",
                 style = MaterialTheme.typography.labelSmall,
@@ -407,7 +465,7 @@ private fun CalendarRow(
             Icon(
                 imageVector = if (reminderSet) Icons.Rounded.Notifications else Icons.Rounded.NotificationsNone,
                 contentDescription = if (reminderSet) "Reminder on" else "Remind me",
-                tint = if (reminderSet) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (mugi) MugiCal.Gold else if (reminderSet) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.clip(CircleShape).clickable(onClick = onBell).padding(8.dp).size(22.dp),
             )
         }
@@ -595,7 +653,7 @@ private fun RoundIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, des
     Icon(
         imageVector = icon,
         contentDescription = description,
-        tint = MaterialTheme.colorScheme.onSurface,
+        tint = if (com.nuvio.app.mugi.mugiOn()) MugiCal.Gold else MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
@@ -604,3 +662,6 @@ private fun RoundIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, des
             .size(20.dp),
     )
 }
+
+/** MugiVerse Ani-Drama colours for the calendar. */
+private val MugiCal = com.nuvio.app.mugi.AniDramaColors

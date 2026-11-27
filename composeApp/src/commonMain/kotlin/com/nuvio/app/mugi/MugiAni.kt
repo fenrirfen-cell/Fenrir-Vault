@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.material.icons.rounded.ArrowDropUp
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
@@ -35,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -90,105 +94,6 @@ private fun chipIcon(label: String): ImageVector = when (label.lowercase()) {
     else -> Icons.Rounded.GraphicEq
 }
 
-/** Anime · K-Drama · C-Drama · J-Drama on parchment; the chosen one violet with a gold rim. */
-@Composable
-fun MugiAniRegions(art: MugiArt, labels: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        labels.forEachIndexed { i, label ->
-            Box(
-                Modifier
-                    .weight(1f)
-                    .height(38.dp)
-                    .clip(RoundedCornerShape(7.dp))
-                    .clickable(role = Role.Tab, onClickLabel = label) { onSelect(i) },
-                contentAlignment = Alignment.Center,
-            ) {
-                if (i == selected) {
-                    Box(
-                        Modifier
-                            .matchParentSize()
-                            .background(Color(0xFF552081), RoundedCornerShape(7.dp))
-                            .border(1.5.dp, MugiPalette.Gold, RoundedCornerShape(7.dp)),
-                    )
-                    Text(label, color = MugiPalette.Ivory, fontSize = 13.sp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, maxLines = 1)
-                } else {
-                    ParchmentLabel(label, art.parchment, Modifier.matchParentSize(), 12)
-                }
-            }
-        }
-    }
-}
-
-/**
- * The Ani-Drama menus as boxed buttons: the first five with the icon above the name, the rest
- * three to a row with the icon beside it. Same menus and order as before.
- */
-@Composable
-fun MugiAniChips(labels: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        val top = labels.take(5)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            top.forEachIndexed { i, label ->
-                MugiAniBox(label, i == selected, tall = true, modifier = Modifier.weight(1f)) { onSelect(i) }
-            }
-        }
-        labels.drop(5).chunked(3).forEachIndexed { r, row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                row.forEachIndexed { j, label ->
-                    val index = 5 + r * 3 + j
-                    MugiAniBox(label, index == selected, tall = false, modifier = Modifier.weight(1f)) { onSelect(index) }
-                }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
-    }
-}
-
-/** Dub · Sub · Both as three equal boxes. */
-@Composable
-fun MugiAniAudio(labels: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        labels.forEachIndexed { i, label ->
-            MugiAniBox(label, i == selected, tall = false, round = true, modifier = Modifier.weight(1f)) { onSelect(i) }
-        }
-    }
-}
-
-@Composable
-private fun MugiAniBox(
-    label: String,
-    selected: Boolean,
-    tall: Boolean,
-    modifier: Modifier = Modifier,
-    round: Boolean = false,
-    onClick: () -> Unit,
-) {
-    val shape = RoundedCornerShape(if (round) 18.dp else 8.dp)
-    val tint = if (selected) Color.White else MugiPalette.Ivory.copy(alpha = 0.85f)
-    Box(
-        modifier
-            .height(if (tall) 54.dp else 34.dp)
-            .clip(shape)
-            .background(if (selected) Violet.copy(alpha = 0.42f) else BoxFill)
-            .border(1.dp, if (selected) Color(0xFFC79BFF) else Edge, shape)
-            .clickable(role = Role.Tab, onClickLabel = label, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (tall) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(chipIcon(label), null, tint = tint, modifier = Modifier.size(19.dp))
-                Text(label, color = tint, fontSize = 11.sp, fontFamily = FontFamily.Serif, maxLines = 1)
-            }
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(chipIcon(label), null, tint = tint, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(label, color = tint, fontSize = 12.sp, fontFamily = FontFamily.Serif, maxLines = 1)
-            }
-        }
-    }
-}
-
 /**
  * Every catalog row heading in MugiVerse: ivory serif title with a gold nautical glyph (telescope
  * for trending and streaming-provider rows, compass otherwise), the real source underneath, a
@@ -209,4 +114,201 @@ fun MugiRowHeader(title: String, subtitle: String?, horizontalPadding: androidx.
         onSeeAll = onSeeAll,
         modifier = Modifier.padding(horizontal = (horizontalPadding - 16.dp).coerceAtLeast(0.dp)),
     )
+}
+
+// ---------------------------------------------------------------- Ani-Drama polish
+
+/** The Ani-Drama colours (purple near the header, near-black below). */
+object AniDramaColors {
+    val BackgroundTop = Color(0xFF21102F)
+    val BackgroundBottom = Color(0xFF090810)
+    val Surface = Color(0xFF21142E)
+    val Purple = Color(0xFF922DE0)
+    val PurpleDark = Color(0xFF57168C)
+    val Gold = Color(0xFFD4AF65)
+    val Ivory = Color(0xFFF5E8D0)
+    val Secondary = Color(0xFFB9AEC4)
+    val Divider = Color(0xFF382A43)
+}
+
+/** Which Ani-Drama category (index into AniDramaRegion) is showing; the header picker sets it. */
+object MugiAniState {
+    val region = kotlinx.coroutines.flow.MutableStateFlow(0)
+}
+
+fun Modifier.aniDramaPremiumBackground(): Modifier = background(
+    androidx.compose.ui.graphics.Brush.verticalGradient(
+        0f to AniDramaColors.BackgroundTop,
+        0.45f to Color(0xFF140C20),
+        1f to AniDramaColors.BackgroundBottom,
+    ),
+)
+
+/** "Anime ▾" in the header: opens Anime · K-Drama · C-Drama · J-Drama. */
+@Composable
+fun AniDramaCategorySelector(categories: List<String>, selectedIndex: Int, onSelected: (Int) -> Unit) {
+    var expanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val shape = RoundedCornerShape(24.dp)
+    val selected = categories.getOrElse(selectedIndex) { categories.first() }
+    Box {
+        Row(
+            Modifier
+                .heightIn(min = 48.dp)
+                .padding(vertical = 4.dp)
+                .clip(shape)
+                .background(AniDramaColors.Surface)
+                .border(1.dp, AniDramaColors.Gold, shape)
+                .clickable(role = Role.DropdownList, onClickLabel = "Choose category") { expanded = true }
+                .padding(start = 14.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(selected, color = AniDramaColors.Ivory, fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
+            Icon(
+                if (expanded) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown,
+                contentDescription = null,
+                tint = AniDramaColors.Gold,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        androidx.compose.material3.DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(180.dp),
+            shape = RoundedCornerShape(14.dp),
+            containerColor = AniDramaColors.Surface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, AniDramaColors.Gold),
+        ) {
+            categories.forEachIndexed { i, category ->
+                val active = i == selectedIndex
+                androidx.compose.material3.DropdownMenuItem(
+                    modifier = Modifier.background(if (active) AniDramaColors.PurpleDark else Color.Transparent),
+                    text = { Text(category, color = AniDramaColors.Ivory, fontFamily = FontFamily.Serif, fontSize = 15.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal) },
+                    trailingIcon = if (active) {
+                        { Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = AniDramaColors.Ivory) }
+                    } else null,
+                    onClick = {
+                        expanded = false
+                        onSelected(i)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AniDramaFilterChip(label: String, selected: Boolean, onClick: () -> Unit, icon: ImageVector? = null, trailing: ImageVector? = null) {
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        Modifier
+            .heightIn(min = 44.dp)
+            .clip(shape)
+            .background(
+                if (selected) androidx.compose.ui.graphics.Brush.verticalGradient(listOf(AniDramaColors.Purple, AniDramaColors.PurpleDark))
+                else androidx.compose.ui.graphics.SolidColor(AniDramaColors.Surface),
+            )
+            .border(1.dp, if (selected) Color(0xFFB86CFF) else AniDramaColors.Divider, shape)
+            .clickable(role = Role.Tab, onClickLabel = label, onClick = onClick)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        icon?.let {
+            Icon(it, contentDescription = null, tint = AniDramaColors.Ivory, modifier = Modifier.size(15.dp))
+            Spacer(Modifier.width(5.dp))
+        }
+        Text(label, color = AniDramaColors.Ivory, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+        trailing?.let {
+            Icon(it, contentDescription = null, tint = AniDramaColors.Gold, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+/**
+ * One swipeable row: the Dub / Sub / Both picker first (Anime only, a small dropdown), then every
+ * menu (Airing … Calendar). The chosen menu scrolls into view by itself.
+ */
+@Composable
+fun MugiAniFilterRow(
+    labels: List<String>,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    audioLabels: List<String>?,
+    audioSelected: Int,
+    onAudioSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val state = androidx.compose.foundation.lazy.rememberLazyListState()
+    val offset = if (audioLabels != null) 1 else 0
+    androidx.compose.runtime.LaunchedEffect(selected, offset) {
+        val target = selected + offset
+        val visible = state.layoutInfo.visibleItemsInfo
+        val item = visible.firstOrNull { it.index == target }
+        val fullyVisible = item != null && item.offset >= 0 &&
+            item.offset + item.size <= state.layoutInfo.viewportEndOffset
+        if (!fullyVisible) state.animateScrollToItem((target - 1).coerceAtLeast(0))
+    }
+    androidx.compose.foundation.lazy.LazyRow(
+        state = state,
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (audioLabels != null) {
+            item(key = "audio") {
+                var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box {
+                        val label = audioLabels.getOrElse(audioSelected) { audioLabels.last() }
+                        AniDramaFilterChip(
+                            label = label,
+                            selected = false,
+                            onClick = { open = true },
+                            icon = chipIcon(label),
+                            trailing = Icons.Rounded.ArrowDropDown,
+                        )
+                        androidx.compose.material3.DropdownMenu(
+                            expanded = open,
+                            onDismissRequest = { open = false },
+                            shape = RoundedCornerShape(14.dp),
+                            containerColor = AniDramaColors.Surface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AniDramaColors.Gold),
+                        ) {
+                            audioLabels.forEachIndexed { i, l ->
+                                val active = i == audioSelected
+                                androidx.compose.material3.DropdownMenuItem(
+                                    modifier = Modifier.background(if (active) AniDramaColors.PurpleDark else Color.Transparent),
+                                    leadingIcon = { Icon(chipIcon(l), null, tint = AniDramaColors.Ivory, modifier = Modifier.size(18.dp)) },
+                                    text = { Text(l, color = AniDramaColors.Ivory, fontSize = 14.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal) },
+                                    trailingIcon = if (active) {
+                                        { Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = AniDramaColors.Ivory) }
+                                    } else null,
+                                    onClick = { open = false; onAudioSelect(i) },
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    Box(Modifier.width(1.dp).height(28.dp).background(AniDramaColors.Gold.copy(alpha = 0.45f)))
+                }
+            }
+        }
+        labels.forEachIndexed { i, label ->
+            item(key = "chip-$label") {
+                AniDramaFilterChip(label = label, selected = i == selected, onClick = { onSelect(i) }, icon = chipIcon(label))
+            }
+        }
+    }
+}
+
+@Composable
+fun EpisodeLanguageBadge(isDub: Boolean) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(5.dp))
+            .background(if (isDub) AniDramaColors.PurpleDark else Color(0xFF3F354B))
+            .padding(horizontal = 6.dp, vertical = 3.dp),
+    ) {
+        Text(if (isDub) "DUB" else "SUB", color = AniDramaColors.Ivory, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
 }

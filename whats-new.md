@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Novel page mode: the page slider jumps by whole pages, and a tablet or unfolded phone held sideways shows two pages side by side like an open book (they turn two at a time)
+- Read: a carved beam with a soft shadow along the bottom of the top bar, so the shelves slide under it smoothly when you scroll
 - Compass menu: light pulses run along each coloured line from the compass up into the ship, fruit and chest while the menu is open
 - Read: the search button left the top (it's in the logo's menu). READ ▾ shows the logo is a button, and a small tip says so the first few times. Bigger category banner, gold book count, and a darker bottom bar
 - Novel page mode: "3 / 11" pages of the chapter in the status bar and menu, and the last page of a chapter says "Next · Chapter 2: title"; just turn the page to go on

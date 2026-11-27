@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- New: Line spacing and Paragraph spacing controls (− / +) in the reader's How to read sheet
 - Fixed: in Paged reading, the chapter title is always at the top of the first page, even when a site puts an author's note before it
 - Fixed: the gold "Tap the logo" tip no longer covers the opening animation or the What's new card
 - Novels: Paged reading (Experimental), like LNReader. The chapter is laid out as real pages that fill top to bottom with 1/11 at the bottom; turn the last page to go to the next chapter. Turn it on in the reader menu → How to read

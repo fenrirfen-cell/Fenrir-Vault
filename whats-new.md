@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- MugiVerse: Movies / TV Shows toggle now sits in the header
+- Search moved to the bottom bar; Assistant is in the compass menu
+- Ani-Drama: "Anime ▾" picker in the header, filters in one swipeable row, refreshed calendar
 - New: Line spacing and Paragraph spacing controls (− / +) in the reader's How to read sheet
 - Fixed: in Paged reading, the chapter title is always at the top of the first page, even when a site puts an author's note before it
 - Fixed: the gold "Tap the logo" tip no longer covers the opening animation or the What's new card

@@ -297,10 +297,11 @@ fun ThreeTidesIntro(logo:Painter,onFinished:()->Unit,modifier:Modifier=Modifier,
                         val normal=Offset(-unit.y,unit.x);val star=Path().apply {moveTo(c.x+unit.x*r,c.y+unit.y*r);lineTo(c.x+normal.x*w,c.y+normal.y*w);lineTo(c.x-unit.x*r*.09f,c.y-unit.y*r*.09f);lineTo(c.x-normal.x*w,c.y-normal.y*w);close()};drawPath(star,MugiPalette.Ivory.copy(alpha=fade)) }
                 }
             }
+            val logoWidth = maxWidth * .86f
             Box(Modifier.align(Alignment.Center).fillMaxWidth(.86f).height(110.dp).clipToBounds()) {
                 // Center-out wipe; clip descendants without changing logo aspect ratio.
                 Box(Modifier.align(Alignment.Center).fillMaxWidth(u).fillMaxHeight().clipToBounds()) {
-                    Image(logo,"MugiVerse",Modifier.requiredWidth(maxWidth*.86f).fillMaxHeight().align(Alignment.Center),contentScale=ContentScale.Fit)
+                    Image(logo,"MugiVerse",Modifier.requiredWidth(logoWidth).fillMaxHeight().align(Alignment.Center),contentScale=ContentScale.Fit)
                 }
             }
         }

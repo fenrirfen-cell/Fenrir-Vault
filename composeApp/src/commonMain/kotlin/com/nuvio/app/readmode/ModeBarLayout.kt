@@ -109,7 +109,9 @@ object FenrirBarScroll {
 }
 
 @Composable
-fun modeBarHeight(): Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + ModeBarContentHeight
+fun modeBarHeight(): Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + ModeBarContentHeight +
+    // MugiVerse: the Movies / TV Shows switch under the header on Watch's Home
+    (if (com.nuvio.app.mugi.MugiWatch.selectorShown.value) 50.dp else 0.dp)
 
 @Composable
 fun modeBarHiddenFraction(): Float {

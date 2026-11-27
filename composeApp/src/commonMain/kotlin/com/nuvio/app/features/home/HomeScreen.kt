@@ -578,6 +578,18 @@ fun HomeScreen(
         )
     }
     val hasContinueWatchingRows = continueWatchingItems.isNotEmpty() || upcomingItems.isNotEmpty()
+    // MugiVerse: Movies / TV Shows decides what Home shows (the other half is one tap away).
+    val mugiHome = com.nuvio.app.mugi.mugiOn()
+    val mugiKind by com.nuvio.app.mugi.MugiWatch.kind.collectAsStateWithLifecycle()
+    val cwShown = remember(continueWatchingItems, mugiHome, mugiKind) {
+        if (mugiHome) com.nuvio.app.mugi.MugiWatch.filterResume(continueWatchingItems, mugiKind) else continueWatchingItems
+    }
+    val upcomingShown = remember(upcomingItems, mugiHome, mugiKind) {
+        if (mugiHome) com.nuvio.app.mugi.MugiWatch.filterResume(upcomingItems, mugiKind) else upcomingItems
+    }
+    val heroShown = remember(homeUiState.heroItems, mugiHome, mugiKind) {
+        if (mugiHome) com.nuvio.app.mugi.MugiWatch.filterHero(homeUiState.heroItems, mugiKind) else homeUiState.heroItems
+    }
 
     ScreenActivityEffect(activeProfileId, continueWatchingItems.isNotEmpty(), hasUserScrolledContinueWatching) { active ->
         if (!active) return@ScreenActivityEffect
@@ -1093,7 +1105,7 @@ fun HomeScreen(
             }
             if (showHeroSlot) {
                 item(key = "home_hero", contentType = "hero") {
-                    val homeHeroState = rememberHomeHeroState(homeUiState.heroItems)
+                    val homeHeroState = rememberHomeHeroState(heroShown)
                     Crossfade(
                         targetState = showHeroSkeleton,
                         modifier = Modifier.nuvioHorizontalScrollBleed(LocalVerticalBarPadding.current),
@@ -1107,7 +1119,7 @@ fun HomeScreen(
                                 mobileBelowSectionHeightHint = mobileHeroBelowSectionHeightHint,
                             )
 
-                            homeUiState.heroItems.isNotEmpty() && fenrirStyleOn && homeMaxWidth < 600.dp -> FenrirHeroCard(
+                            heroShown.isNotEmpty() && fenrirStyleOn && homeMaxWidth < 600.dp -> FenrirHeroCard(
                                 items = homeHeroState.items,
                                 height = (homeMaxHeight * 0.50f).coerceIn(340.dp, 480.dp),
                                 onOpen = { onPosterClick?.invoke(it) },
@@ -1115,7 +1127,7 @@ fun HomeScreen(
                                 topBarRoom = if (com.nuvio.app.readmode.ReadModeBridge.isAvailable) com.nuvio.app.readmode.modeBarHeight() else 0.dp,
                             )
 
-                            homeUiState.heroItems.isNotEmpty() -> HomeHeroSection(
+                            heroShown.isNotEmpty() -> HomeHeroSection(
                                 items = homeHeroState.items,
                                 modifier = Modifier,
                                 viewportHeight = homeMaxHeight,
@@ -1154,8 +1166,9 @@ fun HomeScreen(
                     }
                     homeContinueWatchingSections(
                         preferences = continueWatchingPreferences,
-                        continueWatchingItems = continueWatchingItems,
-                        upcomingItems = upcomingItems,
+                        continueWatchingItems = cwShown,
+                        upcomingItems = upcomingShown,
+                        mugi = mugiHome,
                         dataSourceKey = effectiveWatchProgressSource,
                         sectionPadding = homeSectionPadding,
                         layout = continueWatchingLayout,
@@ -1178,8 +1191,9 @@ fun HomeScreen(
                 isInitialHomeContentLoading -> {
                     homeContinueWatchingSections(
                         preferences = continueWatchingPreferences,
-                        continueWatchingItems = continueWatchingItems,
-                        upcomingItems = upcomingItems,
+                        continueWatchingItems = cwShown,
+                        upcomingItems = upcomingShown,
+                        mugi = mugiHome,
                         dataSourceKey = effectiveWatchProgressSource,
                         sectionPadding = homeSectionPadding,
                         layout = continueWatchingLayout,
@@ -1203,8 +1217,9 @@ fun HomeScreen(
                 !hasActiveAddons && !hasServerLibraries && !hasRenderableCollectionRows -> {
                     homeContinueWatchingSections(
                         preferences = continueWatchingPreferences,
-                        continueWatchingItems = continueWatchingItems,
-                        upcomingItems = upcomingItems,
+                        continueWatchingItems = cwShown,
+                        upcomingItems = upcomingShown,
+                        mugi = mugiHome,
                         dataSourceKey = effectiveWatchProgressSource,
                         sectionPadding = homeSectionPadding,
                         layout = continueWatchingLayout,
@@ -1294,8 +1309,9 @@ fun HomeScreen(
                 else -> {
                     homeContinueWatchingSections(
                         preferences = continueWatchingPreferences,
-                        continueWatchingItems = continueWatchingItems,
-                        upcomingItems = upcomingItems,
+                        continueWatchingItems = cwShown,
+                        upcomingItems = upcomingShown,
+                        mugi = mugiHome,
                         dataSourceKey = effectiveWatchProgressSource,
                         sectionPadding = homeSectionPadding,
                         layout = continueWatchingLayout,
@@ -1307,7 +1323,10 @@ fun HomeScreen(
                     )
                     // Fenrir: "Top 10" from your first home list, with big numbers beside the posters
                     if (fenrirStyleOn) {
-                        val topSection = homeUiState.sections.firstOrNull { it.items.size >= 5 }
+                        val topSection = homeUiState.sections
+                            .asSequence()
+                            .mapNotNull { if (mugiHome) com.nuvio.app.mugi.MugiWatch.filterSection(it, mugiKind) else it }
+                            .firstOrNull { it.items.size >= 5 }
                         if (topSection != null) {
                             item(key = "fenrir_top10", contentType = "fenrir_top10") {
                                 com.nuvio.app.readmode.FenrirTop10Row(
@@ -1339,6 +1358,7 @@ fun HomeScreen(
                             }
                         } else {
                             val section = sectionsMap[settingsItem.key]
+                                ?.let { if (mugiHome) com.nuvio.app.mugi.MugiWatch.filterSection(it, mugiKind) else it }
                             if (section != null && section.items.isNotEmpty()) {
                                 item(key = keyedSettingsItem.lazyKey, contentType = "catalog") {
                                     HomeCatalogRowSection(
@@ -1381,8 +1401,40 @@ private fun LazyListScope.homeContinueWatchingSections(
     onItemClick: ((ContinueWatchingItem) -> Unit)?,
     onItemLongPress: ((ContinueWatchingItem) -> Unit)?,
     disintegrationRequest: DisintegrationRequest<String>?,
+    mugi: Boolean = false,
 ) {
     if (!preferences.isVisible) return
+
+    // MugiVerse: rope-framed cards under a parchment heading (same items, taps and long-press).
+    if (mugi) {
+        if (continueWatchingItems.isNotEmpty()) {
+            item(key = HOME_CONTINUE_WATCHING_SECTION_KEY, contentType = "continue_watching") {
+                androidx.compose.foundation.layout.Box(Modifier.padding(bottom = HomeContinueWatchingSectionBottomPadding)) {
+                    com.nuvio.app.mugi.MugiContinueWatching(
+                        items = continueWatchingItems,
+                        mode = com.nuvio.app.mugi.MugiMode.WATCH,
+                        onItemClick = onItemClick,
+                        onItemLongPress = onItemLongPress,
+                    )
+                }
+            }
+        }
+        if (upcomingItems.isNotEmpty()) {
+            item(key = HOME_UPCOMING_SECTION_KEY, contentType = "continue_watching") {
+                val upTitle = stringResource(Res.string.upcoming_section_title)
+                androidx.compose.foundation.layout.Box(Modifier.padding(bottom = HomeContinueWatchingSectionBottomPadding)) {
+                    com.nuvio.app.mugi.MugiContinueWatching(
+                        items = upcomingItems,
+                        mode = com.nuvio.app.mugi.MugiMode.WATCH,
+                        title = upTitle,
+                        onItemClick = onItemClick,
+                        onItemLongPress = onItemLongPress,
+                    )
+                }
+            }
+        }
+        return
+    }
 
     if (continueWatchingItems.isNotEmpty()) {
         item(key = HOME_CONTINUE_WATCHING_SECTION_KEY, contentType = "continue_watching") {

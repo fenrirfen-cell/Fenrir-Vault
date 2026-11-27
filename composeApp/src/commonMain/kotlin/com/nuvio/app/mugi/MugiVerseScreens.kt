@@ -27,13 +27,14 @@ data class ResumeUi(val id:String,val title:String,val subtitle:String,val remai
 
 @Composable
 fun MugiResumeRail(art:MugiArt,mode:MugiMode,entries:List<ResumeUi>,
-                   thumbnail:@Composable (ResumeUi)->Unit,onResume:(String)->Unit,onMenu:(String)->Unit) {
+                   thumbnail:@Composable (ResumeUi)->Unit,onResume:(String)->Unit,onMenu:(String)->Unit,
+                   title:String="Continue Watching") {
     if(entries.isEmpty()) return // honor existing empty-state behavior if needed
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         // Do not hard-code a device type. Wide screens show individual separated cards.
         val cardWidth = if(maxWidth<420.dp) maxWidth-24.dp else minOf(350.dp,maxWidth*.47f)
         Column {
-            ParchmentLabel("Continue Watching",art.parchment,Modifier.padding(start=8.dp).width(200.dp).height(34.dp))
+            ParchmentLabel("▶ $title",art.parchment,Modifier.padding(start=14.dp,bottom=2.dp).width(210.dp).height(36.dp))
             LazyRow(contentPadding=PaddingValues(horizontal=8.dp),horizontalArrangement=Arrangement.spacedBy(14.dp)) {
                 items(entries,key={it.id}) { item ->
                     RopeResumeCard(art,Modifier.width(cardWidth)) {

@@ -149,12 +149,15 @@ private fun HeroPage(item: MetaPreview, onOpen: (MetaPreview) -> Unit) {
                     modifier = Modifier.fillMaxWidth(0.72f).height(72.dp),
                 )
             } else {
+                val mugiTitle = com.nuvio.app.mugi.mugiOn()
                 Text(
                     text = item.name.uppercase(),
-                    color = Color.White,
+                    color = if (mugiTitle) Color(0xFFF4E3C1) else Color.White,
                     fontSize = 26.sp,
                     lineHeight = 28.sp,
-                    fontWeight = FontWeight.Black,
+                    fontWeight = if (mugiTitle) FontWeight.Normal else FontWeight.Black,
+                    fontStyle = if (mugiTitle) androidx.compose.ui.text.font.FontStyle.Italic else null,
+                    fontFamily = if (mugiTitle) androidx.compose.ui.text.font.FontFamily.Serif else null,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -171,20 +174,37 @@ private fun HeroPage(item: MetaPreview, onOpen: (MetaPreview) -> Unit) {
                 )
             }
             Spacer(Modifier.height(14.dp))
+            val mugi = com.nuvio.app.mugi.mugiOn()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Row(
                     modifier = Modifier
-                        .width(160.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
+                        .width(if (mugi) 132.dp else 160.dp)
+                        .clip(RoundedCornerShape(if (mugi) 24.dp else 16.dp))
+                        .then(
+                            // MugiVerse: red pill with a light rim
+                            if (mugi) {
+                                Modifier
+                                    .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xFFDE3038), Color(0xFF8B1019))))
+                                    .border(1.dp, Color(0xFFE8A0A0), RoundedCornerShape(24.dp))
+                            } else {
+                                Modifier.background(Color.White)
+                            },
+                        )
                         .clickable { onOpen(item) }
-                        .padding(vertical = 12.dp),
+                        .padding(vertical = if (mugi) 10.dp else 12.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = Color(0xFF0B0B0F), modifier = Modifier.size(22.dp))
+                    val ink = if (mugi) Color.White else Color(0xFF0B0B0F)
+                    Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = ink, modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Play", color = Color(0xFF0B0B0F), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    Text(
+                        "Play",
+                        color = ink,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 17.sp,
+                        fontFamily = if (mugi) androidx.compose.ui.text.font.FontFamily.Serif else null,
+                    )
                 }
                 Spacer(Modifier.width(10.dp))
                 RoundButton(

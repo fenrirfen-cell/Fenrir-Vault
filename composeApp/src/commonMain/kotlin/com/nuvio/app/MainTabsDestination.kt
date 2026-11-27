@@ -20,6 +20,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.nuvio.app.mugi.mugi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -272,11 +273,20 @@ internal fun MainTabsDestination(
             // Fenrir: the Watch / Ani-drama / Read bar sits on top of Home and Ani-drama.
             val showModeBar = ReadModeBridge.isAvailable &&
                 (selectedTab == AppScreenTab.Home || selectedTab == AppScreenTab.AniDrama)
+            if (!mugi || selectedTab != AppScreenTab.Home) {
+                androidx.compose.runtime.SideEffect { com.nuvio.app.mugi.MugiWatch.selectorShown.value = false }
+            }
             Box(modifier = Modifier.fillMaxSize()) {
                 CompositionLocalProvider(
                     LocalNuvioBottomNavigationOverlayPadding provides if (useNativeBottomTabs) 49.dp else if (fenrirBar) 88.dp else if (!isTabletLayout && navBarStyleSetting != NavBarStyle.CLASSIC) 72.dp else 0.dp,
                     LocalNuvioNavBarScrollState provides navBarScrollState,
                 ) {
+                    val tabScheme = androidx.compose.material3.MaterialTheme.colorScheme
+                    androidx.compose.material3.MaterialTheme(
+                        colorScheme = if (mugi) tabScheme.mugi(mugiMode) else tabScheme,
+                        typography = androidx.compose.material3.MaterialTheme.typography,
+                        shapes = androidx.compose.material3.MaterialTheme.shapes,
+                    ) {
                     AppTabHost(
                         selectedTab = selectedTab,
                         requests = requests,
@@ -290,6 +300,7 @@ internal fun MainTabsDestination(
                             .padding(innerPadding)
                             .then(if (selectedTab == AppScreenTab.Home && ReadModeBridge.isAvailable) Modifier.nestedScroll(ModeBarScroll.connection) else Modifier),
                     )
+                    }
                 }
 
                 // Watch / Ani-drama / Read switch (Android app with Read mode only).
@@ -318,6 +329,25 @@ internal fun MainTabsDestination(
                                 .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
                                 .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 2.dp),
                         )
+                        // Movies / TV Shows under the header (Watch's Home, not a CloudStream source's home)
+                        val mugiSource by com.nuvio.app.readmode.FenrirSourceHome.selected.collectAsStateWithLifecycle()
+                        val showKind = selectedTab == AppScreenTab.Home && mugiSource == null
+                        androidx.compose.runtime.SideEffect { com.nuvio.app.mugi.MugiWatch.selectorShown.value = showKind }
+                        if (showKind) {
+                            val kind by com.nuvio.app.mugi.MugiWatch.kind.collectAsStateWithLifecycle()
+                            com.nuvio.app.mugi.WatchKindSelector(
+                                value = kind,
+                                onChange = { com.nuvio.app.mugi.MugiWatch.kind.value = it },
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
+                                    .padding(
+                                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 2.dp + 68.dp,
+                                        start = 40.dp,
+                                        end = 40.dp,
+                                    ),
+                            )
+                        }
                         if (selectedTab == AppScreenTab.Home) {
                             com.nuvio.app.readmode.FenrirSourcePillOverlay(
                                 modifier = Modifier

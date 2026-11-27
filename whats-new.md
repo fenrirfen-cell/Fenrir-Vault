@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Fixed: the gold "Tap the logo" tip no longer covers the opening animation or the What's new card
 - Novels: Paged reading (Experimental), like LNReader. The chapter is laid out as real pages that fill top to bottom with 1/11 at the bottom; turn the last page to go to the next chapter. Turn it on in the reader menu → How to read
 - New opening: three trails (red, purple, gold) sweep in, meet in a gold compass flash, and the MugiVerse logo opens out from the middle (about 2.5 s; shorter when your phone's animations are off)
 - The launch screen now shows the straw-hat compass on dark navy instead of the old Fenrir wolf, on Watch and Read

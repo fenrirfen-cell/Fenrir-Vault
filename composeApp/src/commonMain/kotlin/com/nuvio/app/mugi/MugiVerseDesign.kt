@@ -214,13 +214,20 @@ fun MugiHeader(mode: MugiMode, art: MugiArt, modifier: Modifier = Modifier,
 
 @Composable
 fun WatchKindSelector(value: WatchKind,onChange:(WatchKind)->Unit,modifier:Modifier=Modifier) {
-    Row(modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(24.dp))
-        .background(MugiPalette.Navy).border(1.dp,MugiPalette.Gold,RoundedCornerShape(24.dp))) {
-        WatchKind.values().forEach { kind ->
-            Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(24.dp))
-                .background(if(kind==value) Brush.verticalGradient(listOf(Color(0xFFDE3038),Color(0xFF8B1019))) else Brush.verticalGradient(listOf(MugiPalette.Navy,MugiPalette.Navy)))
-                .clickable(role=Role.Tab,onClickLabel=kind.label){onChange(kind)},contentAlignment=Alignment.Center) {
-                Text(kind.label,color=MugiPalette.Ivory,fontFamily=FontFamily.Serif,fontSize=16.sp)
+    // Compact, see-through pill so the hero art shows through instead of a full-width bar.
+    val shape=RoundedCornerShape(50)
+    Box(modifier.fillMaxWidth(),contentAlignment=Alignment.Center) {
+        Row(Modifier.widthIn(max=220.dp).fillMaxWidth().height(34.dp).clip(shape)
+            .background(MugiPalette.Navy.copy(alpha=.55f)).border(1.dp,MugiPalette.Gold.copy(alpha=.6f),shape)
+            .padding(3.dp)) {
+            WatchKind.values().forEach { kind ->
+                val selected=kind==value
+                Box(Modifier.weight(1f).fillMaxHeight().clip(shape)
+                    .then(if(selected) Modifier.background(Brush.verticalGradient(listOf(Color(0xFFDE3038),Color(0xFF8B1019)))) else Modifier)
+                    .clickable(role=Role.Tab,onClickLabel=kind.label){onChange(kind)},contentAlignment=Alignment.Center) {
+                    Text(kind.label,color=if(selected) MugiPalette.Ivory else MugiPalette.Ivory.copy(alpha=.85f),
+                        fontFamily=FontFamily.Serif,fontWeight=if(selected) FontWeight.Bold else FontWeight.Normal,fontSize=14.sp,maxLines=1)
+                }
             }
         }
     }

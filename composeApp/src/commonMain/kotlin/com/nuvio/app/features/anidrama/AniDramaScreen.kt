@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.nuvio.app.core.ui.nuvioSafeBottomPadding
+import com.nuvio.app.mugi.aniDramaPremiumBackground
 import com.nuvio.app.mugi.mugi
 import com.nuvio.app.features.home.HomeCatalogSection
 import com.nuvio.app.features.home.HomeRepository
@@ -78,7 +79,12 @@ fun AniDramaScreen(
     onPosterLongClick: ((MetaPreview) -> Unit)? = null,
     onCatalogClick: ((HomeCatalogSection) -> Unit)? = null,
 ) {
-    var regionIndex by rememberSaveable { mutableIntStateOf(0) }
+    // MugiVerse: violet for every chosen control, purple-navy page.
+    val mugi = com.nuvio.app.mugi.mugiOn()
+    // MugiVerse picks the category from the header ("Anime ▾"), so it lives outside this screen.
+    val mugiRegion by com.nuvio.app.mugi.MugiAniState.region.collectAsStateWithLifecycle()
+    var localRegion by rememberSaveable { mutableIntStateOf(0) }
+    val regionIndex = (if (mugi) mugiRegion else localRegion).coerceIn(0, AniDramaRegion.entries.lastIndex)
     var animeChipIndex by rememberSaveable { mutableIntStateOf(0) }
     var dramaChipIndex by rememberSaveable { mutableIntStateOf(0) }
     var audioIndex by rememberSaveable { mutableIntStateOf(AnimeAudioFilter.Both.ordinal) }
@@ -92,8 +98,14 @@ fun AniDramaScreen(
     val openItem: (AniDramaItem) -> Unit = { item -> onPosterClick?.invoke(item.toMetaPreview()) }
     val longPressItem: (AniDramaItem) -> Unit = { item -> onPosterLongClick?.invoke(item.toMetaPreview()) }
 
-    // MugiVerse: violet for every chosen control, purple-navy page.
-    val mugi = com.nuvio.app.mugi.mugiOn()
+    // a new category (from either picker) closes the expanded Airing list, as before
+    var shownRegion by rememberSaveable { mutableIntStateOf(regionIndex) }
+    LaunchedEffect(regionIndex) {
+        if (shownRegion != regionIndex) {
+            shownRegion = regionIndex
+            airingExpanded = false
+        }
+    }
     val baseScheme = MaterialTheme.colorScheme
     MaterialTheme(
         colorScheme = if (mugi) baseScheme.mugi(com.nuvio.app.mugi.MugiMode.ANI_DRAMA) else baseScheme,
@@ -106,13 +118,7 @@ fun AniDramaScreen(
             .fillMaxSize()
             .then(
                 if (mugi) {
-                    Modifier.background(
-                        androidx.compose.ui.graphics.Brush.radialGradient(
-                            listOf(androidx.compose.ui.graphics.Color(0xFF3A1660), com.nuvio.app.mugi.MugiPalette.PurpleNavy),
-                            center = androidx.compose.ui.geometry.Offset(900f, 0f),
-                            radius = 1400f,
-                        ),
-                    )
+                    Modifier.aniDramaPremiumBackground()
                 } else {
                     Modifier.background(MaterialTheme.colorScheme.background)
                 },
@@ -133,26 +139,27 @@ fun AniDramaScreen(
         }
         val pickRegion: (Int) -> Unit = { index ->
             if (index != regionIndex) {
-                regionIndex = index
-                airingExpanded = false
+                if (mugi) com.nuvio.app.mugi.MugiAniState.region.value = index else localRegion = index
             }
         }
-        if (mugiArt != null) {
-            com.nuvio.app.mugi.MugiAniRegions(mugiArt, AniDramaRegion.entries.map { it.label }, regionIndex, pickRegion)
-        } else AniDramaSegmented(
+        if (mugiArt == null) AniDramaSegmented(
             options = AniDramaRegion.entries.map { it.label },
             selectedIndex = regionIndex,
             onSelect = pickRegion,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
         )
-        Spacer(Modifier.height(10.dp))
-        if (mugiArt != null) com.nuvio.app.mugi.MugiAniChips(
+        Spacer(Modifier.height(if (mugiArt != null) 2.dp else 10.dp))
+        // MugiVerse: every menu (and Dub / Sub / Both) in one swipeable row
+        if (mugiArt != null) com.nuvio.app.mugi.MugiAniFilterRow(
             labels = if (region == AniDramaRegion.Anime) AnimeChip.entries.map { it.label } else DramaChip.entries.map { it.label },
             selected = if (region == AniDramaRegion.Anime) animeChipIndex else dramaChipIndex,
             onSelect = { index ->
                 airingExpanded = false
                 if (region == AniDramaRegion.Anime) animeChipIndex = index else dramaChipIndex = index
             },
+            audioLabels = if (region == AniDramaRegion.Anime) AnimeAudioFilter.entries.map { it.label } else null,
+            audioSelected = audioIndex,
+            onAudioSelect = { audioIndex = it },
         ) else ChipRows(
             labels = if (region == AniDramaRegion.Anime) AnimeChip.entries.map { it.label } else DramaChip.entries.map { it.label },
             selectedIndex = if (region == AniDramaRegion.Anime) animeChipIndex else dramaChipIndex,
@@ -161,10 +168,7 @@ fun AniDramaScreen(
                 if (region == AniDramaRegion.Anime) animeChipIndex = index else dramaChipIndex = index
             },
         )
-        if (region == AniDramaRegion.Anime && mugiArt != null) {
-            Spacer(Modifier.height(6.dp))
-            com.nuvio.app.mugi.MugiAniAudio(AnimeAudioFilter.entries.map { it.label }, audioIndex, { audioIndex = it })
-        } else if (region == AniDramaRegion.Anime) {
+        if (region == AniDramaRegion.Anime && mugiArt == null) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp),
                 horizontalArrangement = Arrangement.End,

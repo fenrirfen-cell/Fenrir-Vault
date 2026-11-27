@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -106,47 +105,52 @@ fun rememberMugiArt(): MugiArt = MugiArt(
 
 /**
  * The header for Watch and Ani-Drama: the MugiVerse logo with the mode ribbon (tap it to choose
- * what Home shows, as the old wordmark did), then Search and the bell (app updates live there now
+ * what Home shows, as the old wordmark did), then [trailing] and the bell (app updates live there now
  * that the header has no mode switch).
  */
 @Composable
 fun MugiTopBar(
     mode: MugiMode,
     art: MugiArt,
-    onSearch: () -> Unit,
     modifier: Modifier = Modifier,
     onSourcePicked: () -> Unit = {},
+    // Movies / TV Shows on Watch's Home, the category picker on Ani-Drama. Search is in the bottom bar.
+    trailing: @Composable RowScope.() -> Unit = {},
 ) {
     Row(
         modifier = modifier.fillMaxWidth().height(66.dp).padding(start = 14.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.weight(1f)) {
-            val logo: @Composable (Boolean) -> Unit = { _ -> MugiLogoWithRibbon(mode, art.logo) }
             if (mode == MugiMode.WATCH) {
-                com.nuvio.app.readmode.FenrirWordmarkSourceButton(onPicked = onSourcePicked, label = logo)
+                // the logo opens the source menu, so its ribbon shows ▾ like READ ▾ on the Read side
+                com.nuvio.app.readmode.FenrirWordmarkSourceButton(onPicked = onSourcePicked, label = { _ -> MugiLogoWithRibbon(mode, art.logo, dropdown = true) })
             } else {
-                logo(false)
+                MugiLogoWithRibbon(mode, art.logo)
             }
         }
-        MugiIconButton(Icons.Rounded.Search, "Search") {
-            if (mode == MugiMode.WATCH && com.nuvio.app.readmode.FenrirSourceHome.selected.value != null) {
-                com.nuvio.app.readmode.FenrirSourceHomeUi.searching.value = true
-            } else {
-                onSearch()
-            }
-        }
+        trailing()
         Spacer(Modifier.width(4.dp))
         MugiBell()
     }
 }
 
+/** What the Search tab in the bottom bar does: search the picked source if there is one, else Search. */
+fun mugiSearch(onSearchTab: () -> Unit, inWatch: Boolean, onWatchHome: () -> Unit) {
+    if (inWatch && com.nuvio.app.readmode.FenrirSourceHome.selected.value != null) {
+        onWatchHome()
+        com.nuvio.app.readmode.FenrirSourceHomeUi.searching.value = true
+    } else {
+        onSearchTab()
+    }
+}
+
 @Composable
-fun MugiLogoWithRibbon(mode: MugiMode, logo: Painter) {
+fun MugiLogoWithRibbon(mode: MugiMode, logo: Painter, dropdown: Boolean = false) {
     Box(Modifier.width(176.dp).height(60.dp)) {
         Image(logo, "MugiVerse", Modifier.width(168.dp).height(46.dp), contentScale = ContentScale.Fit)
         Text(
-            mode.title.uppercase(),
+            mode.title.uppercase() + if (dropdown) " ▾" else "",
             color = MugiPalette.Ivory,
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.Bold,
@@ -160,16 +164,6 @@ fun MugiLogoWithRibbon(mode: MugiMode, logo: Painter) {
                 .background(Brush.verticalGradient(listOf(mode.accent, mode.accent.copy(red = mode.accent.red * 0.6f, green = mode.accent.green * 0.6f, blue = mode.accent.blue * 0.6f))))
                 .padding(horizontal = 14.dp, vertical = 1.dp),
         )
-    }
-}
-
-@Composable
-private fun MugiIconButton(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Box(
-        Modifier.size(44.dp).clip(CircleShape).clickable(role = Role.Button, onClickLabel = label, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = label, tint = Color(0xFFD9B26A), modifier = Modifier.size(25.dp))
     }
 }
 
@@ -247,6 +241,13 @@ private fun MugiBell() {
     }
 }
 
+/** An extra button in the compass menu (e.g. Assistant), shown above the three modes. */
+class MugiMenuAction(
+    val label: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+)
+
 class MugiNavItem(
     val label: String,
     val selected: Boolean,
@@ -317,6 +318,7 @@ fun MugiModeMenu(
     onExpandedChange: (Boolean) -> Unit,
     onPick: (MugiMode) -> Unit,
     available: (MugiMode) -> Boolean = { true },
+    extras: List<MugiMenuAction> = emptyList(),
 ) {
     MugiModeShell(
         mode = mode,
@@ -324,6 +326,7 @@ fun MugiModeMenu(
         onExpandedChange = onExpandedChange,
         onModeChange = { if (available(it)) onPick(it) },
         art = art,
+        extras = extras,
         modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
         navigation = { _, _ -> },
         content = {},

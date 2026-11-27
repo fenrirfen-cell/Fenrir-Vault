@@ -122,12 +122,9 @@ fun MugiTopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.weight(1f)) {
-            if (mode == MugiMode.WATCH) {
-                // the logo opens the source menu, so its ribbon shows ▾ like READ ▾ on the Read side
-                com.nuvio.app.readmode.FenrirWordmarkSourceButton(onPicked = onSourcePicked, label = { _ -> MugiLogoWithRibbon(mode, art.logo, dropdown = true) })
-            } else {
-                MugiLogoWithRibbon(mode, art.logo)
-            }
+            // the logo opens the same source menu on Watch and Ani-Drama (▾ like READ ▾ on the Read
+            // side); a source picked from Ani-Drama opens on Watch's Home, where sources show
+            com.nuvio.app.readmode.FenrirWordmarkSourceButton(onPicked = onSourcePicked, label = { _ -> MugiLogoWithRibbon(mode, art.logo, dropdown = true) })
         }
         trailing()
         Spacer(Modifier.width(4.dp))

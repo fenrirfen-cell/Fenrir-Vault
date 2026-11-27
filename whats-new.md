@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Ani-Drama: tap the MugiVerse logo (ANI-DRAMA ▾) for the same menu as on Watch
 - MugiVerse: Movies / TV Shows toggle now sits in the header
 - Search moved to the bottom bar; Assistant is in the compass menu
 - Ani-Drama: "Anime ▾" picker in the header, filters in one swipeable row, refreshed calendar

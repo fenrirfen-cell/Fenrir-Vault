@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -101,6 +102,18 @@ internal fun MainTabsDestination(
         // Fenrir style replaces the bottom bars with its own island, on phones, folds and tablets alike.
         val fenrirBar = fenrirStyleOn && !useNativeBottomTabs
         val forYouOpen by com.nuvio.app.readmode.FenrirForYou.open.collectAsStateWithLifecycle()
+        // MugiVerse: replaces the Fenrir top bar and island (same tabs, compass in the middle).
+        val mugiStyleOn by com.nuvio.app.mugi.MugiStyle.enabled.collectAsStateWithLifecycle()
+        val mugi = fenrirBar && mugiStyleOn && ReadModeBridge.isAvailable
+        var mugiMode by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(com.nuvio.app.mugi.MugiMode.WATCH) }
+        androidx.compose.runtime.LaunchedEffect(selectedTab) {
+            when (selectedTab) {
+                AppScreenTab.Home -> mugiMode = com.nuvio.app.mugi.MugiMode.WATCH
+                AppScreenTab.AniDrama -> mugiMode = com.nuvio.app.mugi.MugiMode.ANI_DRAMA
+                else -> Unit
+            }
+        }
+        var mugiMenuOpen by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
         val fenrirNavItems = listOfNotNull(
             com.nuvio.app.readmode.FenrirNavItem(
                 label = stringResource(Res.string.compose_nav_home),
@@ -293,7 +306,31 @@ internal fun MainTabsDestination(
                                 .modeBarHideable(modeBarHiddenFraction(), modeBarHeight()),
                         )
                     }
-                    if (fenrirStyleOn) {
+                    if (mugi) {
+                        val mugiArt = com.nuvio.app.mugi.rememberMugiArt()
+                        com.nuvio.app.mugi.MugiTopBar(
+                            mode = if (selectedTab == AppScreenTab.AniDrama) com.nuvio.app.mugi.MugiMode.ANI_DRAMA else com.nuvio.app.mugi.MugiMode.WATCH,
+                            art = mugiArt,
+                            onSearch = { onTabSelected(AppScreenTab.Search) },
+                            onSourcePicked = { if (selectedTab != AppScreenTab.Home) onTabSelected(AppScreenTab.Home) },
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
+                                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 2.dp),
+                        )
+                        if (selectedTab == AppScreenTab.Home) {
+                            com.nuvio.app.readmode.FenrirSourcePillOverlay(
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
+                                    .padding(
+                                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 2.dp + 46.dp,
+                                        start = 150.dp,
+                                        end = 100.dp,
+                                    ),
+                            )
+                        }
+                    } else if (fenrirStyleOn) {
                         com.nuvio.app.readmode.FenrirTopBar(
                             selected = if (selectedTab == AppScreenTab.AniDrama) FenrirMode.AniDrama else FenrirMode.Watch,
                             onWatch = { onTabSelected(AppScreenTab.Home) },
@@ -369,7 +406,72 @@ internal fun MainTabsDestination(
                     )
                 }
 
-                if (fenrirBar) {
+                if (mugi) {
+                    androidx.compose.runtime.LaunchedEffect(selectedTab) { com.nuvio.app.readmode.FenrirBarScroll.reset() }
+                    val mugiArt = com.nuvio.app.mugi.rememberMugiArt()
+                    val inAni = mugiMode == com.nuvio.app.mugi.MugiMode.ANI_DRAMA
+                    // the compass menu over everything but the bar (so the compass can close it)
+                    com.nuvio.app.mugi.MugiModeMenu(
+                        mode = mugiMode,
+                        art = mugiArt,
+                        expanded = mugiMenuOpen,
+                        onExpandedChange = { mugiMenuOpen = it },
+                        available = { it != com.nuvio.app.mugi.MugiMode.ANI_DRAMA || aniDramaAvailable },
+                        onPick = { picked ->
+                            when (picked) {
+                                com.nuvio.app.mugi.MugiMode.WATCH -> onTabSelected(AppScreenTab.Home)
+                                com.nuvio.app.mugi.MugiMode.ANI_DRAMA -> onTabSelected(AppScreenTab.AniDrama)
+                                com.nuvio.app.mugi.MugiMode.READ -> ReadModeBridge.openRead?.invoke()
+                            }
+                        },
+                    )
+                    val islandHidden by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (com.nuvio.app.readmode.FenrirBarScroll.visible || mugiMenuOpen) 0f else 1f,
+                        animationSpec = androidx.compose.animation.core.tween(260),
+                        label = "mugiBarHidden",
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .graphicsLayer {
+                                translationY = islandHidden * 140.dp.toPx()
+                                alpha = 1f - islandHidden
+                            },
+                    ) {
+                        com.nuvio.app.mugi.MugiBottomBar(
+                            mode = mugiMode,
+                            art = mugiArt,
+                            menuOpen = mugiMenuOpen,
+                            onCompass = { mugiMenuOpen = !mugiMenuOpen },
+                            items = listOfNotNull(
+                                com.nuvio.app.mugi.MugiNavItem(
+                                    label = stringResource(Res.string.compose_nav_home),
+                                    selected = selectedTab == AppScreenTab.Home || selectedTab == AppScreenTab.AniDrama,
+                                    onClick = { onTabSelected(if (inAni && aniDramaAvailable) AppScreenTab.AniDrama else AppScreenTab.Home) },
+                                    icon = Icons.Filled.Home,
+                                ),
+                                com.nuvio.app.mugi.MugiNavItem(
+                                    label = "Assistant",
+                                    selected = assistantOpen,
+                                    onClick = { com.nuvio.app.assistant.AssistantController.show() },
+                                    icon = Icons.Rounded.AutoAwesome,
+                                ),
+                                com.nuvio.app.mugi.MugiNavItem(
+                                    label = "My List",
+                                    selected = selectedTab == AppScreenTab.Library,
+                                    onClick = { onTabSelected(AppScreenTab.Library) },
+                                    painter = org.jetbrains.compose.resources.painterResource(Res.drawable.sidebar_library),
+                                ),
+                                com.nuvio.app.mugi.MugiNavItem(
+                                    label = "Settings",
+                                    selected = selectedTab == AppScreenTab.Settings,
+                                    onClick = { onTabSelected(AppScreenTab.Settings) },
+                                    icon = Icons.Rounded.Settings,
+                                ),
+                            ),
+                        )
+                    }
+                } else if (fenrirBar) {
                     androidx.compose.runtime.LaunchedEffect(selectedTab) { com.nuvio.app.readmode.FenrirBarScroll.reset() }
                     // Slides down out of sight while scrolling down; back when scrolling up.
                     val islandHidden by androidx.compose.animation.core.animateFloatAsState(

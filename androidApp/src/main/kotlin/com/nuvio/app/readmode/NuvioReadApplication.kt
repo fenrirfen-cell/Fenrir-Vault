@@ -161,6 +161,11 @@ class NuvioReadApplication : App() {
             aniDramaPrefs.edit().putBoolean(KEY_FENRIR_STYLE, on).apply()
         }
         EmbeddedHost.fenrirStyle = { FenrirStyle.enabled.value }
+        // MugiVerse look (compass bar, header, Three Tides opening), on by default; both sides.
+        com.nuvio.app.mugi.MugiStyle.install(enabled = aniDramaPrefs.getBoolean("mugiverse_look", true)) { on ->
+            aniDramaPrefs.edit().putBoolean("mugiverse_look", on).apply()
+        }
+        EmbeddedHost.mugi = { FenrirStyle.enabled.value && com.nuvio.app.mugi.MugiStyle.enabled.value }
         // The opening animation also plays when the app opens straight on Read (once per start).
         EmbeddedHost.splash = {
             com.nuvio.app.readmode.FenrirSplash()

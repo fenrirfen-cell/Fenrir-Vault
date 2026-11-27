@@ -66,6 +66,10 @@ internal fun LazyListScope.settingsRootContent(
                         }
                     }
                     SettingsCategory.Look -> {
+                        if (com.nuvio.app.mugi.MugiStyle.isAvailable) {
+                            MugiStyleRow(isTablet = isTablet)
+                            SettingsGroupDivider(isTablet = isTablet)
+                        }
                         if (com.nuvio.app.readmode.FenrirStyle.isAvailable) {
                             FenrirStyleRow(isTablet = isTablet)
                             SettingsGroupDivider(isTablet = isTablet)
@@ -169,6 +173,18 @@ private fun FenrirHowlRow(isTablet: Boolean) {
         checked = enabled,
         isTablet = isTablet,
         onCheckedChange = { com.nuvio.app.readmode.FenrirHowl.setEnabled(it) },
+    )
+}
+
+@Composable
+private fun MugiStyleRow(isTablet: Boolean) {
+    val enabled by com.nuvio.app.mugi.MugiStyle.enabled.collectAsStateWithLifecycle()
+    SettingsSwitchRow(
+        title = "MugiVerse look",
+        description = "Compass bar to switch Watch, Ani-Drama and Read, the MugiVerse header and the Three Tides opening. Off: the Fenrir look.",
+        checked = enabled,
+        isTablet = isTablet,
+        onCheckedChange = { com.nuvio.app.mugi.MugiStyle.setEnabled(it) },
     )
 }
 

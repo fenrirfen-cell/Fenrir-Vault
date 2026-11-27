@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import nuvio.composeapp.generated.resources.mugi_logo
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import nuvio.composeapp.generated.resources.Res
@@ -112,6 +113,36 @@ fun FenrirSplash() {
     }
     var done by remember { mutableStateOf(false) }
     if (done) return
+    // MugiVerse: Three Tides (red, purple and gold sweeps meet in a compass star, then the logo),
+    // 3.33 s, once per start; tap to skip.
+    if (com.nuvio.app.mugi.MugiStyle.enabled.value) {
+        val leave = remember { androidx.compose.animation.core.Animatable(1f) }
+        var ending by remember { mutableStateOf(false) }
+        LaunchedEffect(ending) {
+            if (ending) {
+                leave.animateTo(0f, androidx.compose.animation.core.tween(260))
+                splashShown = true
+                FenrirWhatsNew.splashDone.value = true
+                done = true
+            }
+        }
+        LaunchedEffect(Unit) {
+            delay(6000)
+            ending = true
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = leave.value }
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { ending = true },
+        ) {
+            com.nuvio.app.mugi.ThreeTidesIntro(
+                logo = org.jetbrains.compose.resources.painterResource(nuvio.composeapp.generated.resources.Res.drawable.mugi_logo),
+                onFinished = { ending = true },
+            )
+        }
+        return
+    }
     // Fenrir: the opening film (the wolf's eyes, the chains, FENRIR VAULT), played by the phone's
     // video player. Falls back to the drawn animation below where there's no player.
     val film = FenrirSplashVideo.player

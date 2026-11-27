@@ -104,7 +104,12 @@ object FenrirSourceHomeUi {
 
 /** "FENRIR READ ▾": tapping it opens the list of sources to show on Home. */
 @Composable
-fun FenrirWordmarkSourceButton(onPicked: () -> Unit, modifier: Modifier = Modifier) {
+fun FenrirWordmarkSourceButton(
+    onPicked: () -> Unit,
+    modifier: Modifier = Modifier,
+    // MugiVerse: its own logo as the button (the arrow is left out; the logo is the cue)
+    label: (@Composable (open: Boolean) -> Unit)? = null,
+) {
     var open by remember { mutableStateOf(false) }
     val selected by FenrirSourceHome.selected.collectAsStateWithLifecycle()
     Row(
@@ -115,8 +120,8 @@ fun FenrirWordmarkSourceButton(onPicked: () -> Unit, modifier: Modifier = Modifi
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // A little bigger in the top bar, centred on the Watch / Search buttons.
-        FenrirWordmark(scale = 1.15f, word = "WATCH")
-        run {
+        if (label != null) label(open) else FenrirWordmark(scale = 1.15f, word = "WATCH")
+        if (label == null) run {
             Spacer(Modifier.width(4.dp))
             Icon(
                 if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,

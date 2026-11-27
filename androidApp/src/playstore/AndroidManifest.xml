@@ -12,7 +12,7 @@
         android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
         tools:node="remove" />
 
-    <application android:roundIcon="@mipmap/ic_launcher_fenrir_round" android:icon="@mipmap/ic_launcher_fenrir" android:label="Fenrir Vault">
+    <application android:roundIcon="@mipmap/ic_launcher_fenrir_round" android:icon="@mipmap/ic_launcher_fenrir" android:label="MugiVerse">
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             tools:node="remove" />

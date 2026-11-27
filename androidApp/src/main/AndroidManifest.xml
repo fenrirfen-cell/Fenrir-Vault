@@ -19,7 +19,7 @@
         android:enableOnBackInvokedCallback="false"
         android:icon="@mipmap/ic_launcher_fenrir"
         android:largeHeap="true"
-        android:label="Fenrir Vault"
+        android:label="MugiVerse"
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_fenrir_round"
@@ -106,7 +106,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_fenrir"
             android:roundIcon="@mipmap/ic_launcher_fenrir_round"
-            android:label="Fenrir Vault"
+            android:label="MugiVerse"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash">
             <intent-filter>
@@ -121,7 +121,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_fenrir"
-            android:label="Fenrir Vault"
+            android:label="MugiVerse"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash">
             </activity>
@@ -132,7 +132,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_fenrir"
-            android:label="Fenrir Vault"
+            android:label="MugiVerse"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash.ArcticBlue">
             </activity>
@@ -143,7 +143,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_fenrir"
-            android:label="Fenrir Vault"
+            android:label="MugiVerse"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash.Emerald">
             </activity>
@@ -154,7 +154,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_fenrir"
-            android:label="Fenrir Vault"
+            android:label="MugiVerse"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash.RoseGold">
             </activity>
@@ -165,7 +165,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_fenrir"
-            android:label="Fenrir Vault"
+            android:label="MugiVerse"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash.Copper">
             </activity>
@@ -176,7 +176,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_fenrir"
-            android:label="Fenrir Vault"
+            android:label="MugiVerse"
             android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Nuvio.Splash.Graphite">
             </activity>

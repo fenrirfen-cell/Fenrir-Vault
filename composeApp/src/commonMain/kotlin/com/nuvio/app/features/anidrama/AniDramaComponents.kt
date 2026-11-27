@@ -54,14 +54,14 @@ internal fun AniDramaPosterTile(
 ) {
     // MugiVerse: each poster is a violet-edged card (poster, then score, title, caption and ⋮)
     val mugi = com.nuvio.app.mugi.mugiOn()
-    val cardShape = RoundedCornerShape(9.dp)
+    val cardShape = RoundedCornerShape(12.dp)
     Column(
         modifier = modifier.then(
             if (mugi) {
                 Modifier
                     .clip(cardShape)
-                    .background(Color(0xFF1B1229))
-                    .border(1.dp, Color(0xFF5B4385), cardShape)
+                    .background(com.nuvio.app.mugi.AniDramaColors.CardBackground)
+                    .border(1.dp, com.nuvio.app.mugi.AniDramaColors.CardBorder, cardShape)
             } else {
                 Modifier
             },
@@ -71,7 +71,7 @@ internal fun AniDramaPosterTile(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
-                .clip(if (mugi) RoundedCornerShape(topStart = 9.dp, topEnd = 9.dp) else TileShape)
+                .clip(if (mugi) RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp) else TileShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         ) {
@@ -92,7 +92,7 @@ internal fun AniDramaPosterTile(
                 )
             }
             item.badge?.let { badge ->
-                PosterBadge(text = badge, modifier = Modifier.align(Alignment.TopStart).padding(5.dp))
+                PosterBadge(text = badge, modifier = Modifier.align(Alignment.TopStart).padding(5.dp), mugi = mugi)
             }
             item.rank?.let { rank ->
                 Text(
@@ -114,34 +114,37 @@ internal fun AniDramaPosterTile(
                     text = "DUB",
                     modifier = Modifier.align(Alignment.TopEnd).padding(5.dp),
                     accent = true,
+                    mugi = mugi,
                 )
             }
         }
         if (mugi) {
             val serif = androidx.compose.ui.text.font.FontFamily.Serif
-            Column(Modifier.padding(start = 7.dp, end = 2.dp, top = 5.dp, bottom = 4.dp)) {
+            Column(Modifier.padding(start = 9.dp, end = 2.dp, top = 7.dp, bottom = 5.dp)) {
                 Text(
                     text = item.title,
                     fontFamily = serif,
-                    fontSize = 12.sp,
-                    lineHeight = 14.sp,
-                    color = com.nuvio.app.mugi.MugiPalette.Ivory,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    lineHeight = 15.sp,
+                    color = com.nuvio.app.mugi.AniDramaColors.Ivory,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = item.caption.orEmpty(),
-                        fontSize = 10.5.sp,
-                        color = Color(0xFFB9A9D0),
+                        fontSize = 11.sp,
+                        color = com.nuvio.app.mugi.AniDramaColors.Secondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         "⋮",
-                        color = Color(0xFFB9A9D0),
-                        fontSize = 15.sp,
+                        color = com.nuvio.app.mugi.AniDramaColors.Ivory,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.clip(CircleShape).clickable(onClickLabel = "Options", onClick = onLongClick).padding(horizontal = 6.dp),
                     )
                 }
@@ -170,7 +173,30 @@ internal fun AniDramaPosterTile(
 }
 
 @Composable
-private fun PosterBadge(text: String, modifier: Modifier = Modifier, accent: Boolean = false) {
+private fun PosterBadge(text: String, modifier: Modifier = Modifier, accent: Boolean = false, mugi: Boolean = false) {
+    // MugiVerse: score on near-black, DUB on a violet gradient, both bold
+    if (mugi) {
+        Text(
+            text = text,
+            color = if (accent) Color.White else com.nuvio.app.mugi.AniDramaColors.Ivory,
+            fontSize = if (accent) 11.sp else 12.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            modifier = modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(
+                    if (accent) {
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            listOf(com.nuvio.app.mugi.AniDramaColors.Purple, com.nuvio.app.mugi.AniDramaColors.PurpleDark),
+                        )
+                    } else {
+                        androidx.compose.ui.graphics.SolidColor(Color.Black.copy(alpha = 0.85f))
+                    },
+                )
+                .padding(horizontal = 6.dp, vertical = 3.dp),
+        )
+        return
+    }
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall,

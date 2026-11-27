@@ -121,13 +121,16 @@ fun MugiRowHeader(title: String, subtitle: String?, horizontalPadding: androidx.
 /** The Ani-Drama colours (purple near the header, near-black below). */
 object AniDramaColors {
     val BackgroundTop = Color(0xFF21102F)
-    val BackgroundBottom = Color(0xFF090810)
+    val BackgroundBottom = Color(0xFF090710)
     val Surface = Color(0xFF21142E)
-    val Purple = Color(0xFF922DE0)
-    val PurpleDark = Color(0xFF57168C)
+    val CardBackground = Color(0xFF190F24)
+    val CardBorder = Color(0xFF59347A)
+    val Purple = Color(0xFF992BE8)
+    val PurpleDark = Color(0xFF59139E)
     val Gold = Color(0xFFD4AF65)
     val Ivory = Color(0xFFF5E8D0)
-    val Secondary = Color(0xFFB9AEC4)
+    val Secondary = Color(0xFFBDB0C8)
+    val NavigationBackground = Color(0xFF110C19)
     val Divider = Color(0xFF382A43)
 }
 

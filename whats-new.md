@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Fixed: big empty gaps between some paragraphs in Paged reading
 - Ani-Drama: new poster cards (rounder violet frame, bold score and DUB badges, bold titles) and the final colour palette
 - Ani-Drama: tap the MugiVerse logo (ANI-DRAMA ▾) for the same menu as on Watch
 - MugiVerse: Movies / TV Shows toggle now sits in the header

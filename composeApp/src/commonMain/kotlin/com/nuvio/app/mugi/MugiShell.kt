@@ -75,6 +75,9 @@ object MugiStyle {
     var isAvailable: Boolean = false
         private set
 
+    /** Set by the Android app: true when the phone's animations are turned off. */
+    var reduceMotion: () -> Boolean = { false }
+
     fun install(enabled: Boolean, persist: (Boolean) -> Unit) {
         this.persist = persist
         isAvailable = true

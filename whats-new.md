@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- New opening: three trails (red, purple, gold) sweep in, meet in a gold compass flash, and the MugiVerse logo opens out from the middle (about 2.5 s; shorter when your phone's animations are off)
+- The launch screen now shows the straw-hat compass on dark navy instead of the old Fenrir wolf, on Watch and Read
 - Novel page mode: the page slider jumps by whole pages, and a tablet or unfolded phone held sideways shows two pages side by side like an open book (they turn two at a time)
 - Read: a carved beam with a soft shadow along the bottom of the top bar, so the shelves slide under it smoothly when you scroll
 - Compass menu: light pulses run along each coloured line from the compass up into the ship, fruit and chest while the menu is open

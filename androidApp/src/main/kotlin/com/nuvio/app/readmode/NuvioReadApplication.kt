@@ -166,6 +166,11 @@ class NuvioReadApplication : App() {
             aniDramaPrefs.edit().putBoolean("mugiverse_look", on).apply()
         }
         EmbeddedHost.mugi = { FenrirStyle.enabled.value && com.nuvio.app.mugi.MugiStyle.enabled.value }
+        com.nuvio.app.mugi.MugiStyle.reduceMotion = {
+            runCatching {
+                android.provider.Settings.Global.getFloat(contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+            }.getOrDefault(false)
+        }
         // The opening animation also plays when the app opens straight on Read (once per start).
         EmbeddedHost.splash = {
             com.nuvio.app.readmode.FenrirSplash()

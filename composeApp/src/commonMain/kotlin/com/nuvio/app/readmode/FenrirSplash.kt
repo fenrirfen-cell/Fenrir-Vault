@@ -136,9 +136,9 @@ fun FenrirSplash() {
                 .graphicsLayer { alpha = leave.value }
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { ending = true },
         ) {
-            com.nuvio.app.mugi.ThreeTidesIntro(
-                logo = org.jetbrains.compose.resources.painterResource(nuvio.composeapp.generated.resources.Res.drawable.mugi_logo),
+            com.nuvio.app.mugi.MugiVerseIntro(
                 onFinished = { ending = true },
+                reduceMotion = com.nuvio.app.mugi.MugiStyle.reduceMotion(),
             )
         }
         return

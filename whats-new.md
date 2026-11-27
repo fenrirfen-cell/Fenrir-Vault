@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Compass menu: light pulses run along each coloured line from the compass up into the ship, fruit and chest while the menu is open
+- Read: the search button left the top (it's in the logo's menu). READ ▾ shows the logo is a button, and a small tip says so the first few times. Bigger category banner, gold book count, and a darker bottom bar
+- Novel page mode: "3 / 11" pages of the chapter in the status bar and menu, and the last page of a chapter says "Next · Chapter 2: title"; just turn the page to go on
 - Catalog row titles: ivory serif with a small gold telescope (Trending, streaming services) or compass, the source underneath, a thin bronze line and a gold "See All ›"; Top 10 Movies / Top 10 TV Shows sit on parchment
 - Catalog rows match MugiVerse: gold italic row titles with a gold "See all ›", a thin gold rim on every poster and serif titles; on Ani-Drama each poster is a violet-edged card with its episode line and a ⋮ menu
 - The profile picker, sign-in and loading screens show the MugiVerse logo

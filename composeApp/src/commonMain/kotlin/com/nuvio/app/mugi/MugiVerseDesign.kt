@@ -94,6 +94,14 @@ fun MugiModeShell(
 ) {
     com.nuvio.app.core.ui.PlatformBackHandler(enabled = expanded) { onExpandedChange(false) }
     val reveal = remember { Animatable(0f) }
+    // pulses along the lines, only while the menu is open
+    val flow = remember { Animatable(0f) }
+    LaunchedEffect(expanded) {
+        if (expanded) while (true) {
+            flow.snapTo(0f)
+            flow.animateTo(1f, tween(1700, easing = androidx.compose.animation.core.LinearEasing))
+        }
+    }
     LaunchedEffect(expanded) {
         reveal.animateTo(if (expanded) 1f else 0f, tween(if (expanded) 320 else 190, easing = FastOutSlowInEasing))
     }
@@ -119,7 +127,8 @@ fun MugiModeShell(
                         targets.forEachIndexed { index, item ->
                             val cx = size.width * .5f + (size.width * item.second - size.width * .5f) * p
                             val top = topOffsets[index] * p + 210.dp * (1 - p)
-                            val end = Offset(cx, (top + badgeSize + 8.dp + 25.dp + 14.dp).toPx())
+                            // into the symbol itself (the medallion is drawn over the line's end)
+                            val end = Offset(cx, (top + (badgeSize + 8.dp) / 2).toPx())
                             val rise = origin.y - end.y
                             val p1 = Offset(origin.x + (end.x-origin.x)*.10f, origin.y - rise * .38f)
                             val p2 = Offset(end.x, end.y + rise * .32f)
@@ -131,7 +140,18 @@ fun MugiModeShell(
                             drawPath(curve,c.copy(alpha=.10f*p),style=Stroke(9.dp.toPx()))
                             drawPath(curve,c.copy(alpha=.25f*p),style=Stroke(4.dp.toPx()))
                             drawPath(curve,c.copy(alpha=.9f*p),style=Stroke(1.3.dp.toPx()))
-                            drawCircle(c.copy(alpha=.9f*p), 2.5.dp.toPx(), end)
+                            // light pulses running from the compass up into the symbol
+                            for (j in 0 until 3) {
+                                val tt = ((flow.value + j / 3f + index * .11f) % 1f)
+                                val v = 1f - tt
+                                val pt = Offset(
+                                    v*v*v*origin.x+3*v*v*tt*p1.x+3*v*tt*tt*p2.x+tt*tt*tt*end.x,
+                                    v*v*v*origin.y+3*v*v*tt*p1.y+3*v*tt*tt*p2.y+tt*tt*tt*end.y,
+                                )
+                                drawCircle(c.copy(alpha=.28f*p), 7.dp.toPx(), pt)
+                                drawCircle(c.copy(alpha=.6f*p), 3.5.dp.toPx(), pt)
+                                drawCircle(Color(0xFFFFF5E1).copy(alpha=p), 1.8.dp.toPx(), pt)
+                            }
                         }
                     }
                     targets.forEachIndexed { index, item ->

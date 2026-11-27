@@ -2,6 +2,7 @@ package com.nuvio.app.core.ui
 
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -149,6 +150,8 @@ fun NuvioPosterCard(
         shape = shape,
     )
     val shouldShowTitleBelow = showTitleBelow && !posterCardStyle.hideLabelsEnabled
+    // MugiVerse: thin gold rim on every poster, serif ivory titles
+    val mugiPoster = com.nuvio.app.mugi.mugiOn()
 
     Column(
         modifier = modifier.width(cardWidth),
@@ -158,6 +161,7 @@ fun NuvioPosterCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(shape.aspectRatio)
+                .then(if (mugiPoster) Modifier.border(1.dp, androidx.compose.ui.graphics.Color(0xFF8A6A3A), cardShape) else Modifier)
                 .clip(cardShape)
                 .background(tokens.colors.surface)
                 .nuvioCardDepth(
@@ -279,8 +283,8 @@ fun NuvioPosterCard(
         if (shouldShowTitleBelow) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = tokens.colors.textPrimary,
+                style = if (mugiPoster) MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Serif) else MaterialTheme.typography.bodyMedium,
+                color = if (mugiPoster) com.nuvio.app.mugi.MugiPalette.Ivory else tokens.colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

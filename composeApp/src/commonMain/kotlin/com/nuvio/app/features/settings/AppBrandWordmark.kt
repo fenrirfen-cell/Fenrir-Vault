@@ -23,6 +23,8 @@ import org.jetbrains.compose.resources.decodeToImageBitmap
 import org.jetbrains.compose.resources.getDrawableResourceBytes
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.rememberResourceEnvironment
+import androidx.compose.runtime.collectAsState
+import nuvio.composeapp.generated.resources.mugi_logo
 
 @Composable
 internal fun AppBrandWordmark(
@@ -31,6 +33,17 @@ internal fun AppBrandWordmark(
     icon: AppIconOption? = null,
 ) {
     // Fenrir Read: our own name instead of the Nuvio logo.
+    // MugiVerse: the straw-hat logo (profile picker, sign-in, loading)
+    val mugiBrand by com.nuvio.app.mugi.MugiStyle.enabled.collectAsState()
+    if (com.nuvio.app.readmode.FenrirStyle.isAvailable && mugiBrand) {
+        Image(
+            painter = painterResource(nuvio.composeapp.generated.resources.Res.drawable.mugi_logo),
+            contentDescription = contentDescription ?: "MugiVerse",
+            modifier = modifier,
+            contentScale = ContentScale.Fit,
+        )
+        return
+    }
     if (com.nuvio.app.readmode.FenrirStyle.isAvailable) {
         androidx.compose.foundation.layout.Box(modifier, contentAlignment = androidx.compose.ui.Alignment.Center) {
             com.nuvio.app.readmode.FenrirFitWidth(center = true) {

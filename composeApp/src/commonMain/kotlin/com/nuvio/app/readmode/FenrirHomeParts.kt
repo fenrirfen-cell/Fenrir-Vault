@@ -52,6 +52,10 @@ private val MutedText = Color(0xFF8C8C98)
 /** Fenrir Home: a row title, a small grey "where it's from" line, and a round › for See all. */
 @Composable
 fun FenrirRowHeader(title: String, subtitle: String?, horizontalPadding: Dp, onSeeAll: (() -> Unit)?) {
+    if (com.nuvio.app.mugi.mugiOn()) {
+        com.nuvio.app.mugi.MugiRowHeader(title, subtitle, horizontalPadding, onSeeAll)
+        return
+    }
     Row(
         Modifier.fillMaxWidth().padding(horizontal = horizontalPadding),
         verticalAlignment = Alignment.CenterVertically,

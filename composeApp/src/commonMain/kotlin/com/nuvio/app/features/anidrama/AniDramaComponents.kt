@@ -2,6 +2,8 @@ package com.nuvio.app.features.anidrama
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,12 +52,26 @@ internal fun AniDramaPosterTile(
     modifier: Modifier = Modifier,
     showDubBadge: Boolean = false,
 ) {
-    Column(modifier = modifier) {
+    // MugiVerse: each poster is a violet-edged card (poster, then score, title, caption and ⋮)
+    val mugi = com.nuvio.app.mugi.mugiOn()
+    val cardShape = RoundedCornerShape(9.dp)
+    Column(
+        modifier = modifier.then(
+            if (mugi) {
+                Modifier
+                    .clip(cardShape)
+                    .background(Color(0xFF1B1229))
+                    .border(1.dp, Color(0xFF5B4385), cardShape)
+            } else {
+                Modifier
+            },
+        ),
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
-                .clip(TileShape)
+                .clip(if (mugi) RoundedCornerShape(topStart = 9.dp, topEnd = 9.dp) else TileShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         ) {
@@ -100,6 +116,37 @@ internal fun AniDramaPosterTile(
                     accent = true,
                 )
             }
+        }
+        if (mugi) {
+            val serif = androidx.compose.ui.text.font.FontFamily.Serif
+            Column(Modifier.padding(start = 7.dp, end = 2.dp, top = 5.dp, bottom = 4.dp)) {
+                Text(
+                    text = item.title,
+                    fontFamily = serif,
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
+                    color = com.nuvio.app.mugi.MugiPalette.Ivory,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = item.caption.orEmpty(),
+                        fontSize = 10.5.sp,
+                        color = Color(0xFFB9A9D0),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "⋮",
+                        color = Color(0xFFB9A9D0),
+                        fontSize = 15.sp,
+                        modifier = Modifier.clip(CircleShape).clickable(onClickLabel = "Options", onClick = onLongClick).padding(horizontal = 6.dp),
+                    )
+                }
+            }
+            return@Column
         }
         Spacer(Modifier.height(6.dp))
         Text(
@@ -213,7 +260,7 @@ internal fun AniDramaShelf(
     tileWidth: Dp = 112.dp,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Row(
+        if (com.nuvio.app.mugi.mugiOn()) com.nuvio.app.mugi.MugiRowHeader(title, null, 16.dp, onSeeAll) else Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

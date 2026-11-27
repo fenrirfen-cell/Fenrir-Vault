@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Catalog rows match MugiVerse: gold italic row titles with a gold "See all ›", a thin gold rim on every poster and serif titles; on Ani-Drama each poster is a violet-edged card with its episode line and a ⋮ menu
+- The profile picker, sign-in and loading screens show the MugiVerse logo
+- Read: one cabin picture now runs from the top through Continue Reading (no repeat), the book and text sit inside the gold frame, and the shelf spotlights and ivy are gone
 - New app icon: the straw hat on the gold compass
 - Compass menu: the three coloured lines now start at the compass and stay attached to the ship, fruit and chest as they fan out and fold back
 - Watch: Movies / TV Shows switch under the logo (the banner, Continue Watching, Top 10 and every row show only that kind), navy colours, red Play button and Continue Watching on rope-framed cards with a little ship on the progress line

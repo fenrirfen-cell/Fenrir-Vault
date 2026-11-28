@@ -141,7 +141,12 @@ fun nowMs(): Long = kotlin.time.Clock.System.now().toEpochMilliseconds()
 /** Monday = 0 … Sunday = 6, for a local day number. */
 fun weekdayOf(day: Long): Int = (((day + 3) % 7) + 7).toInt() % 7
 
-enum class VoyageRange(val label: String) { WEEK("This week"), MONTH("This month"), YEAR("This year"), ALL("All time") }
+enum class VoyageRange(val label: String, val phrase: String) {
+    WEEK("Week", "this week"),
+    MONTH("Month", "this month"),
+    YEAR("Year", "this year"),
+    ALL("All", "voyage so far"),
+}
 
 /* ───────────── which Voyage screen is open ───────────── */
 

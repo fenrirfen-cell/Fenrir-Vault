@@ -91,6 +91,27 @@ internal object AniListClient {
         return pageData.media to (pageData.pageInfo?.hasNextPage == true)
     }
 
+    private const val SEARCH_QUERY = """
+        query (${'$'}search: String, ${'$'}perPage: Int) {
+          Page(page: 1, perPage: ${'$'}perPage) {
+            pageInfo { hasNextPage }
+            media(type: ANIME, isAdult: false, search: ${'$'}search, sort: [SEARCH_MATCH, POPULARITY_DESC]) {
+              $MEDIA_FIELDS
+            }
+          }
+        }
+    """
+
+    /** MugiVerse Ani-Drama search: anime only (never regular movies or shows). */
+    suspend fun search(text: String, perPage: Int = 30): List<AniListMedia>? {
+        val variables = buildJsonObject {
+            put("search", text)
+            put("perPage", perPage)
+        }
+        val response = post<PageEnvelope>(SEARCH_QUERY, variables) ?: return null
+        return response.data?.page?.media
+    }
+
     private const val NEXT_QUERY = """
         query (${'$'}id: Int) { Media(id: ${'$'}id, type: ANIME) { nextAiringEpisode { episode airingAt } } }
     """

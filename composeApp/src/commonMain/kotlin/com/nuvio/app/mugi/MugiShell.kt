@@ -273,7 +273,13 @@ fun MugiBottomBar(
         contentAlignment = Alignment.BottomCenter,
     ) {
         Box(Modifier.widthIn(max = 520.dp).fillMaxWidth().height(86.dp), contentAlignment = Alignment.BottomCenter) {
-            MugiNavSurface(Modifier.height(74.dp)) {
+            // Watch #06141E, Ani-Drama #110C19, Read #19120E
+            val navColor = when (mode) {
+                MugiMode.WATCH -> Color(0xF206141E)
+                MugiMode.ANI_DRAMA -> Color(0xF2110C19)
+                MugiMode.READ -> Color(0xF219120E)
+            }
+            MugiNavSurface(Modifier.height(74.dp), color = navColor) {
                 left.forEach { MugiTab(it, mode, enabled = !menuOpen) }
                 Spacer(Modifier.width(74.dp))
                 right.forEach { MugiTab(it, mode, enabled = !menuOpen) }

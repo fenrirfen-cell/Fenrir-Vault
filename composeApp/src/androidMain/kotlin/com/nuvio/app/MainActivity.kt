@@ -110,6 +110,8 @@ open class MainActivity : AppCompatActivity() {
             return
         }
         enableEdgeToEdge(
+            // MugiVerse screens are dark: light status bar icons
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(
                 scrim = 0xFF020404.toInt(),
             ),

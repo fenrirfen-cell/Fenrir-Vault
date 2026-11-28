@@ -55,19 +55,29 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import nuvio.composeapp.generated.resources.Res
-import nuvio.composeapp.generated.resources.mugi_chest_base
-import nuvio.composeapp.generated.resources.mugi_chest_glow
-import nuvio.composeapp.generated.resources.mugi_chest_lid
+import nuvio.composeapp.generated.resources.mugi_chest_closed
+import nuvio.composeapp.generated.resources.mugi_chest_half_open
+import nuvio.composeapp.generated.resources.mugi_chest_icon
+import nuvio.composeapp.generated.resources.mugi_chest_open
+import androidx.compose.animation.Crossfade
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import kotlinx.coroutines.delay
 import nuvio.composeapp.generated.resources.mugi_parchment
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.graphics.ColorFilter
@@ -326,7 +336,7 @@ fun VoyagePill(label: String, selected: Boolean, accent: Color = VoyageColors.Go
             .drawBehind { if (a > 0f) drawRect(Brush.verticalGradient(listOf(accent, accent.copy(alpha = 0.7f))), alpha = a) }
             .border(1.dp, accent.copy(alpha = if (selected) 1f else 0.85f), shape)
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 7.dp),
+            .padding(horizontal = 10.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -335,6 +345,8 @@ fun VoyagePill(label: String, selected: Boolean, accent: Color = VoyageColors.Go
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             fontSize = 14.sp,
             maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -390,7 +402,7 @@ fun VoyageEmpty(title: String, message: String, modifier: Modifier = Modifier) {
 @Composable
 fun WantedPoster(progress: BountyProgress, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val earned = progress.unlocked
-    val paper = if (earned) listOf(Color(0xFFF0DCAE), Color(0xFFCDAA6C)) else listOf(Color(0xFFB9A88A), Color(0xFF8E7D61))
+    val paper = if (earned) listOf(Color(0xFFF0DCAE), Color(0xFFCDAA6C)) else listOf(Color(0xFFD6C7A6), Color(0xFFB09C7C))
     Column(
         modifier
             .clip(RoundedCornerShape(4.dp))
@@ -413,12 +425,20 @@ fun WantedPoster(progress: BountyProgress, modifier: Modifier = Modifier, onClic
         ) {
             BountyEmblemArt(progress.definition.emblem, earned, Modifier.size(66.dp))
             if (!earned) {
-                Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).size(18.dp).clip(CircleShape).background(Color(0xCC2A1C10)), contentAlignment = Alignment.Center) {
-                    Text("🔒", fontSize = 10.sp)
+                Box(
+                    Modifier.align(Alignment.TopEnd).padding(3.dp).size(20.dp).clip(CircleShape).background(Color(0xE62A1C10)).border(1.dp, VoyageColors.Gold, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Rounded.Lock,
+                        contentDescription = "Locked",
+                        tint = VoyageColors.Gold,
+                        modifier = Modifier.size(12.dp),
+                    )
                 }
             }
         }
-        Text(progress.definition.name, color = Color(0xFF2E180A), fontFamily = VoyageDisplay, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1, textAlign = TextAlign.Center)
+        Text(progress.definition.name, color = Color(0xFF2E180A), fontFamily = VoyageDisplay, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, lineHeight = 13.sp, maxLines = 2, textAlign = TextAlign.Center)
         Text(progress.definition.description, color = Color(0xFF4A2E16), fontSize = 9.5.sp, lineHeight = 11.sp, maxLines = 2, textAlign = TextAlign.Center)
         Spacer(Modifier.height(5.dp))
         if (earned) {
@@ -431,7 +451,7 @@ fun WantedPoster(progress: BountyProgress, modifier: Modifier = Modifier, onClic
                 modifier = Modifier.clip(RoundedCornerShape(2.dp)).background(Color(0xFF8E1C22)).padding(horizontal = 10.dp, vertical = 2.dp),
             )
         } else {
-            Text("${progress.current.coerceAtMost(progress.definition.target)} / ${progress.definition.target}", color = Color(0xFF3A2210), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text("${progress.current.coerceAtMost(progress.definition.target)} / ${progress.definition.target}", color = Color(0xFF2E180A), fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Box(Modifier.padding(top = 3.dp).fillMaxWidth().height(5.dp).clip(CircleShape).background(Color(0x553A2210))) {
                 Box(Modifier.fillMaxWidth(progress.progress).fillMaxHeight().background(Color(0xFF8A5A1E)))
             }
@@ -446,7 +466,7 @@ private val LockedSepia = ColorFilter.colorMatrix(
             0.33f, 0.64f, 0.16f, 0f, 0f,
             0.29f, 0.57f, 0.14f, 0f, 0f,
             0.23f, 0.45f, 0.11f, 0f, 0f,
-            0f, 0f, 0f, 0.85f, 0f,
+            0f, 0f, 0f, 0.92f, 0f,
         ),
     ),
 )
@@ -476,56 +496,60 @@ fun BountyEmblemArt(emblem: BountyEmblem, earned: Boolean, modifier: Modifier = 
 
 /* ───────────── treasure chest ───────────── */
 
+enum class ChestAnimationState { CLOSED, OPENING, OPEN }
+
 /**
- * The treasure chest from the approved artwork: base, glow and lid share one 1080 × 960 canvas.
- * The lid swings back on its hinge (its bottom edge, where it meets the base); the glow only
- * shows while it opens. Taps are ignored while it is opening or open.
+ * The Surprise Me chest as three matching frames of the approved artwork (closed, half open,
+ * open), all on the same 724 × 724 canvas so the body never moves; the lid stays attached behind
+ * it. [opening] plays closed → half open → open once per [animationKey], then calls [onOpened]
+ * and keeps the open frame. With [reduceMotion] it shows the open frame straight away.
  */
 @Composable
-fun SurpriseChestAnimation(opened: Boolean, reduceMotion: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val press by animateFloatAsState(if (opened) 1f else 0f, tween(if (reduceMotion) 0 else 150), label = "chestPress")
-    val rotation by animateFloatAsState(
-        if (opened) 78f else 0f,
-        tween(if (reduceMotion) 0 else 300, delayMillis = if (reduceMotion || !opened) 0 else 150, easing = FastOutSlowInEasing),
-        label = "chestLid",
-    )
-    val glow by animateFloatAsState(
-        if (opened) 1f else 0f,
-        tween(if (reduceMotion) 0 else 300, delayMillis = if (reduceMotion || !opened) 0 else 450),
-        label = "chestGlow",
-    )
-    val squash = if (opened && press < 1f) 1f - 0.04f * (1f - press) else 1f
+fun MugiTreasureChest(
+    opening: Boolean,
+    animationKey: Long,
+    reduceMotion: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    onOpened: () -> Unit,
+) {
+    var frame by remember { mutableIntStateOf(0) }
+    val latestOnOpened by rememberUpdatedState(onOpened)
+    LaunchedEffect(opening, animationKey) {
+        if (!opening) {
+            frame = 0
+            return@LaunchedEffect
+        }
+        if (reduceMotion) {
+            frame = 2
+        } else {
+            frame = 0
+            delay(120)
+            frame = 1
+            delay(220)
+            frame = 2
+            delay(220)
+        }
+        latestOnOpened()
+    }
     Box(
         modifier
-            .fillMaxWidth()
-            .height(230.dp)
-            .clickable(enabled = !opened, onClickLabel = "Open the chest", onClick = onClick),
+            .aspectRatio(1f)
+            .then(if (onClick != null) Modifier.clickable(onClickLabel = "Open the chest", role = Role.Button, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            Modifier
-                .fillMaxHeight()
-                .aspectRatio(1080f / 960f)
-                .graphicsLayer {
-                    scaleY = squash
-                    scaleX = 2f - squash
-                    transformOrigin = TransformOrigin(0.5f, 0.92f)
-                },
-        ) {
-            Image(painterResource(Res.drawable.mugi_chest_base), contentDescription = "Treasure chest", contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
-            if (glow > 0f) {
-                Image(painterResource(Res.drawable.mugi_chest_glow), contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize().graphicsLayer { alpha = glow })
-            }
+        Crossfade(targetState = frame, animationSpec = tween(if (reduceMotion) 0 else 100), label = "Treasure chest opening") { current ->
             Image(
-                painterResource(Res.drawable.mugi_chest_lid),
-                contentDescription = null,
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier.matchParentSize().graphicsLayer {
-                    rotationX = rotation
-                    // the hinge: the lid's bottom edge, where it rests on the base (y 512 of 960)
-                    transformOrigin = TransformOrigin(0.5f, 512f / 960f)
-                    cameraDistance = 16f * density
-                },
+                painterResource(
+                    when (current) {
+                        0 -> Res.drawable.mugi_chest_closed
+                        1 -> Res.drawable.mugi_chest_half_open
+                        else -> Res.drawable.mugi_chest_open
+                    },
+                ),
+                contentDescription = if (current == 2) "Open treasure chest" else "Treasure chest",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }
@@ -541,10 +565,7 @@ fun SurpriseChestButton(modifier: Modifier = Modifier, size: Dp = 40.dp, onClick
             .clickable(onClickLabel = "Surprise me", role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.width(size).aspectRatio(1080f / 960f)) {
-            Image(painterResource(Res.drawable.mugi_chest_base), contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
-            Image(painterResource(Res.drawable.mugi_chest_lid), contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
-        }
+        Image(painterResource(Res.drawable.mugi_chest_icon), contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.width(size))
     }
 }
 

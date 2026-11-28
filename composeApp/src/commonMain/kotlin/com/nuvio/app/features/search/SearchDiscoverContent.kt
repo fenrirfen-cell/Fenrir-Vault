@@ -44,7 +44,58 @@ internal fun LazyListScope.discoverContent(
     onPosterLongClick: ((MetaPreview) -> Unit)? = null,
     mugi: Boolean = false,
     ani: Boolean = false,
+    aniRegions: List<String> = emptyList(),
+    aniSelected: Int = 0,
+    onAniSelected: (Int) -> Unit = {},
+    aniItems: List<MetaPreview>? = null,
 ) {
+    if (mugi && ani) {
+        // Ani-Drama Discover: anime and K-, C-, J-dramas only (no regular Movies / TV Shows)
+        item(key = "mugi-discover-banner") {
+            Box(Modifier.fillMaxWidth()) {
+                com.nuvio.app.mugi.MugiDiscoverBanner(stringResource(Res.string.compose_search_discover_title))
+                com.nuvio.app.voyage.SurpriseChestButton(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), size = 34.dp)
+            }
+        }
+        item(key = "mugi-ani-categories") {
+            com.nuvio.app.mugi.MugiSegmentedSelector(
+                options = aniRegions,
+                selectedIndex = aniSelected,
+                selectedColor = com.nuvio.app.mugi.MugiScreenColors.Purple,
+                surface = com.nuvio.app.mugi.MugiScreenColors.AniSurface,
+                onSelected = onAniSelected,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+        item(key = "mugi-ani-provider") {
+            com.nuvio.app.mugi.MugiProviderLabel(
+                "Trending · ${aniRegions.getOrNull(aniSelected).orEmpty()}",
+                Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
+        val list = aniItems
+        when {
+            list == null -> items(2) {
+                PosterGridSkeletonRow(columns = columns, modifier = Modifier.padding(horizontal = 16.dp))
+            }
+            list.isEmpty() -> item(key = "mugi-ani-empty") {
+                com.nuvio.app.voyage.VoyageEmpty("Nothing to show right now", "Check your connection and try again.")
+            }
+            else -> items(count = (list.size + columns - 1) / columns) { rowIndex ->
+                val firstIndex = rowIndex * columns
+                PosterGridRow(
+                    items = list.subList(firstIndex, minOf(firstIndex + columns, list.size)),
+                    columns = columns,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    watchedKeys = watchedKeys,
+                    fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
+                    onPosterClick = onPosterClick,
+                    onPosterLongClick = onPosterLongClick,
+                )
+            }
+        }
+        return
+    }
     if (mugi) {
         item(key = "mugi-discover-banner") {
             Box(Modifier.fillMaxWidth()) {

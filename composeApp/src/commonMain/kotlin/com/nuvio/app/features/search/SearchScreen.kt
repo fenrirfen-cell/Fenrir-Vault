@@ -133,6 +133,17 @@ fun SearchScreen(
     var query by rememberSaveable { mutableStateOf("") }
     var lastRequestedQuery by rememberSaveable { mutableStateOf<String?>(null) }
     var observedOfflineState by remember { mutableStateOf(false) }
+    // MugiVerse Ani-Drama: search and Discover come from anime / K-, C-, J-drama sources only
+    val aniSearch = com.nuvio.app.mugi.mugiOn() && com.nuvio.app.mugi.MugiAniMode.on.value
+    var aniResults by remember { mutableStateOf<List<com.nuvio.app.features.home.HomeCatalogSection>?>(null) }
+    var aniResultsQuery by remember { mutableStateOf<String?>(null) }
+    var aniRegion by rememberSaveable { mutableStateOf(0) }
+    var aniDiscover by remember { mutableStateOf<List<com.nuvio.app.features.home.MetaPreview>?>(null) }
+    LaunchedEffect(aniSearch, aniRegion) {
+        if (!aniSearch) return@LaunchedEffect
+        aniDiscover = null
+        aniDiscover = com.nuvio.app.features.anidrama.AniDramaSearch.discover(com.nuvio.app.features.anidrama.AniDramaSearch.regions[aniRegion])
+    }
     val discoverInFocus by remember(query, listState) {
         derivedStateOf {
             query.isBlank() && listState.firstVisibleItemIndex > 0
@@ -156,12 +167,21 @@ fun SearchScreen(
         SearchRepository.refreshDiscover(addonsUiState.addons)
     }
 
-    ScreenActivityEffect(query, addonRefreshKey, homeCatalogSettingsUiState.hideUnreleasedContent) { screenActive ->
+    ScreenActivityEffect(query, addonRefreshKey, homeCatalogSettingsUiState.hideUnreleasedContent, aniSearch) { screenActive ->
         if (!screenActive) return@ScreenActivityEffect
         val normalizedQuery = query.trim()
         if (normalizedQuery.isBlank()) {
             lastRequestedQuery = null
+            aniResults = null
+            aniResultsQuery = null
             SearchRepository.clear()
+        } else if (aniSearch) {
+            delay(350)
+            aniResults = null
+            aniResultsQuery = normalizedQuery
+            val found = com.nuvio.app.features.anidrama.AniDramaSearch.search(normalizedQuery)
+            aniResults = found
+            if (found.isNotEmpty()) SearchHistoryRepository.recordSearch(normalizedQuery)
         } else {
             delay(350)
             lastRequestedQuery = normalizedQuery
@@ -355,7 +375,30 @@ fun SearchScreen(
                     onPosterLongClick = onPosterLongClick,
                     mugi = mugi,
                     ani = ani,
+                    aniRegions = com.nuvio.app.features.anidrama.AniDramaSearch.regions.map { it.label },
+                    aniSelected = aniRegion,
+                    onAniSelected = { aniRegion = it },
+                    aniItems = aniDiscover,
                 )
+            } else if (ani) {
+                // Ani-Drama results: anime and K-, C-, J-dramas only, never regular movies or shows
+                val results = aniResults
+                when {
+                    results == null || aniResultsQuery != query.trim() -> items(2) { HomeSkeletonRow(horizontalPadding = homeSectionPadding) }
+                    results.isEmpty() -> item(key = "ani_empty") {
+                        com.nuvio.app.voyage.VoyageEmpty("No anime or dramas found", "Try another title, or the name in English or romaji.")
+                    }
+                    else -> items(items = results, key = { it.key }) { section ->
+                        HomeCatalogRowSection(
+                            section = section,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                            watchedKeys = watchedUiState.watchedKeys,
+                            fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
+                            onPosterClick = onPosterClick,
+                            onPosterLongClick = onPosterLongClick,
+                        )
+                    }
+                }
             } else {
                 val normalizedQuery = query.trim()
                 val isWaitingForSearch = normalizedQuery.isNotBlank() && lastRequestedQuery != normalizedQuery
@@ -402,8 +445,14 @@ fun SearchScreen(
                     }
 
                     else -> {
+                        // MugiVerse Watch: movies and regular TV shows (anime lives in Ani-Drama)
+                        val watchSections = if (mugi) {
+                            uiState.sections.filter { it.target.contentType.lowercase() in setOf("movie", "series") }.ifEmpty { uiState.sections }
+                        } else {
+                            uiState.sections
+                        }
                         items(
-                            items = uiState.sections.withDuplicateSafeLazyKeys { section -> section.key },
+                            items = watchSections.withDuplicateSafeLazyKeys { section -> section.key },
                             key = { section -> section.lazyKey },
                         ) { keyedSection ->
                             val section = keyedSection.value

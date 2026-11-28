@@ -153,6 +153,33 @@ internal object DramaRepository {
         return result
     }
 
+    /**
+     * MugiVerse Ani-Drama search: TV shows matching [text] that are Korean, Chinese or Japanese
+     * live-action dramas (animation, news, reality and talk shows left out), by region.
+     */
+    suspend fun search(text: String): Map<AniDramaRegion, List<AniDramaItem>>? {
+        val response = fetch<DiscoverResponse>(
+            "search/tv",
+            mapOf("language" to language(), "query" to text, "include_adult" to "false", "page" to "1"),
+        ) ?: return null
+        val excluded = EXCLUDED_GENRES.split(",").mapNotNull { it.toIntOrNull() }.toSet()
+        val names = genreNames(AniDramaRegion.KDrama)
+        fun regionOf(show: TvResult): AniDramaRegion? {
+            val countries = show.originCountry.toSet()
+            val lang = show.originalLanguage
+            return when {
+                "KR" in countries || lang == "ko" -> AniDramaRegion.KDrama
+                countries.any { it == "CN" || it == "TW" || it == "HK" } || lang == "zh" || lang == "cn" -> AniDramaRegion.CDrama
+                "JP" in countries || lang == "ja" -> AniDramaRegion.JDrama
+                else -> null
+            }
+        }
+        return response.results
+            .filter { show -> show.genreIds.none { it in excluded } && show.posterPath != null }
+            .mapNotNull { show -> regionOf(show)?.let { it to show } }
+            .groupBy({ it.first }, { (_, show) -> show.toItem(caption = show.firstAirDate?.take(4), genreNames = show.genreIds.mapNotNull { names[it] }) })
+    }
+
     /** The 1st of the month [months] months from [iso]'s month (negative = back), yyyy-MM-dd. */
     private fun startOfMonthOffset(iso: String, months: Int): String {
         val year = iso.take(4).toInt()
@@ -468,6 +495,8 @@ internal object DramaRepository {
         @SerialName("first_air_date") val firstAirDate: String? = null,
         val overview: String? = null,
         @SerialName("genre_ids") val genreIds: List<Int> = emptyList(),
+        @SerialName("origin_country") val originCountry: List<String> = emptyList(),
+        @SerialName("original_language") val originalLanguage: String? = null,
     )
 
     @Serializable

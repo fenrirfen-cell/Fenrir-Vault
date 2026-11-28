@@ -215,9 +215,9 @@ fun MugiCompassButton(art: MugiArt, expanded: Boolean, onClick: () -> Unit, modi
 }
 
 @Composable
-fun MugiNavSurface(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+fun MugiNavSurface(modifier: Modifier = Modifier, color: Color = Color(0xF206141E), content: @Composable RowScope.() -> Unit) {
     Row(modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=8.dp)
-        .clip(RoundedCornerShape(34.dp)).background(Color(0xEE071720))
+        .clip(RoundedCornerShape(34.dp)).background(color)
         .border(1.dp,MugiPalette.Gold,RoundedCornerShape(34.dp)).padding(horizontal=8.dp,vertical=3.dp),
         horizontalArrangement=Arrangement.SpaceEvenly,verticalAlignment=Alignment.CenterVertically,content=content)
 }

@@ -2,6 +2,13 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Captain's Quarters: lock all of Read behind the arched cabin door; it opens only after your fingerprint or screen lock
+- Captain's Vault is now a separate lock: unlocking Read doesn't open the Private Library
+- Locked Read also hides reading from Watch, closes the reader and keeps titles out of notifications
+- Surprise Me: the chest now opens frame by frame (closed, half open, open) and the pick appears once it's open
+- Ani-Drama Search and Discover show only anime and K-, C- and J-dramas
+- Captain's Log: shorter Week / Month / Year / All buttons and a clearer weekly chart
+- Locked bounties are easier to read and show a small lock
 - New fonts: Cinzel for big headings and bounty titles, Playfair Display for section headings, labels and dates
 - Bounties use the new hand-painted pictures (sepia until you earn them)
 - The sailing ship, rope frames, wooden panels, parchment chart, sail and banner are now the real artwork, not drawings

@@ -91,6 +91,19 @@ internal object AnimeRepository {
 
     private const val PER_PAGE = 30
 
+    /** Anime matching [text] (AniList search), matched to add-on IDs like the lists. */
+    suspend fun search(text: String): List<AniDramaItem>? {
+        val (media, dubbed) = coroutineScope {
+            val dub = async { dubbedIds() }
+            AniListClient.search(text) to dub.await()
+        }
+        media ?: return null
+        mapIds(media.map { it.id })
+        return media.map { m ->
+            m.toItem(dubbed, listOfNotNull((m.seasonYear ?: m.startDate?.year)?.toString(), m.format?.toFormatLabel()).joinToString(" · "))
+        }
+    }
+
     /** "2027-01-05", "2027-01" or "2027", depending on how much of the date AniList knows. */
     private fun AniListDate.isoOrNull(): String? {
         val y = year ?: return null

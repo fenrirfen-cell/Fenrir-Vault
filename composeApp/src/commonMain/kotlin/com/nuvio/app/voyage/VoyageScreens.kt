@@ -44,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import nuvio.composeapp.generated.resources.parchment_chart
 import androidx.compose.ui.draw.clip
 import com.nuvio.app.features.anidrama.toMetaPreview
 import androidx.compose.ui.graphics.Brush
@@ -439,13 +441,18 @@ private fun CaptainsLogScreen(onBack: () -> Unit, bottom: androidx.compose.ui.un
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text("CURRENT VOYAGE", color = VoyageColors.Gold, fontFamily = VoyageDisplay, fontSize = 13.sp, letterSpacing = 3.sp)
-                Text(
-                    "🔥 ${stats.currentStreak} ${if (stats.currentStreak == 1) "day" else "days"}",
-                    color = VoyageColors.BrightGold,
-                    fontFamily = VoyageSerif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 36.sp,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // the little sailing ship instead of a flame: days in a row at sea
+                    VoyageShip(Modifier.size(38.dp), small = true)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "${stats.currentStreak} ${if (stats.currentStreak == 1) "day" else "days"}",
+                        color = VoyageColors.BrightGold,
+                        fontFamily = VoyageSerif,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 36.sp,
+                    )
+                }
                 Text("Best voyage: ${stats.bestStreak} ${if (stats.bestStreak == 1) "day" else "days"}", color = VoyageColors.Ivory, fontSize = 13.sp)
             }
         }
@@ -475,7 +482,7 @@ private fun CaptainsLogScreen(onBack: () -> Unit, bottom: androidx.compose.ui.un
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(stats.favoriteGenre?.let { "Top genre: $it" } ?: "Top genre: not enough yet", color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    stats.favoriteGenreShare?.let { Text("$it% of your ${range.label.lowercase()}", color = VoyageColors.Secondary, fontSize = 12.5.sp) }
+                    stats.favoriteGenreShare?.let { Text("$it% of your ${range.phrase}", color = VoyageColors.Secondary, fontSize = 12.5.sp) }
                 }
             }
         }
@@ -502,27 +509,46 @@ private fun CaptainsLogScreen(onBack: () -> Unit, bottom: androidx.compose.ui.un
 private fun WeekChart(days: List<DailyVoyageActivity>) {
     val max = (days.maxOfOrNull { it.readingMinutes + it.watchingMinutes } ?: 0).coerceAtLeast(30)
     val labels = listOf("M", "T", "W", "T", "F", "S", "S")
-    ParchmentPanel(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(190.dp)) {
-        Column(Modifier.fillMaxSize().padding(start = 22.dp, end = 22.dp, top = 22.dp, bottom = 14.dp)) {
-            Row(Modifier.weight(1f).fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceEvenly) {
-                days.forEach { d ->
-                    val total = d.readingMinutes + d.watchingMinutes
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom, modifier = Modifier.fillMaxHeight()) {
-                        if (total > 0) Text(formatMinutes(total.toLong()), color = Color(0xFF4A2E16), fontSize = 9.sp)
-                        val frac = total.toFloat() / max
-                        Box(
-                            Modifier
-                                .width(20.dp)
-                                .fillMaxHeight(frac.coerceIn(0.02f, 1f))
-                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                .background(Brush.verticalGradient(listOf(Color(0xFFF6D88E), Color(0xFFA87832)))),
-                        )
+    val ink = Color(0xFF3A2210)
+    val empty = days.all { it.readingMinutes + it.watchingMinutes <= 0 }
+    ParchmentPanel(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(210.dp)) {
+        Column(Modifier.fillMaxSize().padding(start = 26.dp, end = 26.dp, top = 24.dp, bottom = 18.dp)) {
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceEvenly) {
+                    days.forEach { d ->
+                        val total = d.readingMinutes + d.watchingMinutes
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(1f).fillMaxHeight()) {
+                            if (total > 0) {
+                                Text(formatMinutes(total.toLong()), color = ink, fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1, softWrap = false)
+                                Spacer(Modifier.height(2.dp))
+                                Box(
+                                    Modifier
+                                        .width(18.dp)
+                                        .fillMaxHeight((total.toFloat() / max).coerceIn(0.04f, 0.85f))
+                                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                        .background(Brush.verticalGradient(listOf(Color(0xFFB0782E), Color(0xFF6E4219)))),
+                                )
+                            }
+                        }
                     }
                 }
+                if (empty) {
+                    Text(
+                        "No reading or watching yet this week",
+                        color = ink,
+                        fontFamily = VoyageSerif,
+                        fontStyle = FontStyle.Italic,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+                }
             }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF6E4A22)))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                days.forEach { d -> Text(labels[weekdayOf(d.day)], color = Color(0xFF3A2210), fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+            Box(Modifier.fillMaxWidth().height(1.5.dp).background(Color(0xFF6E4A22)))
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                days.forEach { d ->
+                    Text(labels[weekdayOf(d.day)], color = ink, fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                }
             }
         }
     }
@@ -888,7 +914,10 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
     var mode by remember { mutableStateOf(if (com.nuvio.app.mugi.MugiAniMode.on.value) VoyageMode.ANI_DRAMA else VoyageMode.ALL) }
     var source by remember { mutableStateOf(SurpriseSource.MY_LIST) }
     var maxMinutes by remember { mutableStateOf<Int?>(null) }
-    var opened by remember { mutableStateOf(false) }
+    // the chest: closed → opening (the pick is chosen but hidden) → open (the pick is revealed)
+    var chest by remember { mutableStateOf(ChestAnimationState.CLOSED) }
+    var chestKey by remember { mutableStateOf(0L) }
+    var reveal by remember { mutableStateOf(false) }
     var pick by remember { mutableStateOf<SurpriseCandidate?>(null) }
     var noMatch by remember { mutableStateOf(false) }
     val seen = remember { mutableSetOf<String>() }
@@ -944,16 +973,25 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
     }
     val showReading = LocalShowReading.current
     if (!showReading && mode == VoyageMode.READ) mode = VoyageMode.ALL
-    if (!showReading && pick?.mode == VoyageMode.READ) { pick = null; opened = false }
-    val openChest: () -> Unit = {
+    if (!showReading && pick?.mode == VoyageMode.READ) { pick = null; reveal = false; chest = ChestAnimationState.CLOSED }
+    fun closeChest() {
+        pick = null
+        reveal = false
+        chest = ChestAnimationState.CLOSED
+    }
+    val openChest: () -> Unit = openChest@{
+        if (chest == ChestAnimationState.OPENING) return@openChest // no double taps while it opens
         val c = chooseSurprise(candidates, mode, maxMinutes, seen)
         if (c == null) {
             noMatch = true
         } else {
+            // chosen first, kept hidden until the lid is fully open
             seen += c.id
             pick = c
+            reveal = false
             noMatch = false
-            opened = true
+            chest = ChestAnimationState.OPENING
+            chestKey++
         }
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
@@ -961,23 +999,33 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
         item(key = "mode") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 VoyageSectionTitle("Choose a mode")
-                VoyageModeChips(mode, { mode = it; opened = false; pick = null }, modes = if (showReading) VoyageMode.entries else VoyageMode.entries.filter { it != VoyageMode.READ })
+                VoyageModeChips(mode, { mode = it; closeChest() }, modes = if (showReading) VoyageMode.entries else VoyageMode.entries.filter { it != VoyageMode.READ })
                 VoyageSectionTitle("Source")
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    VoyagePill("✓ My List".takeIf { source == SurpriseSource.MY_LIST } ?: "My List", source == SurpriseSource.MY_LIST, VoyageColors.Gold, Modifier.weight(1f)) { source = SurpriseSource.MY_LIST; opened = false; pick = null }
-                    VoyagePill("Discover", source == SurpriseSource.DISCOVER, VoyageColors.Gold, Modifier.weight(1f)) { source = SurpriseSource.DISCOVER; opened = false; pick = null }
+                    VoyagePill("✓ My List".takeIf { source == SurpriseSource.MY_LIST } ?: "My List", source == SurpriseSource.MY_LIST, VoyageColors.Gold, Modifier.weight(1f)) { source = SurpriseSource.MY_LIST; closeChest() }
+                    VoyagePill("Discover", source == SurpriseSource.DISCOVER, VoyageColors.Gold, Modifier.weight(1f)) { source = SurpriseSource.DISCOVER; closeChest() }
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf<Int?>(null, 15, 30, 60).forEach { m ->
-                        VoyagePill(m?.let { "$it min" } ?: "Any length", maxMinutes == m, VoyageColors.Gold, Modifier.weight(1f)) { maxMinutes = m; opened = false; pick = null }
+                        VoyagePill(m?.let { "$it min" } ?: "Any", maxMinutes == m, VoyageColors.Gold, Modifier.weight(1f)) { maxMinutes = m; closeChest() }
                     }
                 }
             }
         }
         item(key = "chest") {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                SurpriseChestAnimation(opened = opened, reduceMotion = reduceMotion, onClick = openChest)
-                if (!opened) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).faintChart()) {
+                MugiTreasureChest(
+                    opening = chest != ChestAnimationState.CLOSED,
+                    animationKey = chestKey,
+                    reduceMotion = reduceMotion,
+                    modifier = Modifier.height(240.dp),
+                    onClick = if (chest == ChestAnimationState.CLOSED) openChest else null,
+                    onOpened = {
+                        chest = ChestAnimationState.OPEN
+                        reveal = true
+                    },
+                )
+                if (chest == ChestAnimationState.CLOSED) {
                     VoyageButton("Open the chest", VoyageColors.Gold, Modifier.padding(horizontal = 40.dp).fillMaxWidth(), onClick = openChest)
                 }
                 Text("Find your next adventure", color = VoyageColors.Secondary, fontFamily = VoyageSerif, fontStyle = FontStyle.Italic, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
@@ -996,9 +1044,9 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
         }
         item(key = "result") {
             AnimatedVisibility(
-                visible = opened && pick != null,
-                enter = fadeIn(tween(if (reduceMotion) 0 else 250, delayMillis = if (reduceMotion) 0 else 750)) +
-                    slideInVertically(tween(if (reduceMotion) 0 else 250, delayMillis = if (reduceMotion) 0 else 750)) { it / 3 },
+                visible = reveal && pick != null,
+                enter = fadeIn(tween(if (reduceMotion) 0 else 250)) +
+                    slideInVertically(tween(if (reduceMotion) 0 else 300)) { it / 4 },
             ) {
                 val p = pick ?: return@AnimatedVisibility
                 Row(
@@ -1033,10 +1081,11 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
                                 }
                             }
                             VoyagePill("↻ Try again", false, VoyageColors.Gold) {
-                                opened = false
-                                pick = null
+                                if (chest == ChestAnimationState.OPENING) return@VoyagePill
+                                // clear the last pick, show the closed chest, then open it on a new one
+                                closeChest()
                                 scope.launch {
-                                    kotlinx.coroutines.delay(if (reduceMotion) 0 else 320)
+                                    kotlinx.coroutines.delay(if (reduceMotion) 0 else 180)
                                     openChest()
                                 }
                             }
@@ -1046,6 +1095,17 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
             }
         }
     }
+}
+
+/** A very faint antique chart behind the chest (the parchment chart artwork at ~9 %). */
+@Composable
+private fun Modifier.faintChart(): Modifier {
+    val chart = org.jetbrains.compose.resources.painterResource(nuvio.composeapp.generated.resources.Res.drawable.parchment_chart)
+    return this
+        .background(Color(0xFF06141E))
+        .drawBehind {
+            with(chart) { draw(size, alpha = 0.09f) }
+        }
 }
 
 @Composable

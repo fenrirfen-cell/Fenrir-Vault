@@ -57,10 +57,11 @@ internal object VoyageWiring {
         VoyageBridge.wifiOnly = { VoyageRead.wifiOnly() }
         VoyageBridge.setWifiOnly = { on -> VoyageRead.setWifiOnly(on) }
         com.nuvio.app.features.downloads.DownloadsRepository.networkAllowsDownload = {
-            !VoyageRead.wifiOnly() || runCatching {
-                val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
-                !cm.isActiveNetworkMetered
-            }.getOrDefault(true)
+            val metered: Boolean = runCatching {
+                val cm: android.net.ConnectivityManager = app.getSystemService(android.net.ConnectivityManager::class.java)
+                cm.isActiveNetworkMetered
+            }.getOrDefault(false)
+            !(VoyageRead.wifiOnly() && metered)
         }
         VoyageBridge.freeBytes = { runCatching { android.os.StatFs(app.filesDir.path).availableBytes }.getOrNull() }
 

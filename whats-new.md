@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- MugiVerse Read: More moved to the top (next to the bell); bigger Continue Reading text and shelf name
 - MugiVerse My List: new nautical look with Saved / Cloud, All / Movies / Series / Anime, seven sort options, search in the header and gold-framed posters
 - MugiVerse Browse: gold tabs, Novel / Manga pills and two-column source cards with a Latest button
 - Fixed: big empty gaps between some paragraphs in Paged reading

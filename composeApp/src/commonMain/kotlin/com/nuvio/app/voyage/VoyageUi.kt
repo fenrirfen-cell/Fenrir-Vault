@@ -34,6 +34,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -584,6 +585,36 @@ fun CaptainsLogCard(modifier: Modifier = Modifier) {
         Column(Modifier.weight(1f)) {
             Text("Captain's Log", color = Color(0xFFF2D592), fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Text("Your streaks, stats and bounties", color = VoyageColors.Secondary, fontSize = 12.5.sp)
+        }
+        Text("›", color = VoyageColors.Gold, fontSize = 24.sp)
+    }
+}
+
+/** Settings → Privacy (reading privacy across Watch, Ani-Drama and Read). */
+@Composable
+fun PrivacySettingsEntry(modifier: Modifier = Modifier) {
+    if (!com.nuvio.app.mugi.mugiOn()) return
+    val privacy by ReadingPrivacy.state.collectAsState()
+    Row(
+        modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MugiPrivacyColors.Surface)
+            .border(1.dp, MugiPrivacyColors.Gold, RoundedCornerShape(14.dp))
+            .clickable(onClickLabel = "Open Privacy") { VoyageNav.open(VoyageScreen.PRIVACY) }
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("🔒", fontSize = 22.sp)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text("Privacy", color = Color(0xFFF2D592), fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(
+                if (privacy.settings.keepReadingPrivate) "Reading is private outside Read" else "Keep your reading private",
+                color = VoyageColors.Secondary,
+                fontSize = 12.5.sp,
+            )
         }
         Text("›", color = VoyageColors.Gold, fontSize = 24.sp)
     }

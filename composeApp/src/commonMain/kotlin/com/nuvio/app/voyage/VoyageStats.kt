@@ -285,3 +285,8 @@ fun chooseSurprise(
         (maxMinutes == null || (item.durationMinutes != null && item.durationMinutes <= maxMinutes)) &&
         item.available && !item.completed && item.id !in excludedIds
 }.randomOrNull()
+
+
+/** Bounties that would give away reading (hidden while reading is private). */
+fun BountyDefinition.isReading(): Boolean =
+    type == BountyType.CHAPTERS_READ || type == BountyType.BOOKS_COMPLETED || type == BountyType.LANGUAGES_EXPLORED

@@ -2,6 +2,11 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- New: Private reading — keep books out of Continue, Surprise Me and Captain's Log on the Watch side (Settings → Privacy); unlock with your fingerprint or PIN
+- New: Continue has All / Watch / Ani-Drama / Read tabs and opens on the mode you came from
+- New: Private Library (the 🔒 in Read's header) — move books into a locked cabinet; they disappear from the library, history, updates and notifications until you unlock
+- New: Read privacy settings — lock all of Read, lock when leaving the app, hide private notifications, incognito
+- New: collector's-edition books on the shelves, with a bookmark showing unread / reading / finished (can be switched back)
 - New: Continue — everything unfinished from Watch, Ani-Drama and Read in one place (See all › on Continue Watching / Continue Reading)
 - New: Captain's Log — streaks, reading and watching time, weekly chart and top genre (Settings, or More on Read)
 - New: Bounties — wanted-poster milestones you earn as you read and watch (inside Captain's Log)

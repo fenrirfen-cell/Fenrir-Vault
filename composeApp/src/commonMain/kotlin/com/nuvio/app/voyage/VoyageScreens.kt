@@ -87,6 +87,16 @@ fun VoyageHost(actions: VoyageActions) {
         if (VoyageNav.back() && wasRead) com.nuvio.app.readmode.ReadModeBridge.openRead?.invoke()
     }
     PlatformBackHandler(enabled = true, onBack = back)
+    // Reading privacy: one rule for every screen here (Read itself always shows reading)
+    val privacy by ReadingPrivacy.state.collectAsState()
+    val surface = if (VoyageNav.fromRead) PrivacySurface.READ else PrivacySurface.WATCH
+    LaunchedEffect(privacy.temporarilyUnlocked) {
+        while (privacy.temporarilyUnlocked) {
+            kotlinx.coroutines.delay(10_000)
+            ReadingPrivacy.current() // relocks when the 5 minutes are up
+        }
+    }
+    val showReading = privacy.canShowReading(surface)
     LaunchedEffect(Unit) {
         VoyageData.refreshRead()
         WatchedRepository.ensureLoaded()
@@ -103,20 +113,34 @@ fun VoyageHost(actions: VoyageActions) {
         Box(Modifier.fillMaxSize().padding(top = top)) {
             // leaving to the player or a details page: close Voyage without going back to Read
             val leave: () -> Unit = { VoyageNav.close() }
+            androidx.compose.runtime.CompositionLocalProvider(LocalShowReading provides showReading, LocalPrivacySurface provides surface) {
             when (current) {
                 VoyageScreen.CONTINUE -> ContinueScreen(actions, back, leave, bottom)
                 VoyageScreen.LOG -> CaptainsLogScreen(back, bottom)
                 VoyageScreen.BOUNTIES -> BountiesScreen(back, bottom)
                 VoyageScreen.OFFLINE -> OfflineVoyageScreen(actions, back, leave, bottom)
                 VoyageScreen.SURPRISE -> SurpriseScreen(actions, back, leave, bottom)
+                VoyageScreen.PRIVACY -> PrivacyScreen(back, bottom)
+            }
             }
         }
     }
 }
 
+/** Whether reading may be shown on this screen (reading privacy). */
+val LocalShowReading = androidx.compose.runtime.staticCompositionLocalOf { true }
+val LocalPrivacySurface = androidx.compose.runtime.staticCompositionLocalOf { PrivacySurface.WATCH }
+
+/** The Read snapshot, or nothing at all while reading is private and locked. */
+@Composable
+private fun readIfAllowed(): ReadSnapshot? {
+    val read by VoyageData.readSnapshot.collectAsState()
+    return if (LocalShowReading.current) read else null
+}
+
 @Composable
 private fun rememberInputs(): VoyageInputs {
-    val read by VoyageData.readSnapshot.collectAsState()
+    val read = readIfAllowed()
     val watched by WatchedRepository.uiState.collectAsState()
     val series by WatchedRepository.fullyWatchedSeriesKeys.collectAsState()
     val progress by WatchProgressRepository.uiState.collectAsState()
@@ -155,7 +179,7 @@ private data class VoyageContinueItem(
 private fun ContinueScreen(actions: VoyageActions, onBack: () -> Unit, leave: () -> Unit, bottom: androidx.compose.ui.unit.Dp) {
     val watchItems by VoyageData.watchContinue.collectAsState()
     val progress by WatchProgressRepository.uiState.collectAsState()
-    val read by VoyageData.readSnapshot.collectAsState()
+    val read = readIfAllowed()
     val loading by VoyageData.readLoading.collectAsState()
     val items = remember(watchItems, progress, read) {
         val lastByVideo = progress.entries.associate { it.videoId to it.lastUpdatedEpochMs }
@@ -197,12 +221,86 @@ private fun ContinueScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
         }
         (w + r).sortedByDescending { it.lastActivity }
     }
+    val showReading = LocalShowReading.current
+    val privacy by ReadingPrivacy.state.collectAsState()
+    val privateOn = privacy.settings.keepReadingPrivate && LocalPrivacySurface.current != PrivacySurface.READ
+    val scope = rememberCoroutineScope()
+    var authError by remember { mutableStateOf<String?>(null) }
+    val tabs = if (showReading) VoyageMode.entries else VoyageMode.entries.filter { it != VoyageMode.READ }
+    // opens on the mode you came from (Read → Read, Ani-Drama → Ani-Drama, else Watch)
+    var tab by remember {
+        mutableStateOf(
+            when {
+                VoyageNav.fromRead -> VoyageMode.READ
+                com.nuvio.app.mugi.MugiAniMode.on.value -> VoyageMode.ANI_DRAMA
+                else -> VoyageMode.WATCH
+            },
+        )
+    }
+    if (tab !in tabs) tab = VoyageMode.ALL // relocked while on Read
+    val shown = items.filter { tab == VoyageMode.ALL || it.mode == tab }
+    val unlock: () -> Unit = {
+        scope.launch { authError = ReadingPrivacy.requestUnlock() }
+    }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
         item(key = "head") {
-            VoyageHeader("Continue", onBack, decoration = { VoyageShip(Modifier.size(width = 110.dp, height = 90.dp)) })
-            VoyageSectionTitle("Pick up where you left off")
+            Box {
+                VoyageHeader("Continue", onBack, decoration = { VoyageShip(Modifier.size(width = 110.dp, height = 90.dp)) })
+                if (privateOn) {
+                    Box(
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp)
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .clickable(onClickLabel = if (showReading) "Lock reading again" else "Unlock reading") {
+                                if (showReading) ReadingPrivacy.lock() else unlock()
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(Modifier.size(38.dp).clip(CircleShape).border(1.dp, VoyageColors.Gold, CircleShape), contentAlignment = Alignment.Center) {
+                            Text(if (showReading) "🔓" else "🔒", fontSize = 16.sp)
+                        }
+                    }
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).height(44.dp).clip(RoundedCornerShape(22.dp)).border(1.dp, VoyageColors.Gold, RoundedCornerShape(22.dp)),
+            ) {
+                tabs.forEach { m ->
+                    val on = m == tab
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(
+                                if (on) {
+                                    when (m) {
+                                        VoyageMode.WATCH -> Brush.verticalGradient(listOf(Color(0xFFC92D35), Color(0xFF7A141B)))
+                                        VoyageMode.ANI_DRAMA -> Brush.verticalGradient(listOf(Color(0xFF993BDF), Color(0xFF5A1E8C)))
+                                        else -> Brush.verticalGradient(listOf(Color(0xFFF6D88E), Color(0xFFA87832)))
+                                    }
+                                } else {
+                                    Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
+                                },
+                            )
+                            .clickable { tab = m },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            m.label,
+                            color = if (on && (m == VoyageMode.ALL || m == VoyageMode.READ)) Color(0xFF2B1A0C) else VoyageColors.Ivory,
+                            fontFamily = VoyageSerif,
+                            fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 15.sp,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
         }
-        if (items.isEmpty()) {
+        if (shown.isEmpty()) {
             item(key = "empty") {
                 VoyageEmpty(
                     if (loading) "Gathering your voyage…" else "Nothing to continue yet",
@@ -210,7 +308,7 @@ private fun ContinueScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
                 )
             }
         }
-        items(items, key = { it.id }) { item ->
+        items(shown, key = { it.id }) { item ->
             ContinueCard(item) {
                 val w = item.watch
                 val r = item.read
@@ -223,6 +321,41 @@ private fun ContinueScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
                 }
             }
         }
+        if (privateOn) {
+            // shown whether or not anything is hidden, and never says how many
+            item(key = "private-footer") {
+                PrivateReadingFooter(showReading, authError, onUnlock = unlock, onLock = { ReadingPrivacy.lock() })
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrivateReadingFooter(unlocked: Boolean, error: String?, onUnlock: () -> Unit, onLock: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.width(40.dp).height(1.dp).background(VoyageColors.Gold.copy(alpha = 0.5f)))
+            Spacer(Modifier.width(10.dp))
+            Text(if (unlocked) "🔓" else "🔒", fontSize = 14.sp)
+            Spacer(Modifier.width(6.dp))
+            Text(
+                if (unlocked) "Reading shown for a few minutes" else "Reading is private",
+                color = MugiPrivacyColors.Ivory,
+                fontFamily = VoyageSerif,
+                fontStyle = FontStyle.Italic,
+                fontSize = 13.sp,
+            )
+            Text(
+                if (unlocked) "Lock again" else "Unlock",
+                color = MugiPrivacyColors.BrightGold,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 6.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = if (unlocked) onLock else onUnlock).padding(horizontal = 8.dp, vertical = 12.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Box(Modifier.width(40.dp).height(1.dp).background(VoyageColors.Gold.copy(alpha = 0.5f)))
+        }
+        error?.let { Text(it, color = Color(0xFFF2B8A8), fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 24.dp)) }
     }
 }
 
@@ -268,13 +401,21 @@ private fun CaptainsLogScreen(onBack: () -> Unit, bottom: androidx.compose.ui.un
     var mode by remember { mutableStateOf(VoyageMode.ALL) }
     var range by remember { mutableStateOf(VoyageRange.WEEK) }
     val loading by VoyageData.readLoading.collectAsState()
+    val showReading = LocalShowReading.current
+    if (!showReading && mode == VoyageMode.READ) mode = VoyageMode.ALL
     val stats = remember(inputs, mode, range) { captainStats(inputs, mode, range) }
-    val board = remember(inputs) { bountyBoard(inputs) }
+    val board = remember(inputs, showReading) { bountyBoard(inputs).filter { showReading || !it.definition.isReading() } }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
-        item(key = "head") { VoyageHeader("Captain's Log", onBack, subtitle = "Your reading and watching, kept on this phone only") }
+        item(key = "head") {
+            VoyageHeader(
+                "Captain's Log",
+                onBack,
+                subtitle = if (showReading) "Your reading and watching, kept on this phone only" else "🔒 Watching only · reading is private",
+            )
+        }
         item(key = "filters") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                VoyageModeChips(mode, { mode = it })
+                VoyageModeChips(mode, { mode = it }, modes = if (showReading) VoyageMode.entries else VoyageMode.entries.filter { it != VoyageMode.READ })
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -391,7 +532,8 @@ private fun WeekChart(days: List<DailyVoyageActivity>) {
 @Composable
 private fun BountiesScreen(onBack: () -> Unit, bottom: androidx.compose.ui.unit.Dp) {
     val inputs = rememberInputs()
-    val board = remember(inputs) { bountyBoard(inputs) }
+    val showReading = LocalShowReading.current
+    val board = remember(inputs, showReading) { bountyBoard(inputs).filter { showReading || !it.definition.isReading() } }
     var open by remember { mutableStateOf<BountyProgress?>(null) }
     val total = board.filter { it.unlocked }.sumOf { it.definition.reward }
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -470,10 +612,11 @@ private data class PrepTarget(val key: String, val title: String, val artwork: S
 @Composable
 private fun OfflineVoyageScreen(actions: VoyageActions, onBack: () -> Unit, leave: () -> Unit, bottom: androidx.compose.ui.unit.Dp) {
     val watchItems by VoyageData.watchContinue.collectAsState()
-    val read by VoyageData.readSnapshot.collectAsState()
+    val read = readIfAllowed()
     val downloads by DownloadsRepository.uiState.collectAsState()
     val readQueueFlow = remember { VoyageBridge.readDownloads ?: kotlinx.coroutines.flow.flowOf(emptyList()) }
-    val readQueue by readQueueFlow.collectAsState(emptyList())
+    val readQueueAll by readQueueFlow.collectAsState(emptyList())
+    val readQueue = if (LocalShowReading.current) readQueueAll else emptyList()
     val scope = rememberCoroutineScope()
     var message by remember { mutableStateOf<String?>(null) }
     val targets = remember(watchItems, read) {
@@ -746,7 +889,7 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
     var pick by remember { mutableStateOf<SurpriseCandidate?>(null) }
     var noMatch by remember { mutableStateOf(false) }
     val seen = remember { mutableSetOf<String>() }
-    val read by VoyageData.readSnapshot.collectAsState()
+    val read = readIfAllowed()
     val library by LibraryRepository.uiState.collectAsState()
     val watched by WatchedRepository.uiState.collectAsState()
     val series by WatchedRepository.fullyWatchedSeriesKeys.collectAsState()
@@ -796,6 +939,9 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
             }
         }
     }
+    val showReading = LocalShowReading.current
+    if (!showReading && mode == VoyageMode.READ) mode = VoyageMode.ALL
+    if (!showReading && pick?.mode == VoyageMode.READ) { pick = null; opened = false }
     val openChest: () -> Unit = {
         val c = chooseSurprise(candidates, mode, maxMinutes, seen)
         if (c == null) {
@@ -812,7 +958,7 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
         item(key = "mode") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 VoyageSectionTitle("Choose a mode")
-                VoyageModeChips(mode, { mode = it; opened = false; pick = null })
+                VoyageModeChips(mode, { mode = it; opened = false; pick = null }, modes = if (showReading) VoyageMode.entries else VoyageMode.entries.filter { it != VoyageMode.READ })
                 VoyageSectionTitle("Source")
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     VoyagePill("✓ My List".takeIf { source == SurpriseSource.MY_LIST } ?: "My List", source == SurpriseSource.MY_LIST, VoyageColors.Gold, Modifier.weight(1f)) { source = SurpriseSource.MY_LIST; opened = false; pick = null }
@@ -902,4 +1048,94 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
 @Composable
 private fun CompassRose(modifier: Modifier = Modifier) {
     BountyEmblemArt(BountyEmblem.COMPASS, earned = true, modifier = modifier.alpha(0.6f))
+}
+
+
+/* ───────────── Privacy ───────────── */
+
+@Composable
+fun PrivacySettingCard(title: String, description: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, enabled: Boolean = true) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MugiPrivacyColors.Surface)
+            .border(1.dp, MugiPrivacyColors.Gold, shape)
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
+            .padding(16.dp)
+            .alpha(if (enabled) 1f else 0.5f),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = MugiPrivacyColors.Ivory, fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Spacer(Modifier.height(6.dp))
+            Text(description, color = MugiPrivacyColors.Secondary, fontSize = 13.sp, lineHeight = 19.sp)
+        }
+        Spacer(Modifier.width(12.dp))
+        androidx.compose.material3.Switch(
+            checked = checked,
+            enabled = enabled,
+            onCheckedChange = onCheckedChange,
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedThumbColor = MugiPrivacyColors.Ivory,
+                checkedTrackColor = MugiPrivacyColors.Gold,
+                uncheckedThumbColor = MugiPrivacyColors.Secondary,
+                uncheckedTrackColor = Color(0xFF29343D),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun PrivacyScreen(onBack: () -> Unit, bottom: androidx.compose.ui.unit.Dp) {
+    val privacy by ReadingPrivacy.state.collectAsState()
+    val scope = rememberCoroutineScope()
+    var error by remember { mutableStateOf<String?>(null) }
+    val s = privacy.settings
+    fun apply(next: ReadingPrivacySettings) {
+        scope.launch { error = ReadingPrivacy.update(next) }
+    }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
+        item(key = "head") { VoyageHeader("Privacy", onBack, decoration = { Text("🔒", fontSize = 56.sp, modifier = Modifier.padding(top = 40.dp, end = 12.dp)) }) }
+        item(key = "cards") {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                PrivacySettingCard(
+                    "Keep my reading private",
+                    "Hide books from Continue, Surprise Me and Captain's Log outside Read mode.",
+                    s.keepReadingPrivate,
+                    { apply(s.copy(keepReadingPrivate = it)) },
+                )
+                PrivacySettingCard(
+                    "Ask to unlock",
+                    "Require fingerprint, PIN or pattern before showing private reading again.",
+                    s.requireAuthentication,
+                    { apply(s.copy(requireAuthentication = it)) },
+                    enabled = s.keepReadingPrivate,
+                )
+                Text(
+                    "Books remain available in Read. Incognito (no new reading history) is in Read → More.",
+                    color = MugiPrivacyColors.Secondary,
+                    fontSize = 13.sp,
+                )
+                error?.let { Text(it, color = Color(0xFFF2B8A8), fontSize = 13.sp) }
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .woodPanel(14.dp)
+                        .clickable { VoyageNav.open(VoyageScreen.LOG) }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("📖", fontSize = 26.sp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Captain's Log", color = Color(0xFFF2D592), fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(if (privacy.canShowReading(PrivacySurface.WATCH)) "Watching and reading" else "Watching only", color = VoyageColors.Secondary, fontSize = 13.sp)
+                    }
+                    Text("›", color = VoyageColors.Gold, fontSize = 24.sp)
+                }
+            }
+        }
+    }
 }

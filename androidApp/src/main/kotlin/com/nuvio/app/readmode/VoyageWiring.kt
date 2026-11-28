@@ -122,6 +122,34 @@ internal object VoyageWiring {
             }
         }
 
+        // Fingerprint / PIN / pattern: the phone's own prompt (never stored, never skipped)
+        VoyageBridge.authenticate = { title ->
+            val activity = modes.current()
+            if (activity == null) {
+                "Unlocking isn't available right now."
+            } else {
+                withContext(Dispatchers.Main) { eu.kanade.tachiyomi.vault.Vault.authenticateFrom(activity, title) }
+            }
+        }
+        // Lock again when MugiVerse goes to the background (reading privacy and the Private Library)
+        app.registerActivityLifecycleCallbacks(object : android.app.Application.ActivityLifecycleCallbacks {
+            private var started = 0
+            override fun onActivityStarted(a: android.app.Activity) { started++ }
+            override fun onActivityStopped(a: android.app.Activity) {
+                started = (started - 1).coerceAtLeast(0)
+                if (started == 0 && !a.isChangingConfigurations) {
+                    com.nuvio.app.voyage.ReadingPrivacy.onAppBackground()
+                    runCatching { eu.kanade.tachiyomi.vault.Vault.onAppBackground() }
+                }
+            }
+            override fun onActivityCreated(a: android.app.Activity, b: android.os.Bundle?) = Unit
+            override fun onActivityResumed(a: android.app.Activity) = Unit
+            override fun onActivityPaused(a: android.app.Activity) = Unit
+            override fun onActivitySaveInstanceState(a: android.app.Activity, b: android.os.Bundle) = Unit
+            override fun onActivityDestroyed(a: android.app.Activity) = Unit
+        })
+        runCatching { com.nuvio.app.voyage.ReadingPrivacy.ensureLoaded() }
+
         runCatching { VoyageActivityLog.start() }
     }
 }

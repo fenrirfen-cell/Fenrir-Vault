@@ -115,6 +115,9 @@ object VoyageBridge {
     var cancelReadDownload: ((chapterId: Long) -> Unit)? = null
     var openReadDownloadQueue: (() -> Unit)? = null
     var freeBytes: (() -> Long?)? = null
+
+    /** The phone's own fingerprint / PIN / pattern prompt. Returns null on success, else a message. */
+    var authenticate: (suspend (title: String) -> String?)? = null
     var load: (String) -> String? = { null }
     var save: (String, String) -> Unit = { _, _ -> }
 
@@ -142,7 +145,7 @@ enum class VoyageRange(val label: String) { WEEK("This week"), MONTH("This month
 
 /* ───────────── which Voyage screen is open ───────────── */
 
-enum class VoyageScreen { CONTINUE, LOG, BOUNTIES, OFFLINE, SURPRISE }
+enum class VoyageScreen { CONTINUE, LOG, BOUNTIES, OFFLINE, SURPRISE, PRIVACY }
 
 object VoyageNav {
     private val _screen = MutableStateFlow<VoyageScreen?>(null)

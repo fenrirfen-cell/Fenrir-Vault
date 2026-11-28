@@ -32,6 +32,8 @@ internal class ReadModeController(
         set(value) = prefs.edit().putString(KEY_LAST_MODE, value).apply()
 
     /** From the Watch side (called by Nuvio's switch). */
+    fun current(): Activity? = currentActivity?.get()
+
     /** Starts [intent] from whatever screen is showing (or as a new task if none). */
     fun startFromCurrent(intent: Intent) {
         val activity = currentActivity?.get()

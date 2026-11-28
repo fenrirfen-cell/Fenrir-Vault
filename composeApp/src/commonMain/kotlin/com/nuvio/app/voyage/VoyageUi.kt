@@ -317,17 +317,38 @@ fun VoyageProgressBar(progress: Float, mode: VoyageMode, modifier: Modifier = Mo
 
 /** A row of coloured pills (All gold, Watch red, Ani-Drama violet, Read gold). */
 @Composable
-fun VoyageModeChips(selected: VoyageMode, onSelect: (VoyageMode) -> Unit, modifier: Modifier = Modifier, modes: List<VoyageMode> = VoyageMode.entries) {
+fun VoyageModeChips(selected: VoyageMode, onSelect: (VoyageMode) -> Unit, modifier: Modifier = Modifier, modes: List<VoyageMode> = VoyageMode.entries, crimsonAll: Boolean = false) {
     Row(
         modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        modes.forEach { m -> VoyagePill(m.label, m == selected, m.accent()) { onSelect(m) } }
+        modes.forEach { m ->
+            if (crimsonAll && m == VoyageMode.ALL) {
+                // Surprise Me: All in crimson with a thin gold edge; dark navy with a muted gold edge when not picked
+                VoyagePill(
+                    m.label,
+                    m == selected,
+                    Color(0xFFC92D35),
+                    borderColor = if (m == selected) VoyageColors.Gold else VoyageColors.Gold.copy(alpha = 0.5f),
+                    unselectedBackground = Color(0xFF0B1E2C),
+                ) { onSelect(m) }
+            } else {
+                VoyagePill(m.label, m == selected, m.accent()) { onSelect(m) }
+            }
+        }
     }
 }
 
 @Composable
-fun VoyagePill(label: String, selected: Boolean, accent: Color = VoyageColors.Gold, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun VoyagePill(
+    label: String,
+    selected: Boolean,
+    accent: Color = VoyageColors.Gold,
+    modifier: Modifier = Modifier,
+    borderColor: Color? = null,
+    unselectedBackground: Color? = null,
+    onClick: () -> Unit,
+) {
     val shape = RoundedCornerShape(18.dp)
     val a by animateFloatAsState(if (selected) 1f else 0f, tween(if (com.nuvio.app.mugi.MugiMotion.reduceMotion()) 0 else 180), label = "voyagePill")
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
@@ -336,9 +357,9 @@ fun VoyagePill(label: String, selected: Boolean, accent: Color = VoyageColors.Go
             .heightIn(min = 36.dp)
             .widthIn(min = 56.dp)
             .clip(shape)
-            .background(Color(0x66000000))
+            .background(unselectedBackground ?: Color(0x66000000))
             .drawBehind { if (a > 0f) drawRect(Brush.verticalGradient(listOf(accent, accent.copy(alpha = 0.7f))), alpha = a) }
-            .border(1.dp, accent.copy(alpha = if (selected) 1f else 0.85f), shape)
+            .border(1.dp, borderColor ?: accent.copy(alpha = if (selected) 1f else 0.85f), shape)
             .selectable(selected = selected, role = Role.Tab, onClick = { com.nuvio.app.mugi.MugiMotion.tap(haptic); onClick() })
             .padding(horizontal = 10.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,

@@ -59,12 +59,17 @@ import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.graphics.graphicsLayer
 import nuvio.composeapp.generated.resources.parchment_chart
 import nuvio.composeapp.generated.resources.surprise_nautical_map
 import nuvio.composeapp.generated.resources.mugi_chest_open_front
 import nuvio.composeapp.generated.resources.surprise_card_parchment
 import nuvio.composeapp.generated.resources.surprise_button_red
 import nuvio.composeapp.generated.resources.surprise_button_blue
+import nuvio.composeapp.generated.resources.surprise_rope
+import nuvio.composeapp.generated.resources.surprise_plaque
 import nuvio.composeapp.generated.resources.Res
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.draw.clip
@@ -1131,11 +1136,13 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
         item(key = "head") { VoyageHeader("Surprise Me", onBack, decoration = { CompassRose(Modifier.size(80.dp)) }) }
         item(key = "mode") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
-                VoyageModeChips(mode, { mode = it; closeChest() }, modes = if (showReading) VoyageMode.entries else VoyageMode.entries.filter { it != VoyageMode.READ })
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    VoyagePill("My List", source == SurpriseSource.MY_LIST, VoyageColors.Gold, Modifier.weight(1f)) { source = SurpriseSource.MY_LIST; closeChest() }
-                    VoyagePill("Discover", source == SurpriseSource.DISCOVER, VoyageColors.Gold, Modifier.weight(1f)) { source = SurpriseSource.DISCOVER; closeChest() }
-                }
+                VoyageModeChips(mode, { mode = it; closeChest() }, modes = if (showReading) VoyageMode.entries else VoyageMode.entries.filter { it != VoyageMode.READ }, crimsonAll = true)
+                // My List / Discover: two parchment plaques on a rope (supplied artwork)
+                SurpriseSourcePlaques(
+                    myList = source == SurpriseSource.MY_LIST,
+                    onMyList = { source = SurpriseSource.MY_LIST; closeChest() },
+                    onDiscover = { source = SurpriseSource.DISCOVER; closeChest() },
+                )
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf<Int?>(null, 15, 30, 60).forEach { m ->
                         VoyagePill(m?.let { "$it min" } ?: "Any", maxMinutes == m, VoyageColors.Burgundy, Modifier.weight(1f)) { maxMinutes = m; closeChest() }
@@ -1329,6 +1336,59 @@ private fun SurprisePlateButton(text: String, red: Boolean, modifier: Modifier =
             modifier = Modifier.matchParentSize(),
         )
         Text(text, color = Color(0xFFF5E8D0), fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
+    }
+}
+
+/**
+ * My List and Discover as two parchment plaques hanging on one horizontal rope. The picked plaque
+ * is full colour with bold lettering; the other is dimmed.
+ */
+@Composable
+private fun SurpriseSourcePlaques(myList: Boolean, onMyList: () -> Unit, onDiscover: () -> Unit) {
+    val rope = org.jetbrains.compose.resources.imageResource(Res.drawable.surprise_rope)
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    Box(Modifier.fillMaxWidth().height(52.dp), contentAlignment = Alignment.Center) {
+        // the rope, its twist repeated across the row (never stretched)
+        Box(
+            Modifier.fillMaxWidth().height(14.dp).drawBehind {
+                val tileW = rope.width * (size.height / rope.height)
+                var x = 0f
+                while (x < size.width) {
+                    drawImage(
+                        rope,
+                        dstOffset = androidx.compose.ui.unit.IntOffset(x.toInt(), 0),
+                        dstSize = androidx.compose.ui.unit.IntSize(kotlin.math.ceil(tileW).toInt() + 1, size.height.toInt()),
+                    )
+                    x += tileW
+                }
+            },
+        )
+        Row(Modifier.fillMaxWidth().padding(horizontal = 28.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            listOf("My List" to myList, "Discover" to !myList).forEach { (label, picked) ->
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .graphicsLayer { alpha = if (picked) 1f else 0.6f }
+                        .selectable(selected = picked, role = Role.Tab, onClick = {
+                            com.nuvio.app.mugi.MugiMotion.tap(haptic)
+                            if (label == "My List") onMyList() else onDiscover()
+                        }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(painterResource(Res.drawable.surprise_plaque), contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
+                    Text(
+                        label,
+                        color = Color(0xFF38200F),
+                        fontFamily = VoyageSerif,
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = if (picked) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 17.sp,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -2,6 +2,8 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Surprise Me: the All chip is crimson with a gold edge, and My List / Discover are parchment plaques on a rope
+- Read: a large Read title above Continue Reading
 - Read bookshelves rebuilt from the new artwork: full wooden shelf rows, books in red, blue, green, purple and brown leather frames with their covers inside, fabric bookmarks for reading status, and the red Add a book on the shelf
 - Surprise Me: a new treasure chest with a lantern inside; your pick rises out of it on a parchment card with rating, genres and a short description
 - View details and Try again are now red and blue brass plates

@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Private Library and Surprise Me now use the hand-made cabinet, doors, padlock, shelves and treasure chest artwork
 - New: Private reading — keep books out of Continue, Surprise Me and Captain's Log on the Watch side (Settings → Privacy); unlock with your fingerprint or PIN
 - New: Continue has All / Watch / Ani-Drama / Read tabs and opens on the mode you came from
 - New: Private Library (the 🔒 in Read's header) — move books into a locked cabinet; they disappear from the library, history, updates and notifications until you unlock

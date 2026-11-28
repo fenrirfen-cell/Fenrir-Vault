@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -64,6 +65,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.mugi_chest_base
+import nuvio.composeapp.generated.resources.mugi_chest_glow
+import nuvio.composeapp.generated.resources.mugi_chest_lid
 import nuvio.composeapp.generated.resources.mugi_parchment
 import org.jetbrains.compose.resources.painterResource
 import kotlin.math.PI
@@ -462,84 +466,55 @@ private fun drawChest(scope: DrawScope, gold: Color, lidOpen: Boolean) = with(sc
 /* ───────────── treasure chest ───────────── */
 
 /**
- * The chest: body, then a lid that swings open on its back hinge (rotationX around the lid's
- * bottom edge), a warm glow inside. Taps are ignored while it is opening or open.
+ * The treasure chest from the approved artwork: base, glow and lid share one 1080 × 960 canvas.
+ * The lid swings back on its hinge (its bottom edge, where it meets the base); the glow only
+ * shows while it opens. Taps are ignored while it is opening or open.
  */
 @Composable
 fun SurpriseChestAnimation(opened: Boolean, reduceMotion: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val press by animateFloatAsState(if (opened) 1f else 0f, tween(if (reduceMotion) 0 else 150), label = "chestPress")
     val rotation by animateFloatAsState(
-        if (opened) -75f else 0f,
-        tween(if (reduceMotion) 0 else 300, delayMillis = if (reduceMotion) 0 else 150, easing = FastOutSlowInEasing),
+        if (opened) 78f else 0f,
+        tween(if (reduceMotion) 0 else 300, delayMillis = if (reduceMotion || !opened) 0 else 150, easing = FastOutSlowInEasing),
         label = "chestLid",
     )
-    val glow by animateFloatAsState(if (opened) 1f else 0f, tween(if (reduceMotion) 0 else 300, delayMillis = if (reduceMotion) 0 else 450), label = "chestGlow")
+    val glow by animateFloatAsState(
+        if (opened) 1f else 0f,
+        tween(if (reduceMotion) 0 else 300, delayMillis = if (reduceMotion || !opened) 0 else 450),
+        label = "chestGlow",
+    )
     val squash = if (opened && press < 1f) 1f - 0.04f * (1f - press) else 1f
     Box(
         modifier
             .fillMaxWidth()
-            .height(220.dp)
+            .height(230.dp)
             .clickable(enabled = !opened, onClickLabel = "Open the chest", onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        // warm light
         Box(
             Modifier
-                .size(220.dp)
-                .graphicsLayer { alpha = glow }
-                .background(Brush.radialGradient(listOf(VoyageColors.BrightGold.copy(alpha = 0.45f), Color.Transparent)), CircleShape),
-        )
-        Box(Modifier.size(width = 210.dp, height = 170.dp).graphicsLayer { scaleY = squash; scaleX = 2f - squash }) {
-            // body
-            Box(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .size(width = 200.dp, height = 96.dp)
-                    .drawBehind {
-                        val w = size.width
-                        val h = size.height
-                        // inside of the chest (seen when open)
-                        drawRect(Brush.verticalGradient(listOf(Color(0xFFFFE08A).copy(alpha = glow), Color(0xFF3A2210))), Offset(0f, 0f), Size(w, h * 0.25f))
-                        drawRoundRect(Brush.verticalGradient(listOf(Color(0xFF8A5228), Color(0xFF5A3214))), cornerRadius = CornerRadius(8f))
-                        // planks
-                        for (i in 1..3) drawLine(Color(0x55000000), Offset(0f, h * i / 4f), Offset(w, h * i / 4f), 2f)
-                        // gold bands and corners
-                        listOf(0.18f, 0.82f).forEach { x -> drawRect(Brush.verticalGradient(listOf(Color(0xFFF6D88E), Color(0xFFA87832))), Offset(w * x - 7f, 0f), Size(14f, h)) }
-                        drawRect(Brush.horizontalGradient(listOf(Color(0xFFA87832), Color(0xFFF6D88E), Color(0xFFA87832))), Offset(0f, 0f), Size(w, 8f))
-                        // anchor lock plate
-                        drawRoundRect(Brush.verticalGradient(listOf(Color(0xFFF6D88E), Color(0xFFA87832))), Offset(w * 0.42f, -h * 0.05f), Size(w * 0.16f, h * 0.42f), CornerRadius(6f))
-                        val c = Offset(w * 0.5f, h * 0.18f)
-                        drawLine(Color(0xFF5A3214), Offset(c.x, c.y - 10f), Offset(c.x, c.y + 14f), 3f)
-                        drawLine(Color(0xFF5A3214), Offset(c.x - 9f, c.y - 4f), Offset(c.x + 9f, c.y - 4f), 3f)
-                        drawArc(Color(0xFF5A3214), 20f, 140f, false, Offset(c.x - 12f, c.y), Size(24f, 18f), style = Stroke(3f))
-                    },
-            )
-            // lid, hinged at its bottom edge (the back of the chest)
-            Box(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .offset(y = (-94).dp)
-                    .size(width = 204.dp, height = 70.dp)
-                    .graphicsLayer {
-                        rotationX = rotation
-                        transformOrigin = TransformOrigin(0.5f, 1f)
-                        cameraDistance = 24f * density
-                    }
-                    .drawBehind {
-                        val w = size.width
-                        val h = size.height
-                        val dome = Path().apply {
-                            moveTo(0f, h)
-                            lineTo(0f, h * 0.45f)
-                            quadraticTo(w * 0.5f, -h * 0.35f, w, h * 0.45f)
-                            lineTo(w, h)
-                            close()
-                        }
-                        drawPath(dome, Brush.verticalGradient(listOf(Color(0xFF9A5E2E), Color(0xFF6A3A18))))
-                        listOf(0.18f, 0.82f).forEach { x -> drawRect(Brush.verticalGradient(listOf(Color(0xFFF6D88E), Color(0xFFA87832))), Offset(w * x - 7f, h * 0.12f), Size(14f, h * 0.88f)) }
-                        drawRect(Brush.horizontalGradient(listOf(Color(0xFFA87832), Color(0xFFF6D88E), Color(0xFFA87832))), Offset(0f, h - 8f), Size(w, 8f))
-                        drawPath(dome, Color(0xFFD4AF65), style = Stroke(2f))
-                    },
+                .fillMaxHeight()
+                .aspectRatio(1080f / 960f)
+                .graphicsLayer {
+                    scaleY = squash
+                    scaleX = 2f - squash
+                    transformOrigin = TransformOrigin(0.5f, 0.92f)
+                },
+        ) {
+            Image(painterResource(Res.drawable.mugi_chest_base), contentDescription = "Treasure chest", contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
+            if (glow > 0f) {
+                Image(painterResource(Res.drawable.mugi_chest_glow), contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize().graphicsLayer { alpha = glow })
+            }
+            Image(
+                painterResource(Res.drawable.mugi_chest_lid),
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier.matchParentSize().graphicsLayer {
+                    rotationX = rotation
+                    // the hinge: the lid's bottom edge, where it rests on the base (y 512 of 960)
+                    transformOrigin = TransformOrigin(0.5f, 512f / 960f)
+                    cameraDistance = 16f * density
+                },
             )
         }
     }
@@ -555,7 +530,10 @@ fun SurpriseChestButton(modifier: Modifier = Modifier, size: Dp = 40.dp, onClick
             .clickable(onClickLabel = "Surprise me", role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.size(size).drawBehind { drawChest(this, VoyageColors.Gold, false) })
+        Box(Modifier.width(size).aspectRatio(1080f / 960f)) {
+            Image(painterResource(Res.drawable.mugi_chest_base), contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
+            Image(painterResource(Res.drawable.mugi_chest_lid), contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
+        }
     }
 }
 

@@ -75,7 +75,7 @@ private val HubAccentText = Color(0xFFFF6B73)
 /**
  * Settings → Sources: one place for every kind of source (Stremio add-ons, Aniyomi extensions,
  * CloudStream plugins, manga extensions, novel plugins) and one "+ Add" box for links.
- * Opened from Settings and from the FENRIR READ ▾ menu ("Manage sources", "+").
+ * Opened from Settings and from the FENRIR WATCH ▾ menu ("Manage sources", "+").
  */
 object FenrirSourcesHub {
     sealed interface Screen {

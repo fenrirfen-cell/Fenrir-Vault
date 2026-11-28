@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.nuvio.app.core.ui.PlatformBackHandler
 
 /*
- * Fenrir Read: when the source was picked automatically (auto-play or the reused last link),
+ * Fenrir Vault: when the source was picked automatically (auto-play or the reused last link),
  * the first "back" doesn't leave the player straight away. It offers a different source,
  * a different episode, or leaving. A second "back" leaves.
  */

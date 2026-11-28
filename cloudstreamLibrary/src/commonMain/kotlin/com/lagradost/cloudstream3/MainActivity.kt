@@ -9,8 +9,8 @@ import okhttp3.Interceptor
 import okhttp3.Response
 
 /**
- * Fenrir Read: plugins add their own interceptors to these clients. If one of them throws
- * something other than an IOException (e.g. it needs a CloudStream app class Fenrir Read
+ * Fenrir Vault: plugins add their own interceptors to these clients. If one of them throws
+ * something other than an IOException (e.g. it needs a CloudStream app class Fenrir Vault
  * doesn't have), OkHttp rethrows it on its own thread and the whole app crashes. This sits
  * outermost and turns those into a normal failed request, so only that site fails.
  */

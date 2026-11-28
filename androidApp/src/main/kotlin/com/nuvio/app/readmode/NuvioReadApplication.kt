@@ -145,7 +145,7 @@ class NuvioReadApplication : App() {
         // Episode reminders from the Ani-drama calendar (notification + optional spoken alert).
         com.nuvio.app.features.anidrama.AniDramaRemindersAndroid.install(this)
 
-        // In-app updates come from Fenrir Read's own GitHub releases, compared by build number.
+        // In-app updates come from Fenrir Vault's own GitHub releases, compared by build number.
         FenrirUpdates.repo = "fenrirfen-cell/Fenrir-Vault"
         FenrirUpdates.currentBuild = runCatching {
             FenrirUpdates.buildOf(packageManager.getPackageInfo(packageName, 0).versionName)
@@ -177,7 +177,7 @@ class NuvioReadApplication : App() {
             com.nuvio.app.readmode.FenrirWhatsNewCard()
         }
         com.nuvio.app.fenrirInstallHowl(this)
-        // Pull to refresh on the Read side also checks quietly for a new Fenrir Read version.
+        // Pull to refresh on the Read side also checks quietly for a new Fenrir Vault version.
         // When there is one, the Read side shows a small pill with an Update button.
         val updateScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.CoroutineExceptionHandler { _, _ -> })
         var mirrorJob: kotlinx.coroutines.Job? = null
@@ -236,7 +236,7 @@ class NuvioReadApplication : App() {
         // Backup of both (Downloads/Fenrir Vault, kept when the app is deleted; restore in Settings → Sources).
         com.nuvio.app.readmode.FenrirPluginBackup.files = com.nuvio.app.readmode.FenrirBackupFilesAndroid(this)
         com.nuvio.app.readmode.FenrirPluginBackup.startAutoSave()
-        // Which CloudStream source Home shows (picked from the FENRIR READ drop-down); none = Nuvio home.
+        // Which CloudStream source Home shows (picked from the FENRIR WATCH drop-down); none = Nuvio home.
         // Where each plugin source is used (Home menu, pinned, search, streams).
         com.nuvio.app.readmode.FenrirSourceFlags.install(aniDramaPrefs.getString(KEY_SOURCE_FLAGS, null)) { text ->
             aniDramaPrefs.edit().putString(KEY_SOURCE_FLAGS, text).apply()

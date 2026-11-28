@@ -45,7 +45,7 @@ object ReadModeBridge {
     val isAvailable: Boolean get() = openRead != null
 }
 
-/** Which side of Fenrir Read the switch shows as selected. */
+/** Which side of Fenrir Vault the switch shows as selected. */
 enum class FenrirMode { Watch, AniDrama, Read }
 
 /**

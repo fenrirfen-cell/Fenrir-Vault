@@ -31,7 +31,7 @@ enum class AppTheme {
     AMBER,
     ROSE,
     WHITE,
-    /** Fenrir Read: near-black with coral red (default). */
+    /** Fenrir Vault: near-black with coral red (default). */
     FENRIR,
 }
 

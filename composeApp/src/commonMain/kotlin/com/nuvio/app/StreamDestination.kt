@@ -428,7 +428,7 @@ internal fun StreamDestination(
     )
     SideEffect { onLandscapeLoadingChanged(useLandscapeLoading) }
     var autoPlayHandled by rememberSaveable(launch.videoId, effectiveVideoId) { mutableStateOf(false) }
-    // Fenrir Read: while a source is being picked automatically, let the user stop and choose
+    // Fenrir Vault: while a source is being picked automatically, let the user stop and choose
     // the source themselves, or go to the show page to pick another episode.
     val onChooseSourceInstead: (() -> Unit)? = if (!launch.manualSelection) {
         {

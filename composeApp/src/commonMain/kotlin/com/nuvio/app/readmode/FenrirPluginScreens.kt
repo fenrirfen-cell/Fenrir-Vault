@@ -416,7 +416,7 @@ internal fun FenrirWhereToUseDialog(host: FenrirPluginHost, plugin: FenrirPlugin
                         val f = flags[key] ?: FenrirSourceFlags.get(key)
                         Column(Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(16.dp)).background(Card).padding(horizontal = 14.dp, vertical = 6.dp)) {
                             if (names.size > 1) Text(name, color = Color.White, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp, bottom = 2.dp))
-                            FlagRow("On Home", "Listed in the FENRIR READ ▾ menu", f.home) { FenrirSourceFlags.set(key, f.copy(home = it, pinned = if (!it) false else f.pinned)) }
+                            FlagRow("On Home", "Listed in the FENRIR WATCH ▾ menu", f.home) { FenrirSourceFlags.set(key, f.copy(home = it, pinned = if (!it) false else f.pinned)) }
                             FlagRow("Pinned", "At the top of that menu", f.pinned) { FenrirSourceFlags.set(key, f.copy(pinned = it, home = if (it) true else f.home)) }
                             FlagRow("In Search", "Its results show when you search", f.search) { FenrirSourceFlags.set(key, f.copy(search = it)) }
                             FlagRow("For streams", "Used to find links on show pages", f.streams) { FenrirSourceFlags.set(key, f.copy(streams = it)) }

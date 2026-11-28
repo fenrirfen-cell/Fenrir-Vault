@@ -155,7 +155,7 @@ fun FenrirTopBar(
         modifier = modifier.fillMaxWidth().height(46.dp).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Tap FENRIR READ to pick what Home shows: Nuvio's home or a CloudStream source's home.
+        // Tap FENRIR WATCH to pick what Home shows: Nuvio's home or a CloudStream source's home.
         Box(modifier = Modifier.weight(1f)) {
             // Fenrir: shrinks to fit when the buttons on the right are wide ("Ani-drama"), so the
             // search button never covers WATCH.
@@ -452,7 +452,7 @@ fun FenrirNavigationBar(items: List<FenrirNavItem>, modifier: Modifier = Modifie
 
 
 /**
- * Round button beside Search when a new Fenrir Read version is out: a red dot, a progress ring
+ * Round button beside Search when a new Fenrir Vault version is out: a red dot, a progress ring
  * while downloading, and a small menu (Update / Not now). Returns true when it's shown.
  */
 @Composable

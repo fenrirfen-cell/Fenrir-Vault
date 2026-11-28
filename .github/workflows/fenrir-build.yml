@@ -1,7 +1,7 @@
-name: Fenrir Read build
+name: Fenrir Vault build
 
 # Every day: check for a new official Nuvio or Tsundoku *release*. Only when there is one, merge it,
-# build Fenrir Read and publish the APK (the app's own updater and Obtainium pick it up).
+# build Fenrir Vault and publish the APK (the app's own updater and Obtainium pick it up).
 # Can also be started by hand.
 # If an official update clashes with Fenrir's changes, it is skipped, the rest still builds, and an
 # issue is opened so the clash can be fixed by hand.
@@ -72,7 +72,7 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
             TITLE="Official Nuvio update needs a manual merge"
             if [ -z "$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number')" ]; then
-              gh issue create --title "$TITLE" --body "$(printf 'The daily build could not merge the latest official Nuvio update (%s) because these files clash with Fenrir'"'"'s changes:\n\n%s\n\nFenrir Read keeps building without that update until the clash is fixed.' "$(git rev-parse --short FETCH_HEAD)" "$FILES")"
+              gh issue create --title "$TITLE" --body "$(printf 'The daily build could not merge the latest official Nuvio update (%s) because these files clash with Fenrir'"'"'s changes:\n\n%s\n\nFenrir Vault keeps building without that update until the clash is fixed.' "$(git rev-parse --short FETCH_HEAD)" "$FILES")"
             fi
           fi
 
@@ -122,7 +122,7 @@ jobs:
             cd ..
             TITLE="Official Tsundoku update needs a manual merge"
             if [ -z "$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number')" ]; then
-              gh issue create --title "$TITLE" --body "$(printf 'The daily build could not merge the latest official Tsundoku update (%s) because these files clash with Fenrir'"'"'s Read-side changes:\n\n%s\n\nFenrir Read keeps building without that update until the clash is fixed.' "$(git -C tsundoku rev-parse --short FETCH_HEAD)" "$FILES")"
+              gh issue create --title "$TITLE" --body "$(printf 'The daily build could not merge the latest official Tsundoku update (%s) because these files clash with Fenrir'"'"'s Read-side changes:\n\n%s\n\nFenrir Vault keeps building without that update until the clash is fixed.' "$(git -C tsundoku rev-parse --short FETCH_HEAD)" "$FILES")"
             fi
           fi
 
@@ -171,7 +171,7 @@ jobs:
           echo "Signing key OK ($(wc -c < "$HOME/.android/debug.keystore") bytes)."
           echo "ANDROID_USER_HOME=$HOME/.android" >> "$GITHUB_ENV"
 
-      - name: Build Fenrir Read
+      - name: Build Fenrir Vault
         if: steps.go.outputs.build == 'true'
         env:
           # Optional: your own Sentry crash-report address. Empty = crash reports stay off.
@@ -234,7 +234,7 @@ jobs:
           [ -z "$VER" ] && VER=build
           TAG="fenrir-${VER}-r${GITHUB_RUN_NUMBER}"
           APK=$(ls androidApp/build/outputs/apk/full/fast/*.apk | head -n1)
-          cp "$APK" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk"
+          cp "$APK" "FenrirVault-${VER}-r${GITHUB_RUN_NUMBER}.apk"
           NOTES="Fenrir Vault built from official Nuvio ${VER} and Tsundoku $(git -C tsundoku rev-parse --short HEAD). Commit: $(git rev-parse --short HEAD)"
           # "What's new" (shown in the app after updating): whats-new.md, only when it changed since the last release.
           PREV=$(gh release list --limit 20 --json tagName --jq '.[].tagName' | grep '^fenrir-' | head -n1 || true)
@@ -245,10 +245,10 @@ jobs:
           BETA="${{ github.event_name == 'schedule' || inputs.beta != false }}"
           if [ "$BETA" = "true" ]; then
             NOTES="$(printf '**Beta:** only phones with Settings → App updates → Get beta builds get this. Run "Promote Fenrir release" to send it to everyone.\n\n%s' "$NOTES")"
-            gh release create "$TAG" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk" --prerelease \
+            gh release create "$TAG" "FenrirVault-${VER}-r${GITHUB_RUN_NUMBER}.apk" --prerelease \
               --title "Fenrir Vault ${VER} (build ${GITHUB_RUN_NUMBER}) beta" --notes "$NOTES" --target "$(git rev-parse HEAD)"
           else
-            gh release create "$TAG" "FenrirRead-${VER}-r${GITHUB_RUN_NUMBER}.apk" --latest \
+            gh release create "$TAG" "FenrirVault-${VER}-r${GITHUB_RUN_NUMBER}.apk" --latest \
               --title "Fenrir Vault ${VER} (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --target "$(git rev-parse HEAD)"
           fi
           # keep the 5 newest Fenrir releases, and always the one everyone is on (latest non-beta)

@@ -20,7 +20,7 @@ internal actual object AppIconPlatform {
     }.isSuccess
 
     /**
-     * Fenrir Read: turn the old Nuvio launcher entries off for good, so home screens drop the tile
+     * Fenrir Vault: turn the old Nuvio launcher entries off for good, so home screens drop the tile
      * (and the Nuvio icon they cached for it) and only show Fenrir's own entry.
      */
     private fun retireNuvioEntries(context: Context) {
@@ -81,7 +81,7 @@ internal actual object AppIconPlatform {
     }
 
     fun currentLauncherComponent(context: Context): ComponentName {
-        // Fenrir Read: one fixed home-screen entry (see the androidApp manifest).
+        // Fenrir Vault: one fixed home-screen entry (see the androidApp manifest).
         if (hasFenrirLauncher(context)) return component(context, "$launcherPackage.FenrirLauncher")
         val currentName = currentIconName(context)
         val className = launcherComponents.first { it.first == currentName }.second

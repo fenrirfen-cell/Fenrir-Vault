@@ -173,7 +173,7 @@ object ThemeColors {
         backgroundCard = Color(0xFF222222),
     )
 
-    /** Fenrir Read: near-black surfaces and coral red, like the Fenrir style screens. */
+    /** Fenrir Vault: near-black surfaces and coral red, like the Fenrir style screens. */
     val Fenrir = ThemeColorPalette(
         secondary = Color(0xFFFF4D57),
         secondaryVariant = Color(0xFFE8434C),

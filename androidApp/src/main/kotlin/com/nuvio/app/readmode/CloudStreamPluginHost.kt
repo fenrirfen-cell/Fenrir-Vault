@@ -47,7 +47,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Fenrir Read: runs CloudStream plugins (.cs3 files) from repositories the user adds. Plugins
+ * Fenrir Vault: runs CloudStream plugins (.cs3 files) from repositories the user adds. Plugins
  * are saved in the app's private folder and loaded with CloudStream's own plugin library.
  */
 internal class CloudStreamPluginHost(private val app: Application) : FenrirPluginHost {

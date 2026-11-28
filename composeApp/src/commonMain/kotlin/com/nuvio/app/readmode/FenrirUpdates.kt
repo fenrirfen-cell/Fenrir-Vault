@@ -1,7 +1,7 @@
 package com.nuvio.app.readmode
 
 /**
- * Fenrir Read's own updates: the in-app updater checks these GitHub releases (not Nuvio's) and
+ * Fenrir Vault's own updates: the in-app updater checks these GitHub releases (not Nuvio's) and
  * compares build numbers ("r17" in "fenrir-1.1.0-beta.2-r17"). Set by the Android app.
  */
 object FenrirUpdates {

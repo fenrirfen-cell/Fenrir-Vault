@@ -161,7 +161,7 @@ fun HomeScreen(
         state.addons.enabledAddons().toHomeAddonSignals()
     }
     val rawHomeUiState by HomeRepository.uiState.collectAsStateWithLifecycle()
-    // Fenrir Read: anime and drama rows from add-ons move to the Ani-drama tab.
+    // Fenrir Vault: anime and drama rows from add-ons move to the Ani-drama tab.
     val aniDramaAvailable by com.nuvio.app.features.anidrama.AniDramaBridge.isAvailable.collectAsStateWithLifecycle()
     val keepAniDramaRowsOnHome by com.nuvio.app.features.anidrama.AniDramaBridge.keepRowsOnHome.collectAsStateWithLifecycle()
     // Fenrir: the same list from two add-ons shows once
@@ -965,7 +965,7 @@ fun HomeScreen(
         }
     }
     val hasRenderableHomeRows = homeUiState.sections.isNotEmpty() || hasRenderableCollectionRows
-    // Fenrir Read: a CloudStream source picked from the FENRIR READ drop-down replaces Nuvio's rows.
+    // Fenrir Vault: a CloudStream source picked from the FENRIR WATCH drop-down replaces Nuvio's rows.
     val fenrirSourceId by com.nuvio.app.readmode.FenrirSourceHome.selected.collectAsStateWithLifecycle()
     val fenrirSourceState by com.nuvio.app.readmode.FenrirSourceHome.state.collectAsStateWithLifecycle()
     LaunchedEffect(fenrirSourceId) {
@@ -1034,7 +1034,7 @@ fun HomeScreen(
             Modifier
         }
 
-        // Fenrir Read: pull down at the top to reload Home and check for a new app version.
+        // Fenrir Vault: pull down at the top to reload Home and check for a new app version.
         var fenrirRefreshing by remember { mutableStateOf(false) }
         val fenrirRefreshScope = rememberCoroutineScope()
         val fenrirPullState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
@@ -1093,7 +1093,7 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize().then(heroStretchModifier),
             horizontalPadding = 0.dp,
             // With a CloudStream source picked, the mode-bar spacer already leaves room for the top
-            // bar, so no extra top padding: the source pill sits right under FENRIR READ.
+            // bar, so no extra top padding: the source pill sits right under FENRIR WATCH.
             topPadding = if (showHeroSlot || (com.nuvio.app.readmode.ReadModeBridge.isAvailable && fenrirSourceId != null)) 0.dp else null,
             listState = homeListState,
         ) {
@@ -1384,7 +1384,7 @@ fun HomeScreen(
             }
         }
         }
-        // Fenrir Read: poster taps from a CloudStream source's rows, and its "See all" grid.
+        // Fenrir Vault: poster taps from a CloudStream source's rows, and its "See all" grid.
         com.nuvio.app.readmode.FenrirSourceHomeOverlays(onOpenShowPage = { onPosterClick?.invoke(it) })
     }
 }

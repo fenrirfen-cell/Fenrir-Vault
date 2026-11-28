@@ -66,7 +66,7 @@ internal fun OpeningOverlay(
     modifier: Modifier = Modifier,
     message: String? = null,
     progress: Float? = null,
-    /** Optional buttons shown along the bottom (Fenrir Read: choose source / pick episode). */
+    /** Optional buttons shown along the bottom (Fenrir Vault: choose source / pick episode). */
     bottomActions: (@Composable () -> Unit)? = null,
 ) {
     val contentAlpha by animateFloatAsState(

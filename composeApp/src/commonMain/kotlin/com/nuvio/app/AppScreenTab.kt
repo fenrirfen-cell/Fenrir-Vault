@@ -4,7 +4,7 @@ import com.nuvio.app.core.ui.NativeNavigationTab
 
 enum class AppScreenTab {
     Home,
-    /** Fenrir Read's Ani-drama tab (Android only; see AniDramaBridge). */
+    /** Fenrir Vault's Ani-drama tab (Android only; see AniDramaBridge). */
     AniDrama,
     Search,
     Library,

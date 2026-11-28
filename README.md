@@ -106,13 +106,13 @@ The **Fenrir build** GitHub Action builds a signed APK and publishes it as a rel
 
 ## Credits and licenses
 
-Fenrir Read stands on the work of two projects. Thank you to their authors:
+Fenrir Vault stands on the work of two projects. Thank you to their authors:
 
 - **Nuvio Mobile** by NuvioMedia, licensed under the [GNU GPL v3.0](./LICENSE).
 - **Tsundoku** by tsundoku-otaku, licensed under the [Apache License 2.0](https://github.com/fenrirfen-cell/tsundoku1.0.0/blob/nuvio-embed/LICENSE). It is itself based on Mihon and Tachiyomi.
 
-Because it includes Nuvio, Fenrir Read as a whole is released under the **GNU GPL v3.0**. Fenrir Read is not affiliated with or endorsed by Nuvio, Tsundoku or any source or plugin author.
+Because it includes Nuvio, Fenrir Vault as a whole is released under the **GNU GPL v3.0**. Fenrir Vault is not affiliated with or endorsed by Nuvio, Tsundoku or any source or plugin author.
 
 ## Disclaimer
 
-Fenrir Read doesn't host, store or share any media. It only shows what the sources you add provide. You're responsible for making sure the sources you use are legal where you live.
+Fenrir Vault doesn't host, store or share any media. It only shows what the sources you add provide. You're responsible for making sure the sources you use are legal where you live.

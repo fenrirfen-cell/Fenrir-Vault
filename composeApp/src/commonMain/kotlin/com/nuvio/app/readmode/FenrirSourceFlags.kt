@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Where each plugin source is used (Settings → Sources → a plugin → "Where to use it"):
- * - home: listed in the FENRIR READ ▾ menu so its rows can be shown on Home
+ * - home: listed in the FENRIR WATCH ▾ menu so its rows can be shown on Home
  * - pinned: at the top of that menu, in the order the user set
  * - search: its results show in Search
  * - streams: used when finding links to play a title

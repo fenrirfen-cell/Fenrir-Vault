@@ -70,7 +70,7 @@ fun App(
             nativeProfileSwitcherController = nativeProfileSwitcherController,
             appGateController = appGateController,
         )
-        // Fenrir: "FENRIR READ" for about a second when the app opens.
+        // Fenrir: "FENRIR VAULT" for about a second when the app opens.
         com.nuvio.app.readmode.FenrirSplash()
         com.nuvio.app.readmode.FenrirWhatsNewCard()
       }

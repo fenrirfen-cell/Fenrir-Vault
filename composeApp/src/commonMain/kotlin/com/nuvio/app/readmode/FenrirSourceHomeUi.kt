@@ -100,9 +100,9 @@ object FenrirSourceHomeUi {
     val searching = MutableStateFlow(false)
 }
 
-// ---------------------------------------------------------------------------- FENRIR READ drop-down
+// ---------------------------------------------------------------------------- FENRIR WATCH drop-down
 
-/** "FENRIR READ ▾": tapping it opens the list of sources to show on Home. */
+/** "FENRIR WATCH ▾": tapping it opens the list of sources to show on Home. */
 @Composable
 fun FenrirWordmarkSourceButton(
     onPicked: () -> Unit,
@@ -386,7 +386,7 @@ private fun FenrirSourcePickerPanel(
     }
 }
 
-/** One compact row of the FENRIR READ ▾ menu (50dp, small icon), as in the preview. */
+/** One compact row of the FENRIR WATCH ▾ menu (50dp, small icon), as in the preview. */
 @Composable
 private fun MenuRow(
     name: String,
@@ -673,7 +673,7 @@ private fun SourceIcon(iconUrl: String?, letter: String?, size: androidx.compose
 
 /** The picked source's home: a header like the source page, then one row per category. */
 /**
- * Room on Home for the source pill, which is drawn over the top bar (under the FENRIR READ
+ * Room on Home for the source pill, which is drawn over the top bar (under the FENRIR WATCH
  * wordmark) by [FenrirSourcePillOverlay] so the Watch / Search buttons don't move.
  */
 fun LazyListScope.fenrirSourceHomeHeader(
@@ -686,7 +686,7 @@ fun LazyListScope.fenrirSourceHomeHeader(
     }
 }
 
-/** The picked source as a small "icon · name · CloudStream" pill, shown under FENRIR READ. */
+/** The picked source as a small "icon · name · CloudStream" pill, shown under FENRIR WATCH. */
 @Composable
 fun FenrirSourcePillOverlay(modifier: Modifier = Modifier) {
     val sourceId by FenrirSourceHome.selected.collectAsStateWithLifecycle()

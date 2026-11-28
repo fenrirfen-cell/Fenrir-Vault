@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Read bookshelves rebuilt from the new artwork: full wooden shelf rows, books in red, blue, green, purple and brown leather frames with their covers inside, fabric bookmarks for reading status, and the red Add a book on the shelf
 - Surprise Me: a new treasure chest with a lantern inside; your pick rises out of it on a parchment card with rating, genres and a short description
 - View details and Try again are now red and blue brass plates
 - Search keeps Movies and TV Shows separate, and opens on the one you used last

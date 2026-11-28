@@ -1369,17 +1369,32 @@ private fun SurpriseSourcePlaques(myList: Boolean, onMyList: () -> Unit, onDisco
                     Modifier
                         .weight(1f)
                         .height(50.dp)
-                        .graphicsLayer { alpha = if (picked) 1f else 0.6f }
                         .selectable(selected = picked, role = Role.Tab, onClick = {
                             com.nuvio.app.mugi.MugiMotion.tap(haptic)
                             if (label == "My List") onMyList() else onDiscover()
                         }),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Image(painterResource(Res.drawable.surprise_plaque), contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
+                    // the plaque that isn't picked is darkened (still solid, so the rope never shows through)
+                    Image(
+                        painterResource(Res.drawable.surprise_plaque),
+                        contentDescription = null,
+                        contentScale = ContentScale.FillBounds,
+                        colorFilter = if (picked) null else androidx.compose.ui.graphics.ColorFilter.colorMatrix(
+                            androidx.compose.ui.graphics.ColorMatrix(
+                                floatArrayOf(
+                                    0.62f, 0f, 0f, 0f, 0f,
+                                    0f, 0.62f, 0f, 0f, 0f,
+                                    0f, 0f, 0.62f, 0f, 0f,
+                                    0f, 0f, 0f, 1f, 0f,
+                                ),
+                            ),
+                        ),
+                        modifier = Modifier.matchParentSize(),
+                    )
                     Text(
                         label,
-                        color = Color(0xFF38200F),
+                        color = if (picked) Color(0xFF38200F) else Color(0xFF2A1A0C),
                         fontFamily = VoyageSerif,
                         fontStyle = FontStyle.Italic,
                         fontWeight = if (picked) FontWeight.Bold else FontWeight.Normal,

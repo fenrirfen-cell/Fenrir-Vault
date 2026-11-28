@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -256,7 +258,8 @@ fun SearchScreen(
     BoxWithConstraints(
         modifier = modifier.fillMaxSize(),
     ) {
-        if (mugi) com.nuvio.app.mugi.MugiSearchBackground(ani)
+        // the screen's colour only: the sail is drawn once, in the header (it used to show twice)
+        if (mugi) com.nuvio.app.mugi.MugiSearchBackground(ani, sail = false)
         val discoverColumns = remember(maxWidth) {
             posterGridColumnCountForWidth(maxWidth)
         }
@@ -271,6 +274,9 @@ fun SearchScreen(
 
         NuvioScreen(
             horizontalPadding = 0.dp,
+            // MugiVerse: the header itself keeps clear of the status bar, so when it sticks to the
+            // top while scrolling the title is never hidden under the clock and icons
+            topPadding = if (mugi) 0.dp else null,
             listState = listState,
             modifier = Modifier.fillMaxSize(),
             background = if (mugi) androidx.compose.ui.graphics.Color.Transparent else null,
@@ -288,7 +294,12 @@ fun SearchScreen(
                 )
                 }
                 if (mugi) {
-                    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    androidx.compose.foundation.layout.Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.statusBars)
+                            .padding(start = 16.dp, end = 16.dp, top = 4.dp),
+                    ) {
                         com.nuvio.app.mugi.MugiSearchTitle(stringResource(Res.string.compose_nav_search), Modifier.padding(top = 6.dp, bottom = 10.dp))
                         com.nuvio.app.mugi.MugiSearchField(
                             query = query,

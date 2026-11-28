@@ -70,6 +70,11 @@ fun MugiContinueWatching(
         )
     }
     MugiResumeRail(
+        onSeeAll = if (title == "Continue Watching") {
+            { com.nuvio.app.voyage.VoyageNav.open(com.nuvio.app.voyage.VoyageScreen.CONTINUE) }
+        } else {
+            null
+        },
         art = art,
         mode = mode,
         entries = entries,

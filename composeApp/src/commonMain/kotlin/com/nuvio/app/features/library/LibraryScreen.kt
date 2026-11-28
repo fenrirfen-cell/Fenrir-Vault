@@ -405,7 +405,8 @@ fun LibraryScreen(
                                         }
                                     }
                                     if (onDownloadsClick != null) {
-                                        LibraryDownloadsButton(onClick = onDownloadsClick)
+                                        // MugiVerse: downloads open Offline Voyage (it links to the full list)
+                                        LibraryDownloadsButton(onClick = { com.nuvio.app.voyage.VoyageNav.open(com.nuvio.app.voyage.VoyageScreen.OFFLINE) })
                                     }
                                 }
                             }

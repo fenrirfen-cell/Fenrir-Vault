@@ -47,7 +47,11 @@ internal fun LazyListScope.discoverContent(
 ) {
     if (mugi) {
         item(key = "mugi-discover-banner") {
-            com.nuvio.app.mugi.MugiDiscoverBanner(stringResource(Res.string.compose_search_discover_title))
+            Box(Modifier.fillMaxWidth()) {
+                com.nuvio.app.mugi.MugiDiscoverBanner(stringResource(Res.string.compose_search_discover_title))
+                // Surprise Me
+                com.nuvio.app.voyage.SurpriseChestButton(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), size = 34.dp)
+            }
         }
         item(key = "mugi-discover-filters") {
             MugiDiscoverFilters(state, ani, onTypeSelected, onCatalogSelected, onGenreSelected, Modifier.padding(horizontal = 16.dp))

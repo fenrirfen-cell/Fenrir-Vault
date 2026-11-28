@@ -336,6 +336,8 @@ internal fun MainTabsDestination(
                                 .modeBarHideable(modeBarHiddenFraction(), modeBarHeight())
                                 .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 2.dp),
                             trailing = {
+                                // Surprise Me: the little treasure chest next to the bell
+                                com.nuvio.app.voyage.SurpriseChestButton(size = 30.dp)
                                 if (selectedTab == AppScreenTab.AniDrama) {
                                     val region by com.nuvio.app.mugi.MugiAniState.region.collectAsStateWithLifecycle()
                                     com.nuvio.app.mugi.AniDramaCategorySelector(
@@ -552,6 +554,14 @@ internal fun MainTabsDestination(
                 com.nuvio.app.readmode.FenrirForYouHost(onOpen = { meta -> tabActions.onPosterClick?.invoke(meta) })
                 // Tap a ★ badge on a poster: why it's rated that way + reviews.
                 com.nuvio.app.readmode.FenrirWatchRatingHost()
+                // MugiVerse voyage screens (Continue, Captain's Log, Bounties, Offline Voyage, Surprise Me).
+                com.nuvio.app.voyage.VoyageHost(
+                    com.nuvio.app.voyage.VoyageActions(
+                        onPosterClick = tabActions.onPosterClick,
+                        onContinueWatchingClick = tabActions.onContinueWatchingClick,
+                        onDownloadsClick = tabActions.onDownloadsClick,
+                    ),
+                )
             }
         }
     }

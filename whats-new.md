@@ -2,6 +2,11 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- New: Continue — everything unfinished from Watch, Ani-Drama and Read in one place (See all › on Continue Watching / Continue Reading)
+- New: Captain's Log — streaks, reading and watching time, weekly chart and top genre (Settings, or More on Read)
+- New: Bounties — wanted-poster milestones you earn as you read and watch (inside Captain's Log)
+- New: Offline Voyage — get the next chapters ready for a trip and see every download in one place (My List download button, or More on Read)
+- New: Surprise Me — open the treasure chest for something to watch or read (chest next to the bell, and on Discover)
 - Fixed: Search posters now have their thin gold frame (violet in Ani-Drama)
 - MugiVerse History: reading-log look with this week's stats, dates and gold-framed covers (list or grid)
 - MugiVerse Updates: parchment dates, NEW badges and gold download buttons

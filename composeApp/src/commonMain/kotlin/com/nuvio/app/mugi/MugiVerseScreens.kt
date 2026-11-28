@@ -28,13 +28,20 @@ data class ResumeUi(val id:String,val title:String,val subtitle:String,val remai
 @Composable
 fun MugiResumeRail(art:MugiArt,mode:MugiMode,entries:List<ResumeUi>,
                    thumbnail:@Composable (ResumeUi)->Unit,onResume:(String)->Unit,onMenu:(String)->Unit,
-                   title:String="Continue Watching") {
+                   title:String="Continue Watching", onSeeAll:(() -> Unit)? = null) {
     if(entries.isEmpty()) return // honor existing empty-state behavior if needed
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         // Do not hard-code a device type. Wide screens show individual separated cards.
         val cardWidth = if(maxWidth<420.dp) maxWidth-24.dp else minOf(350.dp,maxWidth*.47f)
         Column {
-            ParchmentLabel("▶ $title",art.parchment,Modifier.padding(start=14.dp,bottom=2.dp).width(210.dp).height(36.dp))
+            androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                ParchmentLabel("▶ $title",art.parchment,Modifier.padding(start=14.dp,bottom=2.dp).width(210.dp).height(36.dp))
+                androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                if (onSeeAll != null) {
+                    // MugiVerse Continue: everything unfinished from Watch, Ani-Drama and Read
+                    Text("See all ›", color = MugiPalette.Gold, fontSize = 14.sp, modifier = Modifier.clickable(onClickLabel = "See all to continue", onClick = onSeeAll).padding(horizontal = 16.dp, vertical = 12.dp))
+                }
+            }
             LazyRow(contentPadding=PaddingValues(horizontal=8.dp),horizontalArrangement=Arrangement.spacedBy(14.dp)) {
                 items(entries,key={it.id}) { item ->
                     RopeResumeCard(art,Modifier.width(cardWidth)) {

@@ -25,6 +25,12 @@ internal fun LazyListScope.settingsRootContent(
     onWatchPartyClick: (() -> Unit)? = null,
     category: SettingsCategory? = null,
 ) {
+    // MugiVerse: Captain's Log (stats, streaks and bounties) at the very top.
+    if (category == null) {
+        item(key = "voyage-captains-log") {
+            com.nuvio.app.voyage.CaptainsLogCard()
+        }
+    }
     // Fenrir: all sources in one place (Stremio add-ons here, manga and novel sources on the Read side).
     // Shown at the top of every settings group (phones, folds and tablets), so it's always one tap away.
     if (com.nuvio.app.readmode.FenrirSources.openReadExtensions != null) {

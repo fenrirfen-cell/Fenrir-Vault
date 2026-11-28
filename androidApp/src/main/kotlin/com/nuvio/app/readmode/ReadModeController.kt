@@ -32,6 +32,14 @@ internal class ReadModeController(
         set(value) = prefs.edit().putString(KEY_LAST_MODE, value).apply()
 
     /** From the Watch side (called by Nuvio's switch). */
+    /** Starts [intent] from whatever screen is showing (or as a new task if none). */
+    fun startFromCurrent(intent: Intent) {
+        val activity = currentActivity?.get()
+        if (activity != null) activity.startActivity(intent) else app.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    fun readActivityIntent(context: Context): Intent = Intent(context, ReadActivity::class.java)
+
     fun openReadFromCurrentActivity() {
         val activity = currentActivity?.get() ?: return
         val intent = Intent(activity, ReadActivity::class.java)

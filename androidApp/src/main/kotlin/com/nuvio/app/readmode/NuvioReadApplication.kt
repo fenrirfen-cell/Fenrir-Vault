@@ -113,6 +113,8 @@ class NuvioReadApplication : App() {
         EmbeddedHost.readLabel = ReadModeBridge.readLabel
         EmbeddedHost.openWatch = modes::openWatch
         EmbeddedHost.openAniDrama = modes::openAniDrama
+        // MugiVerse voyage screens: Continue, Captain's Log, Bounties, Offline Voyage, Surprise Me.
+        runCatching { VoyageWiring.install(this, modes) }
 
         MainActivityLaunchRedirect.handler = modes::redirectLaunchIfNeeded
 

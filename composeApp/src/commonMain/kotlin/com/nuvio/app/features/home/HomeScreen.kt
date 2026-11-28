@@ -581,6 +581,7 @@ fun HomeScreen(
     // MugiVerse: Movies / TV Shows decides what Home shows (the other half is one tap away).
     val mugiHome = com.nuvio.app.mugi.mugiOn()
     val mugiKind by com.nuvio.app.mugi.MugiWatch.kind.collectAsStateWithLifecycle()
+    androidx.compose.runtime.SideEffect { com.nuvio.app.voyage.VoyageData.watchContinue.value = continueWatchingItems }
     val cwShown = remember(continueWatchingItems, mugiHome, mugiKind) {
         if (mugiHome) com.nuvio.app.mugi.MugiWatch.filterResume(continueWatchingItems, mugiKind) else continueWatchingItems
     }

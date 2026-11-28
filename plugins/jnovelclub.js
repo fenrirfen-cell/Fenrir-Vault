@@ -1,6 +1,6 @@
 "use strict";
 /**
- * J-Novel Club for Fenrir Vault (LNReader-style plugin).
+ * J-Novel Club for MugiVerse (LNReader-style plugin).
  *
  * Uses J-Novel Club's own app API (labs.j-novel.club), the same one the official apps use.
  * Browsing and chapter lists work without an account. Reading a part needs your J-Novel Club

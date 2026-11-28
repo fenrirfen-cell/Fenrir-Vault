@@ -127,7 +127,7 @@ object FenrirPluginBackup {
             ?: return "That file isn't a Fenrir backup."
         if (root["kind"]?.jsonPrimitive?.content != KIND) return "That file isn't a Fenrir backup."
         val version = root["version"]?.jsonPrimitive?.intOrNull ?: 0
-        if (version > VERSION) return "This backup is from a newer Fenrir Vault. Update the app first."
+        if (version > VERSION) return "This backup is from a newer MugiVerse. Update the app first."
         val hosts = root["hosts"] as? JsonObject
         val nuvio = root["nuvio"] as? JsonObject
         if (hosts == null && nuvio == null) return "This backup is empty."

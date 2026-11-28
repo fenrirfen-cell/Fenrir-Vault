@@ -98,7 +98,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Fenrir Vault's home-screen entry (new name, so launchers don't reuse Nuvio's cached icon). -->
+        <!-- MugiVerse's home-screen entry (new name, so launchers don't reuse Nuvio's cached icon). -->
         <activity
             android:name="com.nuvio.app.launcher.FenrirLauncher"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"

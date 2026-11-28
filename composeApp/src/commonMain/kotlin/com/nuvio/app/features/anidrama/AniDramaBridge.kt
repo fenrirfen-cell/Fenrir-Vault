@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Fenrir Vault's "Ani-drama" tab: an Otaku-style anime browser plus K-, C- and J-drama browsers.
+ * MugiVerse's "Ani-drama" tab: an Otaku-style anime browser plus K-, C- and J-drama browsers.
  *
  * The Android app turns it on at startup with [install]. Until then (iOS, desktop, upstream
  * Nuvio builds) the tab is hidden and Home is left exactly as it was.

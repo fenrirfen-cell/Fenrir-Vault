@@ -18,7 +18,7 @@ data class SourceAvailabilityState(
 }
 
 /**
- * Fenrir Vault: checks which of your installed add-ons, plugins and servers have a title. It joins
+ * MugiVerse: checks which of your installed add-ons, plugins and servers have a title. It joins
  * the same shared search the stream screen uses, so pressing Play afterwards reuses the results.
  */
 object SourceAvailability {

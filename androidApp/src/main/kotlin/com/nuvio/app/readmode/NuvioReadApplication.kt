@@ -145,8 +145,8 @@ class NuvioReadApplication : App() {
         // Episode reminders from the Ani-drama calendar (notification + optional spoken alert).
         com.nuvio.app.features.anidrama.AniDramaRemindersAndroid.install(this)
 
-        // In-app updates come from Fenrir Vault's own GitHub releases, compared by build number.
-        FenrirUpdates.repo = "fenrirfen-cell/Fenrir-Vault"
+        // In-app updates come from MugiVerse's own GitHub releases, compared by build number.
+        FenrirUpdates.repo = "fenrirfen-cell/Mugiverse"
         FenrirUpdates.currentBuild = runCatching {
             FenrirUpdates.buildOf(packageManager.getPackageInfo(packageName, 0).versionName)
         }.getOrNull()
@@ -177,7 +177,7 @@ class NuvioReadApplication : App() {
             com.nuvio.app.readmode.FenrirWhatsNewCard()
         }
         com.nuvio.app.fenrirInstallHowl(this)
-        // Pull to refresh on the Read side also checks quietly for a new Fenrir Vault version.
+        // Pull to refresh on the Read side also checks quietly for a new MugiVerse version.
         // When there is one, the Read side shows a small pill with an Update button.
         val updateScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.CoroutineExceptionHandler { _, _ -> })
         var mirrorJob: kotlinx.coroutines.Job? = null

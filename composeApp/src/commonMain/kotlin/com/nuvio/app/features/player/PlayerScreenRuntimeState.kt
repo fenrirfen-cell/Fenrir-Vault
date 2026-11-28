@@ -235,7 +235,7 @@ internal class PlayerScreenRuntime(
     val sourceFallbackTriedKeys = mutableSetOf<String>()
     var sourceFallbackJob: Job? = null
 
-    /** Fenrir Vault: "different source / episode / leave" choices on the first back from an auto-picked source. */
+    /** MugiVerse: "different source / episode / leave" choices on the first back from an auto-picked source. */
     var showBackChoices by mutableStateOf(false)
     var backChoicesOffered by mutableStateOf(false)
 

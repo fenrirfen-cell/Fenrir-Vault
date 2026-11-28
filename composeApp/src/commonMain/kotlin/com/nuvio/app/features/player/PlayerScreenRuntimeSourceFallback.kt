@@ -74,7 +74,7 @@ internal fun PlayerScreenRuntime.tryFallbackToNextSourceAfterError(
 ): Boolean {
     if (sourceFallbackJob?.isActive == true) return true
     val settings = playerSettingsUiState
-    // Fenrir Vault: also falls back for links you picked, once the engine switch had its turn.
+    // MugiVerse: also falls back for links you picked, once the engine switch had its turn.
     val fenrir = FenrirSourceFallback.active(settings)
     if (!settings.streamAutoPlayFallbackActive && !fenrir) return false
     if (!isIos && settings.autoSwitchPlaybackEngineOnError) {

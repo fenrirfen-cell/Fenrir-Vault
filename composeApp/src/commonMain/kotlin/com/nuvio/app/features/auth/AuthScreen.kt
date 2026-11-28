@@ -657,7 +657,7 @@ private fun AuthBrandLockup(
     }
 }
 
-/** Fenrir Vault: "A fork of Nuvio" badge under the sign-in tagline. */
+/** MugiVerse: "A fork of Nuvio" badge under the sign-in tagline. */
 @Composable
 private fun FenrirForkBadge() {
     Text(

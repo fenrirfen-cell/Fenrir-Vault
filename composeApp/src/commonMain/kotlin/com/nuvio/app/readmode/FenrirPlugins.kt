@@ -63,7 +63,7 @@ data class FenrirPluginEpisode(
     val episode: Int? = null,
 )
 
-/** A site whose own home page (its categories) can be shown on Fenrir Vault's home screen. */
+/** A site whose own home page (its categories) can be shown on MugiVerse's home screen. */
 data class FenrirHomeSource(
     val id: String,
     val name: String,
@@ -90,7 +90,7 @@ data class FenrirHomeRow(
 )
 
 /**
- * A kind of plugin that runs inside Fenrir Vault (Aniyomi extensions, CloudStream plugins).
+ * A kind of plugin that runs inside MugiVerse (Aniyomi extensions, CloudStream plugins).
  * Implemented by the Android app; plugins come only from repositories the user adds.
  */
 interface FenrirPluginHost {

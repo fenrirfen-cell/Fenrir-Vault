@@ -57,14 +57,14 @@ internal object AppUpdaterRepository {
             ?: throw NoChannelReleaseException()
     }
 
-    /** Fenrir Vault: the newest release in the Fenrir repository, whatever its version label. */
+    /** MugiVerse: the newest release in the Fenrir repository, whatever its version label. */
     private suspend fun fenrirLatest(repo: String): AppUpdate {
         val response = httpRequestRaw(
             method = "GET",
             url = com.nuvio.app.readmode.FenrirUpdates.releasesUrl(repo),
             headers = mapOf(
                 "Accept" to "application/vnd.github+json",
-                "User-Agent" to "FenrirVault",
+                "User-Agent" to "MugiVerse",
             ),
             body = "",
         )

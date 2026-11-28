@@ -104,7 +104,7 @@ object FenrirUpdateNotifier {
         val repo = FenrirUpdates.repo ?: return null
         val conn = (URL(FenrirUpdates.releasesUrl(repo)).openConnection() as HttpURLConnection).apply {
             setRequestProperty("Accept", "application/vnd.github+json")
-            setRequestProperty("User-Agent", "FenrirVault")
+            setRequestProperty("User-Agent", "MugiVerse")
             connectTimeout = 15_000
             readTimeout = 20_000
         }
@@ -155,7 +155,7 @@ object FenrirUpdateNotifier {
             if (nm.getNotificationChannel(CHANNEL) == null) {
                 nm.createNotificationChannel(
                     NotificationChannel(CHANNEL, "App updates", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                        description = "New versions of Fenrir Vault"
+                        description = "New versions of MugiVerse"
                     },
                 )
             }
@@ -193,7 +193,7 @@ object FenrirUpdateNotifier {
         }
         val n = base(ctx)
             .setContentTitle("Update available")
-            .setContentText("Fenrir Vault ${shortTag(r.tag)} is ready to download")
+            .setContentText("MugiVerse ${shortTag(r.tag)} is ready to download")
             .setContentIntent(download)
             .setAutoCancel(true)
             .addAction(0, "Update", download)
@@ -220,7 +220,7 @@ object FenrirUpdateNotifier {
         val pi = PendingIntent.getActivity(ctx, 3, install, PendingIntent.FLAG_UPDATE_CURRENT or immutable())
         val n = base(ctx)
             .setContentTitle("Update ready to install")
-            .setContentText("Fenrir Vault ${shortTag(r.tag)} · tap to install")
+            .setContentText("MugiVerse ${shortTag(r.tag)} · tap to install")
             .setContentIntent(pi)
             .setAutoCancel(true)
             .addAction(0, "Install", pi)
@@ -262,7 +262,7 @@ object FenrirUpdateNotifier {
             while (true) {
                 conn = (url.openConnection() as HttpURLConnection).apply {
                     instanceFollowRedirects = false
-                    setRequestProperty("User-Agent", "FenrirVault")
+                    setRequestProperty("User-Agent", "MugiVerse")
                     connectTimeout = 20_000
                     readTimeout = 30_000
                 }

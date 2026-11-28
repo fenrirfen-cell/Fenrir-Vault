@@ -32,7 +32,7 @@ internal fun AppBrandWordmark(
     contentDescription: String? = null,
     icon: AppIconOption? = null,
 ) {
-    // Fenrir Vault: our own name instead of the Nuvio logo.
+    // MugiVerse: our own name instead of the Nuvio logo.
     // MugiVerse: the straw-hat logo (profile picker, sign-in, loading)
     val mugiBrand by com.nuvio.app.mugi.MugiStyle.enabled.collectAsState()
     if (com.nuvio.app.readmode.FenrirStyle.isAvailable && mugiBrand) {

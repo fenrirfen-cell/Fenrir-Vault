@@ -161,7 +161,7 @@ fun HomeScreen(
         state.addons.enabledAddons().toHomeAddonSignals()
     }
     val rawHomeUiState by HomeRepository.uiState.collectAsStateWithLifecycle()
-    // Fenrir Vault: anime and drama rows from add-ons move to the Ani-drama tab.
+    // MugiVerse: anime and drama rows from add-ons move to the Ani-drama tab.
     val aniDramaAvailable by com.nuvio.app.features.anidrama.AniDramaBridge.isAvailable.collectAsStateWithLifecycle()
     val keepAniDramaRowsOnHome by com.nuvio.app.features.anidrama.AniDramaBridge.keepRowsOnHome.collectAsStateWithLifecycle()
     // Fenrir: the same list from two add-ons shows once
@@ -965,7 +965,7 @@ fun HomeScreen(
         }
     }
     val hasRenderableHomeRows = homeUiState.sections.isNotEmpty() || hasRenderableCollectionRows
-    // Fenrir Vault: a CloudStream source picked from the FENRIR WATCH drop-down replaces Nuvio's rows.
+    // MugiVerse: a CloudStream source picked from the FENRIR WATCH drop-down replaces Nuvio's rows.
     val fenrirSourceId by com.nuvio.app.readmode.FenrirSourceHome.selected.collectAsStateWithLifecycle()
     val fenrirSourceState by com.nuvio.app.readmode.FenrirSourceHome.state.collectAsStateWithLifecycle()
     LaunchedEffect(fenrirSourceId) {
@@ -1034,7 +1034,7 @@ fun HomeScreen(
             Modifier
         }
 
-        // Fenrir Vault: pull down at the top to reload Home and check for a new app version.
+        // MugiVerse: pull down at the top to reload Home and check for a new app version.
         var fenrirRefreshing by remember { mutableStateOf(false) }
         val fenrirRefreshScope = rememberCoroutineScope()
         val fenrirPullState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
@@ -1384,7 +1384,7 @@ fun HomeScreen(
             }
         }
         }
-        // Fenrir Vault: poster taps from a CloudStream source's rows, and its "See all" grid.
+        // MugiVerse: poster taps from a CloudStream source's rows, and its "See all" grid.
         com.nuvio.app.readmode.FenrirSourceHomeOverlays(onOpenShowPage = { onPosterClick?.invoke(it) })
     }
 }

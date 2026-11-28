@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fenrir Vault – watch and read in one Android app</title>
-<meta name="description" content="Fenrir Vault is a free Android app for watching shows, movies and anime and reading light novels and manga, all in one place. Built on Nuvio and Tsundoku.">
-<meta property="og:title" content="Fenrir Vault">
+<title>MugiVerse – watch and read in one Android app</title>
+<meta name="description" content="MugiVerse is a free Android app for watching shows, movies and anime and reading light novels and manga, all in one place. Built on Nuvio and Tsundoku.">
+<meta property="og:title" content="MugiVerse">
 <meta property="og:description" content="Watch and read in one Android app. Free and open source.">
-<meta property="og:image" content="https://fenrirfen-cell.github.io/Fenrir-Vault/img/icon.png">
+<meta property="og:image" content="https://fenrirfen-cell.github.io/Mugiverse/img/icon.png">
 <meta name="theme-color" content="#0b0b10">
 <link rel="icon" href="img/icon.png">
 <style>
@@ -49,17 +49,17 @@
 <body>
 <header>
   <div class="wrap">
-    <img src="img/icon.png" alt="Fenrir Vault icon">
+    <img src="img/icon.png" alt="MugiVerse icon">
     <div class="word">FENRIR<span>VAULT</span></div>
     <p class="tag">Watch shows, movies and anime. Read light novels and manga. One free Android app, one tap to switch.</p>
-    <a class="btn" id="dl" href="https://github.com/fenrirfen-cell/Fenrir-Vault/releases/latest">
+    <a class="btn" id="dl" href="https://github.com/fenrirfen-cell/Mugiverse/releases/latest">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"/></svg>
       Download for Android
     </a>
     <span class="ver" id="ver">Free · Android 8 and newer · Updates itself</span>
     <div class="links">
-      <a class="ghost" href="https://github.com/fenrirfen-cell/Fenrir-Vault">GitHub</a>
-      <a class="ghost" href="https://github.com/fenrirfen-cell/Fenrir-Vault/issues">Report a problem</a>
+      <a class="ghost" href="https://github.com/fenrirfen-cell/Mugiverse">GitHub</a>
+      <a class="ghost" href="https://github.com/fenrirfen-cell/Mugiverse/issues">Report a problem</a>
     </div>
   </div>
 </header>
@@ -129,14 +129,14 @@
 
 <footer>
   <div class="wrap">
-    <p>Fenrir Vault is free and open source under the GNU GPL v3.0. It's built on <a href="https://github.com/NuvioMedia/NuvioMobile">Nuvio</a> and <a href="https://github.com/tsundoku-otaku/tsundoku">Tsundoku</a>. Thank you to their authors. It's not affiliated with either project.</p>
-    <p>Fenrir Vault doesn't host, store or share any media. It only shows what the sources you add provide.</p>
+    <p>MugiVerse is free and open source under the GNU GPL v3.0. It's built on <a href="https://github.com/NuvioMedia/NuvioMobile">Nuvio</a> and <a href="https://github.com/tsundoku-otaku/tsundoku">Tsundoku</a>. Thank you to their authors. It's not affiliated with either project.</p>
+    <p>MugiVerse doesn't host, store or share any media. It only shows what the sources you add provide.</p>
   </div>
 </footer>
 
 <script>
   // Point the button straight at the newest APK and show its version.
-  fetch('https://api.github.com/repos/fenrirfen-cell/Fenrir-Vault/releases/latest')
+  fetch('https://api.github.com/repos/fenrirfen-cell/Mugiverse/releases/latest')
     .then(r => r.ok ? r.json() : null)
     .then(rel => {
       if (!rel) return;

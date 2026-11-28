@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Fenrir Vault: "try the next source automatically" for any link, including ones you picked
+ * MugiVerse: "try the next source automatically" for any link, including ones you picked
  * yourself (Nuvio's own fallback only covers auto-selected sources). The Android app turns it on
  * with [install]; elsewhere it stays off and Nuvio behaves as before.
  */

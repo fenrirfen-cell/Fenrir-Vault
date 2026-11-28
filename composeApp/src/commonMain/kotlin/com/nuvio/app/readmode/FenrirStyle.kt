@@ -452,7 +452,7 @@ fun FenrirNavigationBar(items: List<FenrirNavItem>, modifier: Modifier = Modifie
 
 
 /**
- * Round button beside Search when a new Fenrir Vault version is out: a red dot, a progress ring
+ * Round button beside Search when a new MugiVerse version is out: a red dot, a progress ring
  * while downloading, and a small menu (Update / Not now). Returns true when it's shown.
  */
 @Composable

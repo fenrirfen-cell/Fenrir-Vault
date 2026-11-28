@@ -146,7 +146,7 @@ internal fun FenrirTrustAllCard(host: FenrirPluginHost, waiting: List<FenrirPlug
             title = { Text("Trust ${waiting.size} extension(s)?") },
             text = {
                 Text(
-                    "Extensions run code inside Fenrir Vault. Only trust ones you installed yourself:\n\n" +
+                    "Extensions run code inside MugiVerse. Only trust ones you installed yourself:\n\n" +
                         waiting.joinToString("\n") { "• ${it.name}" },
                 )
             },

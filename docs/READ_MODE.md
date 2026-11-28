@@ -9,7 +9,7 @@ iOS and desktop builds are unchanged and don't show the switch.
 Tsundoku is a git submodule in `tsundoku/` (branch `nuvio-embed` of the Tsundoku fork):
 
 ```bash
-git clone --recurse-submodules -b read-mode https://github.com/fenrirfen-cell/Fenrir-Vault
+git clone --recurse-submodules -b read-mode https://github.com/fenrirfen-cell/Mugiverse
 # or, in an existing clone:
 git submodule update --init tsundoku
 ```

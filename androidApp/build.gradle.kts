@@ -71,7 +71,7 @@ android {
         // Read mode (Tsundoku) needs Android 8.0+.
         minSdk = maxOf(libs.versions.android.minSdk.get().toInt(), 26)
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        // Fenrir Vault: every published build gets its own, higher version code (Nuvio's code x 1000
+        // MugiVerse: every published build gets its own, higher version code (Nuvio's code x 1000
         // + build number). Phones cache an app's icon per version, so a code that never changed kept
         // showing an icon saved from an old install.
         val fenrirBuildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
@@ -171,7 +171,7 @@ android {
             matchingFallbacks += "release"
         }
         create("fast") {
-            // Fenrir Vault everyday build: not debuggable (fast) but no code shrinking (safe).
+            // MugiVerse everyday build: not debuggable (fast) but no code shrinking (safe).
             initWith(buildTypes.getByName("benchmark"))
             isMinifyEnabled = false
             isShrinkResources = false
@@ -195,7 +195,7 @@ androidComponents {
         variant.applicationId.set("com.nuviodebug.com")
     }
     onVariants(selector().withBuildType("fast")) { variant ->
-        // Fenrir Vault's own app ID. Phones remember an app's icon by its ID (even across
+        // MugiVerse's own app ID. Phones remember an app's icon by its ID (even across
         // reinstalls), and com.nuviodebug.com was already tied to Nuvio's icon.
         variant.applicationId.set("com.fenrirread.app")
     }

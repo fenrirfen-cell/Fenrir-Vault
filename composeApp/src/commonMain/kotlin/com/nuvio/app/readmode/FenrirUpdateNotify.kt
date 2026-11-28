@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * Update notifications: the phone checks GitHub for a new Fenrir Vault in the background (even
+ * Update notifications: the phone checks GitHub for a new MugiVerse in the background (even
  * with the app closed) and posts "Update available" → "Downloading" → "Ready to install".
  * The Android side stores these and does the work; Watch and Read both show the same settings.
  */

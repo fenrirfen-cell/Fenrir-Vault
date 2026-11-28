@@ -63,5 +63,5 @@
 -dontwarn org.bouncycastle.**
 -dontwarn org.openjsse.**
 
-# Fenrir Vault: CloudStream plugins call these at runtime (CloudStreamApp, DataStore, library).
+# MugiVerse: CloudStream plugins call these at runtime (CloudStreamApp, DataStore, library).
 -keep class com.lagradost.** { *; }

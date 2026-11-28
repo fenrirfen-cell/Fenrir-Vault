@@ -99,7 +99,7 @@ open class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
-        // Fenrir Vault: a wolf howl on a fresh start (setting in Settings; quiet on silent/vibrate).
+        // MugiVerse: a wolf howl on a fresh start (setting in Settings; quiet on silent/vibrate).
         fenrirHowlSetup()
         // The opening animation starts the howl in time with the wolf; going straight to Read has no animation.
         // Read mode: a fresh launch may go straight to the Read screen instead.

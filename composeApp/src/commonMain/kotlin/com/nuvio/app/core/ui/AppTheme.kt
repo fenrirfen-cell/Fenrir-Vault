@@ -31,7 +31,7 @@ enum class AppTheme {
     AMBER,
     ROSE,
     WHITE,
-    /** Fenrir Vault: near-black with coral red (default). */
+    /** MugiVerse: near-black with coral red (default). */
     FENRIR,
 }
 

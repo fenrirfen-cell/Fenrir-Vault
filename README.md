@@ -1,8 +1,8 @@
 <div align="center">
 
-  <img src="assets/readme/fenrir-icon.png" alt="Fenrir Vault" width="120" />
+  <img src="assets/readme/fenrir-icon.png" alt="MugiVerse" width="120" />
 
-  <h1>Fenrir Vault</h1>
+  <h1>MugiVerse</h1>
 
   <p>
     One Android app to <b>watch</b> and to <b>read</b>.
@@ -10,13 +10,13 @@
     Shows, movies and anime on one side. Light novels and manga on the other. One tap to switch between them.
   </p>
 
-  [Download the latest APK](https://github.com/fenrirfen-cell/Fenrir-Vault/releases/latest) · [All releases](https://github.com/fenrirfen-cell/Fenrir-Vault/releases) · [Report a problem](https://github.com/fenrirfen-cell/Fenrir-Vault/issues)
+  [Download the latest APK](https://github.com/fenrirfen-cell/Mugiverse/releases/latest) · [All releases](https://github.com/fenrirfen-cell/Mugiverse/releases) · [Report a problem](https://github.com/fenrirfen-cell/Mugiverse/issues)
 
 </div>
 
 ## What it is
 
-Fenrir Vault combines two open-source apps into one:
+MugiVerse combines two open-source apps into one:
 
 - **Watch**, built on [Nuvio Mobile](https://github.com/NuvioMedia/NuvioMobile): a library with artwork, ratings, subtitles and your place saved.
 - **Read**, built on [Tsundoku](https://github.com/tsundoku-otaku/tsundoku): a reader for light novels and manga with a library, updates and history.
@@ -74,7 +74,7 @@ The app doesn't come with any content. You add your own sources, such as Stremio
 
 ## Install
 
-1. Download the newest `.apk` from [Releases](https://github.com/fenrirfen-cell/Fenrir-Vault/releases/latest).
+1. Download the newest `.apk` from [Releases](https://github.com/fenrirfen-cell/Mugiverse/releases/latest).
 2. Open it on your phone and allow installs from your browser or file manager if Android asks.
 3. After that, the app updates itself. When a new version is out, a red dot shows on the **Watch / Read** switch. Tap it, then **Update**.
 
@@ -85,7 +85,7 @@ Android only. iOS and desktop builds of Nuvio are not part of this project.
 To add the J-Novel Club plugin (light novels only), paste this link into **Read → Browse → Extensions → +**:
 
 ```
-https://raw.githubusercontent.com/fenrirfen-cell/Fenrir-Vault/read-mode/plugins/plugins.min.json
+https://raw.githubusercontent.com/fenrirfen-cell/Mugiverse/read-mode/plugins/plugins.min.json
 ```
 
 ## Build from source
@@ -93,8 +93,8 @@ https://raw.githubusercontent.com/fenrirfen-cell/Fenrir-Vault/read-mode/plugins/
 You need Android Studio, the Android SDK and JDK 17 or newer.
 
 ```bash
-git clone --recurse-submodules -b read-mode https://github.com/fenrirfen-cell/Fenrir-Vault
-cd Fenrir-Vault
+git clone --recurse-submodules -b read-mode https://github.com/fenrirfen-cell/Mugiverse
+cd Mugiverse
 ./gradlew :androidApp:assembleFullDebug
 ```
 
@@ -106,13 +106,13 @@ The **Fenrir build** GitHub Action builds a signed APK and publishes it as a rel
 
 ## Credits and licenses
 
-Fenrir Vault stands on the work of two projects. Thank you to their authors:
+MugiVerse stands on the work of two projects. Thank you to their authors:
 
 - **Nuvio Mobile** by NuvioMedia, licensed under the [GNU GPL v3.0](./LICENSE).
 - **Tsundoku** by tsundoku-otaku, licensed under the [Apache License 2.0](https://github.com/fenrirfen-cell/tsundoku1.0.0/blob/nuvio-embed/LICENSE). It is itself based on Mihon and Tachiyomi.
 
-Because it includes Nuvio, Fenrir Vault as a whole is released under the **GNU GPL v3.0**. Fenrir Vault is not affiliated with or endorsed by Nuvio, Tsundoku or any source or plugin author.
+Because it includes Nuvio, MugiVerse as a whole is released under the **GNU GPL v3.0**. MugiVerse is not affiliated with or endorsed by Nuvio, Tsundoku or any source or plugin author.
 
 ## Disclaimer
 
-Fenrir Vault doesn't host, store or share any media. It only shows what the sources you add provide. You're responsible for making sure the sources you use are legal where you live.
+MugiVerse doesn't host, store or share any media. It only shows what the sources you add provide. You're responsible for making sure the sources you use are legal where you live.

@@ -169,7 +169,7 @@ private fun FenrirHowlRow(isTablet: Boolean) {
     val enabled by com.nuvio.app.readmode.FenrirHowl.enabled.collectAsStateWithLifecycle()
     SettingsSwitchRow(
         title = "Howl when the app opens",
-        description = "A wolf howl when you start Fenrir Vault. Stays quiet when your phone is on silent or vibrate, or music is playing.",
+        description = "A wolf howl when you start MugiVerse. Stays quiet when your phone is on silent or vibrate, or music is playing.",
         checked = enabled,
         isTablet = isTablet,
         onCheckedChange = { com.nuvio.app.readmode.FenrirHowl.setEnabled(it) },

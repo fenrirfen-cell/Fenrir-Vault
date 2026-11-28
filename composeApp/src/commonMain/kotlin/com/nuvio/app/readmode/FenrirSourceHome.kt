@@ -40,7 +40,7 @@ data class FenrirSourceHomeState(
 )
 
 /**
- * Fenrir Vault: like Zangetsu / CloudStream, the home screen can show one CloudStream source's own
+ * MugiVerse: like Zangetsu / CloudStream, the home screen can show one CloudStream source's own
  * home page (its categories) instead of Nuvio's. Picked from the FENRIR WATCH drop-down; null means
  * the normal Nuvio home. The pick is remembered by the Android app.
  */

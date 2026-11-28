@@ -88,7 +88,7 @@ internal fun PlaybackStreamSettings(
                         onClick = { showReuseCacheDurationDialog = true },
                     )
                 }
-                // Fenrir Vault: when a link fails or doesn't start, play the next source that has it.
+                // MugiVerse: when a link fails or doesn't start, play the next source that has it.
                 if (com.nuvio.app.features.player.FenrirSourceFallback.available) {
                     val fenrirFallback by com.nuvio.app.features.player.FenrirSourceFallback.enabled.collectAsStateWithLifecycle()
                     SettingsGroupDivider(isTablet = isTablet)

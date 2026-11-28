@@ -1267,7 +1267,7 @@ internal fun MainAppContent(
             )
         }
 
-        // Fenrir Vault: a show played from a CloudStream source resumes from that source.
+        // MugiVerse: a show played from a CloudStream source resumes from that source.
         fun resumeFenrirCloudStream(item: ContinueWatchingItem, startFromBeginning: Boolean) {
             resumePromptItem = null
             com.nuvio.app.readmode.FenrirSourceHomeUi.resuming.value = com.nuvio.app.readmode.FenrirResumeTarget(

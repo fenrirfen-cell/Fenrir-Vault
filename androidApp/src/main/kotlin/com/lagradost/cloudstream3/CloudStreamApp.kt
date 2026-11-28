@@ -14,8 +14,8 @@ import com.lagradost.cloudstream3.utils.DataStore.setKey
 
 /**
  * CloudStream plugins call into the CloudStream *app* (not just its library) through this
- * class: mostly for the app context and its saved settings. Fenrir Vault isn't the CloudStream
- * app, so this stands in with the same names, backed by Fenrir Vault's own context.
+ * class: mostly for the app context and its saved settings. MugiVerse isn't the CloudStream
+ * app, so this stands in with the same names, backed by MugiVerse's own context.
  * (Mirrors recloudstream/cloudstream's CloudStreamApp, GPL-3.0.)
  */
 open class CloudStreamApp {
@@ -27,7 +27,7 @@ open class CloudStreamApp {
             else -> null
         }
 
-        /** The app context, set when Fenrir Vault starts its plugin host. */
+        /** The app context, set when MugiVerse starts its plugin host. */
         @JvmStatic
         val context: Context?
             get() = com.lagradost.api.getContext() as? Context

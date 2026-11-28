@@ -1,7 +1,7 @@
 package com.nuvio.app.readmode
 
 /**
- * Pull down at the top of Home: reloads Home and checks for a new Fenrir Vault version.
+ * Pull down at the top of Home: reloads Home and checks for a new MugiVerse version.
  * The app sets [checkForUpdates] once its updater exists.
  */
 object FenrirPullRefresh {

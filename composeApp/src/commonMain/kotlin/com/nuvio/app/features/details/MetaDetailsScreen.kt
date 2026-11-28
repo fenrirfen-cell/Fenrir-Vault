@@ -830,7 +830,7 @@ fun MetaDetailsScreen(
                         else -> playText
                     }
                 }
-                // Fenrir Vault: remember what Play starts, for the "Found in" badges.
+                // MugiVerse: remember what Play starts, for the "Found in" badges.
                 val foundInTarget = when {
                     (meta.type == "series" || hasEpisodes) && seriesAction != null -> FoundInTarget(
                         type = meta.type,

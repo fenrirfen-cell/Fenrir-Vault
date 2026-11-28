@@ -41,7 +41,7 @@ import com.nuvio.app.readmode.ReadModeBridge
 /** What "Play" on a detail page would start, so "Found in" checks the same episode. */
 internal data class FoundInTarget(val type: String, val videoId: String, val season: Int?, val episode: Int?)
 
-/** Fenrir Vault: the play target of each open detail page, by meta id. */
+/** MugiVerse: the play target of each open detail page, by meta id. */
 internal object FenrirFoundIn {
     val targets = mutableStateMapOf<String, FoundInTarget>()
 }
@@ -50,7 +50,7 @@ private val FoundColor = Color(0xFF1D9E75)
 
 /**
  * "Links from" (All / Nuvio add-ons / Plugins, remembered per title) and the "Found in your sources"
- * badges under the Play button (Fenrir Vault only). Plugin sites show in purple; tap one to play
+ * badges under the Play button (MugiVerse only). Plugin sites show in purple; tap one to play
  * from that site only.
  */
 @OptIn(ExperimentalLayoutApi::class)

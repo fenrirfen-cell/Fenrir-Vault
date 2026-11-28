@@ -171,7 +171,7 @@ fun MugiModeShell(
                                     Image(art.mode(item.first),contentDescription=null,modifier=Modifier.size(badgeSize))
                                 }
                                 ParchmentLabel(item.first.title,art.parchment,Modifier.width(cardWidth).height(25.dp),if(menuWidth<360.dp) 11 else 13)
-                                Text(item.first.description,color=MugiPalette.Ivory,fontFamily=FontFamily.Serif,fontSize=10.sp,
+                                Text(item.first.description,color=MugiPalette.Ivory,fontFamily=MugiPlayfair,fontSize=10.sp,
                                     maxLines=1,textAlign=TextAlign.Center)
                             }
                         }
@@ -197,7 +197,7 @@ fun MugiModeShell(
                             .padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                             androidx.compose.material3.Icon(action.icon, null, tint = MugiPalette.Gold, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text(action.label, color = MugiPalette.Ivory, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
+                            Text(action.label, color = MugiPalette.Ivory, fontFamily = MugiPlayfair, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
                         }
                     }
                 }
@@ -229,7 +229,7 @@ fun MugiHeader(mode: MugiMode, art: MugiArt, modifier: Modifier = Modifier,
     Row(modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=20.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically) {
         Column(Modifier.weight(1f),horizontalAlignment=Alignment.Start) {
             Image(art.logo,"MugiVerse",Modifier.widthIn(max=168.dp).height(48.dp),contentScale=ContentScale.Fit)
-            Text(mode.title.uppercase(),color=MugiPalette.Ivory, fontFamily=FontFamily.Serif,fontWeight=FontWeight.Bold,
+            Text(mode.title.uppercase(),color=MugiPalette.Ivory, fontFamily=MugiPlayfair,fontWeight=FontWeight.Bold,
                 fontSize=11.sp,modifier=Modifier.padding(start=35.dp).clip(RoundedCornerShape(3.dp))
                     .background(mode.accent.copy(alpha=.83f)).padding(horizontal=14.dp,vertical=2.dp))
         }
@@ -251,7 +251,7 @@ fun WatchKindSelector(value: WatchKind,onChange:(WatchKind)->Unit,modifier:Modif
                     .then(if(selected) Modifier.background(Brush.verticalGradient(listOf(Color(0xFFDE3038),Color(0xFF8B1019)))) else Modifier)
                     .clickable(role=Role.Tab,onClickLabel=kind.label){onChange(kind)},contentAlignment=Alignment.Center) {
                     Text(kind.label,color=if(selected) MugiPalette.Ivory else MugiPalette.Ivory.copy(alpha=.85f),
-                        fontFamily=FontFamily.Serif,fontWeight=if(selected) FontWeight.Bold else FontWeight.Normal,
+                        fontFamily=MugiPlayfair,fontWeight=if(selected) FontWeight.Bold else FontWeight.Normal,
                         fontSize=if(compact) 12.sp else 14.sp,maxLines=1)
                 }
             }
@@ -269,7 +269,7 @@ fun WatchKindSelector(value: WatchKind,onChange:(WatchKind)->Unit,modifier:Modif
 fun ParchmentLabel(text:String, art:Painter, modifier:Modifier=Modifier, textSize:Int=16) {
     Box(modifier,contentAlignment=Alignment.Center) {
         Image(art,null,Modifier.matchParentSize(),contentScale=ContentScale.FillBounds)
-        Text(text,color=Color(0xFF2E180A),fontFamily=FontFamily.Serif,fontWeight=FontWeight.Bold,
+        Text(text,color=Color(0xFF2E180A),fontFamily=MugiPlayfair,fontWeight=FontWeight.Bold,
             fontSize=textSize.sp, maxLines=1,overflow=TextOverflow.Ellipsis, modifier=Modifier.padding(horizontal=8.dp))
     }
 }

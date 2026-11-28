@@ -119,7 +119,7 @@ internal fun AniDramaPosterTile(
             }
         }
         if (mugi) {
-            val serif = androidx.compose.ui.text.font.FontFamily.Serif
+            val serif = com.nuvio.app.mugi.MugiPlayfair
             Column(Modifier.padding(start = 9.dp, end = 2.dp, top = 7.dp, bottom = 5.dp)) {
                 Text(
                     text = item.title,

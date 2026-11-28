@@ -94,7 +94,7 @@ fun MugiWatchSearch(art:MugiArt,kind:WatchKind,onKindChange:(WatchKind)->Unit,qu
         MugiHeader(MugiMode.WATCH,art,actions=headerActions)
         Row(Modifier.padding(horizontal=16.dp),verticalAlignment=Alignment.CenterVertically) {
             Text("‹",color=MugiPalette.Ivory,fontSize=30.sp,modifier=Modifier.size(44.dp).clickable(onClick=onBack).wrapContentSize())
-            Text("Search",color=MugiPalette.Ivory,fontSize=27.sp,fontFamily=FontFamily.Serif)
+            Text("Search",color=MugiPalette.Ivory,fontSize=27.sp,fontFamily=MugiPlayfair)
         }
         OutlinedTextField(value=query,onValueChange=onQueryChange,singleLine=true,
             modifier=Modifier.fillMaxWidth().padding(horizontal=16.dp),placeholder={Text(if(kind==WatchKind.MOVIES) "Search movies..." else "Search TV shows...")})
@@ -113,7 +113,7 @@ fun AniCategories(art:MugiArt,value:AniCategory,onChange:(AniCategory)->Unit) {
         AniCategory.values().forEach { category ->
             Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(7.dp)).clickable { onChange(category) },contentAlignment=Alignment.Center) {
                 if(category==value){Box(Modifier.matchParentSize().background(Color(0xFF552081)).border(1.dp,MugiPalette.Gold,RoundedCornerShape(7.dp)))
-                    Text(category.label,color=MugiPalette.Ivory,fontSize=12.sp,maxLines=1,fontFamily=FontFamily.Serif)
+                    Text(category.label,color=MugiPalette.Ivory,fontSize=12.sp,maxLines=1,fontFamily=MugiPlayfair)
                 }else ParchmentLabel(category.label,art.parchment,Modifier.matchParentSize(),12)
             }
         }

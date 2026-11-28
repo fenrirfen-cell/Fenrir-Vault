@@ -125,7 +125,7 @@ internal fun AniDramaCalendarView(
                             text = "${AniDramaTime.monthName(month)} $year",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            fontFamily = if (mugi) androidx.compose.ui.text.font.FontFamily.Serif else null,
+                            fontFamily = if (mugi) com.nuvio.app.mugi.MugiPlayfair else null,
                             color = if (mugi) MugiCal.Ivory else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(horizontal = 8.dp),
                         )
@@ -189,7 +189,7 @@ internal fun AniDramaCalendarView(
                     text = AniDramaTime.longDayLabel(selectedIso),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    fontFamily = if (mugi) androidx.compose.ui.text.font.FontFamily.Serif else null,
+                    fontFamily = if (mugi) com.nuvio.app.mugi.MugiPlayfair else null,
                     color = if (mugi) MugiCal.Ivory else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
                 )

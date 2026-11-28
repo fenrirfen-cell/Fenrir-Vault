@@ -2,6 +2,10 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- New fonts: Cinzel for big headings and bounty titles, Playfair Display for section headings, labels and dates
+- Bounties use the new hand-painted pictures (sepia until you earn them)
+- The sailing ship, rope frames, wooden panels, parchment chart, sail and banner are now the real artwork, not drawings
+- A lantern and ship's wheel decorate the Read header, Private Library and Captain's Log pages
 - Private Library and Surprise Me now use the hand-made cabinet, doors, padlock, shelves and treasure chest artwork
 - New: Private reading — keep books out of Continue, Surprise Me and Captain's Log on the Watch side (Settings → Privacy); unlock with your fingerprint or PIN
 - New: Continue has All / Watch / Ani-Drama / Read tabs and opens on the mode you came from

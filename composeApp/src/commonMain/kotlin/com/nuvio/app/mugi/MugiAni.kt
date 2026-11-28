@@ -165,7 +165,7 @@ fun AniDramaCategorySelector(categories: List<String>, selectedIndex: Int, onSel
                 .padding(start = 14.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(selected, color = AniDramaColors.Ivory, fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
+            Text(selected, color = AniDramaColors.Ivory, fontFamily = MugiPlayfair, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
             Icon(
                 if (expanded) Icons.Rounded.ArrowDropUp else Icons.Rounded.ArrowDropDown,
                 contentDescription = null,
@@ -185,7 +185,7 @@ fun AniDramaCategorySelector(categories: List<String>, selectedIndex: Int, onSel
                 val active = i == selectedIndex
                 androidx.compose.material3.DropdownMenuItem(
                     modifier = Modifier.background(if (active) AniDramaColors.PurpleDark else Color.Transparent),
-                    text = { Text(category, color = AniDramaColors.Ivory, fontFamily = FontFamily.Serif, fontSize = 15.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal) },
+                    text = { Text(category, color = AniDramaColors.Ivory, fontFamily = MugiPlayfair, fontSize = 15.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal) },
                     trailingIcon = if (active) {
                         { Icon(Icons.Rounded.Check, contentDescription = "Selected", tint = AniDramaColors.Ivory) }
                     } else null,

@@ -157,7 +157,7 @@ private fun HeroPage(item: MetaPreview, onOpen: (MetaPreview) -> Unit) {
                     lineHeight = 28.sp,
                     fontWeight = if (mugiTitle) FontWeight.Normal else FontWeight.Black,
                     fontStyle = if (mugiTitle) androidx.compose.ui.text.font.FontStyle.Italic else null,
-                    fontFamily = if (mugiTitle) androidx.compose.ui.text.font.FontFamily.Serif else null,
+                    fontFamily = if (mugiTitle) com.nuvio.app.mugi.MugiPlayfair else null,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -203,7 +203,7 @@ private fun HeroPage(item: MetaPreview, onOpen: (MetaPreview) -> Unit) {
                         color = ink,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 17.sp,
-                        fontFamily = if (mugi) androidx.compose.ui.text.font.FontFamily.Serif else null,
+                        fontFamily = if (mugi) com.nuvio.app.mugi.MugiPlayfair else null,
                     )
                 }
                 Spacer(Modifier.width(10.dp))

@@ -149,7 +149,7 @@ fun MugiLogoWithRibbon(mode: MugiMode, logo: Painter, dropdown: Boolean = false)
         Text(
             mode.title.uppercase() + if (dropdown) " ▾" else "",
             color = MugiPalette.Ivory,
-            fontFamily = FontFamily.Serif,
+            fontFamily = MugiPlayfair,
             fontWeight = FontWeight.Bold,
             fontSize = 10.sp,
             letterSpacing = 1.sp,
@@ -299,7 +299,7 @@ private fun RowScope.MugiTab(item: MugiNavItem, mode: MugiMode, enabled: Boolean
             item.icon != null -> Icon(item.icon, null, tint = tint, modifier = Modifier.size(24.dp))
             item.painter != null -> Icon(item.painter, null, tint = tint, modifier = Modifier.size(24.dp))
         }
-        Text(item.label, color = tint, fontSize = 11.5.sp, fontFamily = FontFamily.Serif, maxLines = 1)
+        Text(item.label, color = tint, fontSize = 11.5.sp, fontFamily = MugiPlayfair, maxLines = 1)
     }
 }
 

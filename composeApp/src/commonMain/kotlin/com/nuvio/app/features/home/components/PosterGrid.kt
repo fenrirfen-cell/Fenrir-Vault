@@ -180,7 +180,7 @@ private fun PosterGridTile(
             Text(
                 text = item.name,
                 style = if (mugi) {
-                    MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, fontFamily = androidx.compose.ui.text.font.FontFamily.Serif, fontSize = 15.sp)
+                    MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, fontFamily = com.nuvio.app.mugi.MugiPlayfair, fontSize = 15.sp)
                 } else {
                     MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                 },

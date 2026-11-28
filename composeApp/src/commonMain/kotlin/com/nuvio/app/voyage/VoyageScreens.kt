@@ -411,6 +411,7 @@ private fun CaptainsLogScreen(onBack: () -> Unit, bottom: androidx.compose.ui.un
                 "Captain's Log",
                 onBack,
                 subtitle = if (showReading) "Your reading and watching, kept on this phone only" else "🔒 Watching only · reading is private",
+                decoration = { VoyageShip(Modifier.size(width = 96.dp, height = 84.dp)) },
             )
         }
         item(key = "filters") {
@@ -437,7 +438,7 @@ private fun CaptainsLogScreen(onBack: () -> Unit, bottom: androidx.compose.ui.un
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).woodPanel().padding(vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("CURRENT VOYAGE", color = VoyageColors.Gold, fontFamily = VoyageSerif, fontSize = 13.sp, letterSpacing = 3.sp)
+                Text("CURRENT VOYAGE", color = VoyageColors.Gold, fontFamily = VoyageDisplay, fontSize = 13.sp, letterSpacing = 3.sp)
                 Text(
                     "🔥 ${stats.currentStreak} ${if (stats.currentStreak == 1) "day" else "days"}",
                     color = VoyageColors.BrightGold,
@@ -490,7 +491,7 @@ private fun CaptainsLogScreen(onBack: () -> Unit, bottom: androidx.compose.ui.un
                     .padding(vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("$earned ${if (earned == 1) "Milestone" else "Milestones"} Earned", color = VoyageColors.BrightGold, fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                Text("$earned ${if (earned == 1) "Milestone" else "Milestones"} Earned", color = VoyageColors.BrightGold, fontFamily = VoyageDisplay, fontWeight = FontWeight.Bold, fontSize = 22.sp)
                 Text("See your bounties ›", color = VoyageColors.Ivory, fontSize = 13.sp)
             }
         }
@@ -543,14 +544,14 @@ private fun BountiesScreen(onBack: () -> Unit, bottom: androidx.compose.ui.unit.
             else -> 3
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
-            item(key = "head") { VoyageHeader("Bounties", onBack, subtitle = "Milestones you've earned across Watch and Read") }
+            item(key = "head") { VoyageHeader("Bounties", onBack, subtitle = "Milestones you've earned across Watch and Read", decoration = { VoyageWheel(Modifier.size(84.dp)) }) }
             item(key = "total") {
                 Column(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).ropeFrame(22.dp).padding(vertical = 14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     val earned = board.count { it.unlocked }
-                    Text("$earned ${if (earned == 1) "Milestone" else "Milestones"} Earned", color = VoyageColors.BrightGold, fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                    Text("$earned ${if (earned == 1) "Milestone" else "Milestones"} Earned", color = VoyageColors.BrightGold, fontFamily = VoyageDisplay, fontWeight = FontWeight.Bold, fontSize = 22.sp)
                     Text("Total bounty: ฿ ${formatBounty(total)}", color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontSize = 14.sp)
                     Text("Bounty points are just for fun: they have no money value.", color = VoyageColors.Secondary, fontSize = 11.sp)
                 }
@@ -571,12 +572,14 @@ private fun BountiesScreen(onBack: () -> Unit, bottom: androidx.compose.ui.unit.
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 WantedPoster(p, Modifier.width(150.dp)) { }
-                Text(p.definition.name, color = VoyageColors.BrightGold, fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                Text(p.definition.name, color = VoyageColors.BrightGold, fontFamily = VoyageDisplay, fontWeight = FontWeight.Bold, fontSize = 22.sp)
                 Text(p.definition.description, color = VoyageColors.Ivory, fontSize = 14.sp, textAlign = TextAlign.Center)
                 Text("Progress: ${p.current.coerceAtMost(p.definition.target)} / ${p.definition.target}", color = VoyageColors.Secondary, fontSize = 13.sp)
                 Text(
                     p.unlockedAt?.let { "Earned on ${formatDay(VoyageBridge.localDay(it))}" } ?: "Not earned yet",
                     color = if (p.unlocked) VoyageColors.Gold else VoyageColors.Secondary,
+                    fontFamily = VoyageSerif,
+                    fontStyle = FontStyle.Italic,
                     fontSize = 13.sp,
                 )
                 Text("Bounty: ฿ ${formatBounty(p.definition.reward)}", color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontSize = 15.sp)
@@ -1097,7 +1100,7 @@ private fun PrivacyScreen(onBack: () -> Unit, bottom: androidx.compose.ui.unit.D
         scope.launch { error = ReadingPrivacy.update(next) }
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
-        item(key = "head") { VoyageHeader("Privacy", onBack, decoration = { Text("🔒", fontSize = 56.sp, modifier = Modifier.padding(top = 40.dp, end = 12.dp)) }) }
+        item(key = "head") { VoyageHeader("Privacy", onBack, decoration = { VoyageLantern(Modifier.padding(top = 18.dp, end = 18.dp).size(width = 46.dp, height = 96.dp)) }) }
         item(key = "cards") {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 PrivacySettingCard(

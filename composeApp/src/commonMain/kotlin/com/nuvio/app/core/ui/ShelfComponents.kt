@@ -283,7 +283,7 @@ fun NuvioPosterCard(
         if (shouldShowTitleBelow) {
             Text(
                 text = title,
-                style = if (mugiPoster) MaterialTheme.typography.bodyMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Serif) else MaterialTheme.typography.bodyMedium,
+                style = if (mugiPoster) MaterialTheme.typography.bodyMedium.copy(fontFamily = com.nuvio.app.mugi.MugiPlayfair) else MaterialTheme.typography.bodyMedium,
                 color = if (mugiPoster) com.nuvio.app.mugi.MugiPalette.Ivory else tokens.colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

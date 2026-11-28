@@ -70,11 +70,38 @@ import nuvio.composeapp.generated.resources.mugi_chest_glow
 import nuvio.composeapp.generated.resources.mugi_chest_lid
 import nuvio.composeapp.generated.resources.mugi_parchment
 import org.jetbrains.compose.resources.painterResource
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.imageResource
+import nuvio.composeapp.generated.resources.sailing_ship
+import nuvio.composeapp.generated.resources.mugi_ship_wheel
+import nuvio.composeapp.generated.resources.mugi_lantern
+import nuvio.composeapp.generated.resources.sailing_ship_small
+import nuvio.composeapp.generated.resources.rope_frame
+import nuvio.composeapp.generated.resources.wood_panel
+import nuvio.composeapp.generated.resources.parchment_chart
+import nuvio.composeapp.generated.resources.bounty_books
+import nuvio.composeapp.generated.resources.bounty_library
+import nuvio.composeapp.generated.resources.bounty_film
+import nuvio.composeapp.generated.resources.bounty_ship
+import nuvio.composeapp.generated.resources.bounty_anime
+import nuvio.composeapp.generated.resources.bounty_globe
+import nuvio.composeapp.generated.resources.bounty_compass
+import nuvio.composeapp.generated.resources.bounty_calendar
+import nuvio.composeapp.generated.resources.bounty_chest
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-val VoyageSerif = FontFamily.Serif
+/** Playfair Display for section headings and labels; Cinzel for big titles. */
+val VoyageSerif: FontFamily @Composable get() = com.nuvio.app.mugi.MugiPlayfair
+val VoyageDisplay: FontFamily @Composable get() = com.nuvio.app.mugi.MugiCinzel
 
 /** Navy sea or walnut cabin, with faint chart lines. */
 fun Modifier.voyageBackground(walnut: Boolean): Modifier = drawBehind {
@@ -103,44 +130,89 @@ fun Modifier.voyageBackground(walnut: Boolean): Modifier = drawBehind {
     }
 }
 
-/** A small sailing ship (hull, mast, two sails, pennant), drawn so it scales cleanly. */
+/**
+ * The sailing ship artwork. Small sizes (progress bars, under ~40dp) use the reduced copy so it stays crisp;
+ * larger ones (page headings) use the full illustration.
+ */
 @Composable
-fun VoyageShip(modifier: Modifier = Modifier, sail: Color = Color(0xFFF2E6CC), hull: Color = Color(0xFF6B3E1C)) {
-    Box(modifier.drawBehind { drawShip(sail, hull) })
+fun VoyageShip(modifier: Modifier = Modifier, small: Boolean = false) {
+    Image(
+        painterResource(if (small) Res.drawable.sailing_ship_small else Res.drawable.sailing_ship),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = modifier,
+    )
 }
 
-fun DrawScope.drawShip(sail: Color, hull: Color) {
-    val w = size.width
-    val h = size.height
-    val hullPath = Path().apply {
-        moveTo(w * 0.05f, h * 0.70f)
-        lineTo(w * 0.95f, h * 0.70f)
-        lineTo(w * 0.80f, h * 0.92f)
-        lineTo(w * 0.20f, h * 0.92f)
-        close()
+/** The ship's wheel artwork (a heading decoration). */
+@Composable
+fun VoyageWheel(modifier: Modifier = Modifier) {
+    Image(painterResource(Res.drawable.mugi_ship_wheel), contentDescription = null, contentScale = ContentScale.Fit, modifier = modifier)
+}
+
+/** The brass lantern artwork (a heading decoration). */
+@Composable
+fun VoyageLantern(modifier: Modifier = Modifier) {
+    Image(painterResource(Res.drawable.mugi_lantern), contentDescription = null, contentScale = ContentScale.Fit, modifier = modifier)
+}
+
+/**
+ * Draws [image] as a nine-slice: the four corners ([srcCorner] source pixels, drawn at [dstCorner] px) stay as they are.
+ * With [repeatEdges] the straight edges are repeated at their natural scale (never stretched); otherwise they and the
+ * centre stretch. [drawCenter] fills the middle as well.
+ */
+fun DrawScope.drawNineSlice(image: ImageBitmap, srcCorner: Int, dstCorner: Float, repeatEdges: Boolean, drawCenter: Boolean, alpha: Float = 1f) {
+    val sw = image.width
+    val sh = image.height
+    val dw = size.width
+    val dh = size.height
+    val c = dstCorner.coerceAtMost(minOf(dw, dh) / 2f)
+    val sc = srcCorner
+    val scale = c / sc
+    fun piece(sx: Int, sy: Int, sW: Int, sH: Int, dx: Float, dy: Float, dW: Float, dH: Float) {
+        if (sW <= 0 || sH <= 0 || dW <= 0.5f || dH <= 0.5f) return
+        drawImage(
+            image,
+            srcOffset = IntOffset(sx, sy),
+            srcSize = IntSize(sW, sH),
+            dstOffset = IntOffset(dx.roundToInt(), dy.roundToInt()),
+            dstSize = IntSize((dx + dW).roundToInt() - dx.roundToInt(), (dy + dH).roundToInt() - dy.roundToInt()),
+            alpha = alpha,
+            filterQuality = FilterQuality.High,
+        )
     }
-    drawPath(hullPath, hull)
-    drawLine(Color(0xFFD4AF65), Offset(w * 0.12f, h * 0.76f), Offset(w * 0.88f, h * 0.76f), h * 0.03f)
-    drawLine(Color(0xFF4A2A12), Offset(w * 0.5f, h * 0.08f), Offset(w * 0.5f, h * 0.70f), w * 0.04f)
-    val big = Path().apply {
-        moveTo(w * 0.53f, h * 0.14f)
-        quadraticTo(w * 0.86f, h * 0.36f, w * 0.53f, h * 0.62f)
-        close()
+    val midSW = sw - 2 * sc
+    val midSH = sh - 2 * sc
+    val midDW = dw - 2 * c
+    val midDH = dh - 2 * c
+    // corners
+    piece(0, 0, sc, sc, 0f, 0f, c, c)
+    piece(sw - sc, 0, sc, sc, dw - c, 0f, c, c)
+    piece(0, sh - sc, sc, sc, 0f, dh - c, c, c)
+    piece(sw - sc, sh - sc, sc, sc, dw - c, dh - c, c, c)
+    if (repeatEdges) {
+        // horizontal edges: whole tiles at natural scale, the count rounded so they meet the corners exactly
+        val tileW = midSW * scale
+        val nx = maxOf(1, (midDW / tileW).roundToInt())
+        val stepX = midDW / nx
+        for (k in 0 until nx) {
+            piece(sc, 0, midSW, sc, c + k * stepX, 0f, stepX, c)
+            piece(sc, sh - sc, midSW, sc, c + k * stepX, dh - c, stepX, c)
+        }
+        val tileH = midSH * scale
+        val ny = maxOf(1, (midDH / tileH).roundToInt())
+        val stepY = midDH / ny
+        for (k in 0 until ny) {
+            piece(0, sc, sc, midSH, 0f, c + k * stepY, c, stepY)
+            piece(sw - sc, sc, sc, midSH, dw - c, c + k * stepY, c, stepY)
+        }
+    } else {
+        piece(sc, 0, midSW, sc, c, 0f, midDW, c)
+        piece(sc, sh - sc, midSW, sc, c, dh - c, midDW, c)
+        piece(0, sc, sc, midSH, 0f, c, c, midDH)
+        piece(sw - sc, sc, sc, midSH, dw - c, c, c, midDH)
     }
-    drawPath(big, sail)
-    val small = Path().apply {
-        moveTo(w * 0.47f, h * 0.22f)
-        quadraticTo(w * 0.20f, h * 0.42f, w * 0.47f, h * 0.62f)
-        close()
-    }
-    drawPath(small, sail.copy(alpha = 0.92f))
-    val flag = Path().apply {
-        moveTo(w * 0.5f, h * 0.06f)
-        lineTo(w * 0.66f, h * 0.10f)
-        lineTo(w * 0.5f, h * 0.14f)
-        close()
-    }
-    drawPath(flag, Color(0xFFC8323A))
+    if (drawCenter) piece(sc, sc, midSW, midSH, c, c, midDW, midDH)
 }
 
 /** Gold serif screen title with a back arrow and an optional picture on the right. */
@@ -158,14 +230,14 @@ fun VoyageHeader(title: String, onBack: () -> Unit, subtitle: String? = null, de
             Text(
                 title,
                 color = Color(0xFFF2D592),
-                fontFamily = VoyageSerif,
+                fontFamily = VoyageDisplay,
                 fontWeight = FontWeight.Bold,
-                fontSize = 32.sp,
+                fontSize = 30.sp,
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
             Box(Modifier.padding(start = 8.dp, top = 2.dp).width(110.dp).height(1.dp).background(Brush.horizontalGradient(listOf(VoyageColors.Gold, Color.Transparent))))
             subtitle?.let {
-                Text(it, color = VoyageColors.Secondary, fontSize = 13.sp, modifier = Modifier.padding(start = 8.dp, top = 8.dp))
+                Text(it, color = VoyageColors.Secondary, fontFamily = VoyageSerif, fontStyle = FontStyle.Italic, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp, top = 8.dp))
             }
         }
     }
@@ -175,43 +247,34 @@ fun VoyageHeader(title: String, onBack: () -> Unit, subtitle: String? = null, de
 @Composable
 fun VoyageSectionTitle(title: String, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontStyle = FontStyle.Italic, fontWeight = FontWeight.SemiBold, fontSize = 19.sp)
+        Text(title, color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 19.sp)
         Spacer(Modifier.width(12.dp))
         Box(Modifier.weight(1f).height(1.dp).background(Brush.horizontalGradient(listOf(VoyageColors.Gold, Color.Transparent))))
     }
 }
 
-/** A frame of twisted rope (brown strands with a gold inner line). */
-fun Modifier.ropeFrame(radius: Dp = 14.dp): Modifier = drawBehind {
-    val r = radius.toPx()
-    val w = 5.dp.toPx()
-    drawRoundRect(Color(0xFF8A6234), cornerRadius = CornerRadius(r), style = Stroke(w))
-    drawRoundRect(
-        Color(0xFF3E2610),
-        cornerRadius = CornerRadius(r),
-        style = Stroke(w * 0.55f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 6f), 0f)),
-    )
-    val inset = w * 0.9f
-    drawRoundRect(
-        VoyageColors.Gold.copy(alpha = 0.75f),
-        topLeft = Offset(inset, inset),
-        size = Size(size.width - inset * 2, size.height - inset * 2),
-        cornerRadius = CornerRadius((r - inset).coerceAtLeast(2f)),
-        style = Stroke(1f),
-    )
+/** The rope frame artwork as a nine-slice: corners kept (72px of the art), straight runs repeated, never stretched. */
+@Composable
+fun Modifier.ropeFrame(radius: Dp = 14.dp): Modifier {
+    val rope = imageResource(Res.drawable.rope_frame)
+    val corner = radius + 8.dp
+    return drawWithContent {
+        drawContent()
+        drawNineSlice(rope, srcCorner = 72, dstCorner = corner.toPx(), repeatEdges = true, drawCenter = false)
+    }
 }
 
-/** Wooden panel with brass corner studs. */
-fun Modifier.woodPanel(radius: Dp = 12.dp): Modifier = this
-    .clip(RoundedCornerShape(radius))
-    .background(Brush.verticalGradient(listOf(Color(0xFF3A2412), Color(0xFF28190F), Color(0xFF1C110A))))
-    .border(1.dp, Color(0xFFA87832), RoundedCornerShape(radius))
-    .drawBehind {
-        val s = 2.5.dp.toPx()
-        val m = 7.dp.toPx()
-        listOf(Offset(m, m), Offset(size.width - m, m), Offset(m, size.height - m), Offset(size.width - m, size.height - m))
-            .forEach { drawCircle(VoyageColors.Gold, s, it) }
-    }
+/** The wooden panel artwork behind a block (corners kept, wood stretched to fit). */
+@Composable
+fun Modifier.woodPanel(radius: Dp = 12.dp): Modifier {
+    val wood = imageResource(Res.drawable.wood_panel)
+    return this
+        .clip(RoundedCornerShape(radius))
+        .drawBehind {
+            drawRect(Color(0xFF1C110A))
+            drawNineSlice(wood, srcCorner = 48, dstCorner = 14.dp.toPx(), repeatEdges = false, drawCenter = true)
+        }
+}
 
 /** Progress line with a little ship sailing along it. */
 @Composable
@@ -223,7 +286,7 @@ fun VoyageProgressBar(progress: Float, mode: VoyageMode, modifier: Modifier = Mo
             .height(28.dp)
             .semantics { contentDescription = "${(value * 100).toInt()}% completed" },
     ) {
-        val shipWidth = 24.dp
+        val shipWidth = 26.dp
         val travel = (maxWidth - shipWidth).coerceAtLeast(0.dp)
         Box(
             Modifier
@@ -235,7 +298,7 @@ fun VoyageProgressBar(progress: Float, mode: VoyageMode, modifier: Modifier = Mo
         ) {
             Box(Modifier.fillMaxWidth(value).fillMaxHeight().background(mode.accent()))
         }
-        VoyageShip(Modifier.align(Alignment.BottomStart).offset(x = travel * value, y = (-3).dp).size(shipWidth))
+        VoyageShip(Modifier.align(Alignment.BottomStart).offset(x = travel * value, y = (-2).dp).size(shipWidth), small = true)
     }
 }
 
@@ -302,11 +365,11 @@ fun VoyageButton(text: String, color: Color, modifier: Modifier = Modifier, enab
     }
 }
 
-/** Parchment panel (the approved parchment artwork, stretched). */
+/** Parchment chart panel (the parchment chart artwork, stretched to fit). */
 @Composable
 fun ParchmentPanel(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Box(modifier.clip(RoundedCornerShape(8.dp))) {
-        Image(painterResource(Res.drawable.mugi_parchment), null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
+        Image(painterResource(Res.drawable.parchment_chart), null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
         content()
     }
 }
@@ -314,7 +377,7 @@ fun ParchmentPanel(modifier: Modifier = Modifier, content: @Composable () -> Uni
 @Composable
 fun VoyageEmpty(title: String, message: String, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 36.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        VoyageShip(Modifier.size(56.dp))
+        VoyageShip(Modifier.size(width = 96.dp, height = 88.dp))
         Spacer(Modifier.height(10.dp))
         Text(title, color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontSize = 18.sp, textAlign = TextAlign.Center)
         Spacer(Modifier.height(4.dp))
@@ -337,7 +400,7 @@ fun WantedPoster(progress: BountyProgress, modifier: Modifier = Modifier, onClic
             .padding(horizontal = 6.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("WANTED", color = Color(0xFF5A1A14), fontFamily = VoyageSerif, fontWeight = FontWeight.Black, fontSize = 15.sp, letterSpacing = 1.5.sp)
+        Text("WANTED", color = Color(0xFF5A1A14), fontFamily = VoyageDisplay, fontWeight = FontWeight.Black, fontSize = 15.sp, letterSpacing = 1.5.sp)
         Box(
             Modifier
                 .padding(vertical = 5.dp)
@@ -348,14 +411,14 @@ fun WantedPoster(progress: BountyProgress, modifier: Modifier = Modifier, onClic
                 .border(1.dp, Color(0xFF4A3420), RoundedCornerShape(2.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            BountyEmblemArt(progress.definition.emblem, earned, Modifier.size(54.dp))
+            BountyEmblemArt(progress.definition.emblem, earned, Modifier.size(66.dp))
             if (!earned) {
                 Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).size(18.dp).clip(CircleShape).background(Color(0xCC2A1C10)), contentAlignment = Alignment.Center) {
                     Text("🔒", fontSize = 10.sp)
                 }
             }
         }
-        Text(progress.definition.name, color = Color(0xFF2E180A), fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, textAlign = TextAlign.Center)
+        Text(progress.definition.name, color = Color(0xFF2E180A), fontFamily = VoyageDisplay, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1, textAlign = TextAlign.Center)
         Text(progress.definition.description, color = Color(0xFF4A2E16), fontSize = 9.5.sp, lineHeight = 11.sp, maxLines = 2, textAlign = TextAlign.Center)
         Spacer(Modifier.height(5.dp))
         if (earned) {
@@ -376,91 +439,39 @@ fun WantedPoster(progress: BountyProgress, modifier: Modifier = Modifier, onClic
     }
 }
 
-/** The little picture on each poster, drawn in code (sepia when still locked). */
+/** Sepia, slightly dimmed: how a bounty looks until it is earned. */
+private val LockedSepia = ColorFilter.colorMatrix(
+    ColorMatrix(
+        floatArrayOf(
+            0.33f, 0.64f, 0.16f, 0f, 0f,
+            0.29f, 0.57f, 0.14f, 0f, 0f,
+            0.23f, 0.45f, 0.11f, 0f, 0f,
+            0f, 0f, 0f, 0.85f, 0f,
+        ),
+    ),
+)
+
+/** The bounty artwork for each emblem (sepia while still locked). */
 @Composable
 fun BountyEmblemArt(emblem: BountyEmblem, earned: Boolean, modifier: Modifier = Modifier) {
-    val gold = if (earned) Color(0xFFE7C06A) else Color(0xFFB8A27A)
-    val red = if (earned) Color(0xFFB8333B) else Color(0xFF8E7A62)
-    val blue = if (earned) Color(0xFF5B8FC0) else Color(0xFF8C826E)
-    val ivory = if (earned) Color(0xFFF2E6CC) else Color(0xFFCFC3A8)
-    Box(
-        modifier.drawBehind {
-            val w = size.width
-            val h = size.height
-            when (emblem) {
-                BountyEmblem.BOOKS, BountyEmblem.LIBRARY -> {
-                    val n = if (emblem == BountyEmblem.LIBRARY) 5 else 3
-                    val colors = listOf(red, blue, gold, red, blue)
-                    for (i in 0 until n) {
-                        val bw = w / (n + 1.2f)
-                        val x = w * 0.08f + i * bw * 1.05f
-                        val top = h * (0.18f + (i % 2) * 0.08f)
-                        drawRoundRect(colors[i], Offset(x, top), Size(bw * 0.9f, h * 0.78f - top), CornerRadius(2f))
-                        drawLine(gold, Offset(x, top + h * 0.1f), Offset(x + bw * 0.9f, top + h * 0.1f), 1.5f)
-                    }
-                    drawLine(gold, Offset(0f, h * 0.8f), Offset(w, h * 0.8f), 3f)
-                }
-                BountyEmblem.FILM -> {
-                    drawRoundRect(Color(0xFF2A2A2A), Offset(w * 0.12f, h * 0.38f), Size(w * 0.76f, h * 0.44f), CornerRadius(3f))
-                    val clap = Path().apply {
-                        moveTo(w * 0.12f, h * 0.36f); lineTo(w * 0.86f, h * 0.20f); lineTo(w * 0.88f, h * 0.30f); lineTo(w * 0.14f, h * 0.46f); close()
-                    }
-                    drawPath(clap, ivory)
-                    for (i in 0 until 4) drawLine(Color(0xFF2A2A2A), Offset(w * (0.22f + i * 0.17f), h * 0.42f), Offset(w * (0.28f + i * 0.17f), h * 0.26f), 3f)
-                    drawCircle(gold, w * 0.07f, Offset(w * 0.5f, h * 0.6f))
-                }
-                BountyEmblem.SHIP -> drawShip(ivory, red.copy(red = red.red * 0.6f))
-                BountyEmblem.ANIME -> {
-                    drawCircle(ivory, w * 0.3f, Offset(w * 0.5f, h * 0.42f))
-                    drawCircle(blue, w * 0.07f, Offset(w * 0.4f, h * 0.42f))
-                    drawCircle(blue, w * 0.07f, Offset(w * 0.6f, h * 0.42f))
-                    val hair = Path().apply {
-                        moveTo(w * 0.2f, h * 0.4f); lineTo(w * 0.3f, h * 0.08f); lineTo(w * 0.42f, h * 0.22f); lineTo(w * 0.55f, h * 0.04f)
-                        lineTo(w * 0.62f, h * 0.2f); lineTo(w * 0.8f, h * 0.1f); lineTo(w * 0.8f, h * 0.4f); close()
-                    }
-                    drawPath(hair, red)
-                    drawLine(red, Offset(w * 0.44f, h * 0.58f), Offset(w * 0.56f, h * 0.58f), 2f, cap = StrokeCap.Round)
-                }
-                BountyEmblem.GLOBE -> {
-                    drawCircle(blue, w * 0.36f, Offset(w * 0.5f, h * 0.5f))
-                    drawCircle(gold, w * 0.36f, Offset(w * 0.5f, h * 0.5f), style = Stroke(2f))
-                    drawOval(gold, Offset(w * 0.32f, h * 0.14f), Size(w * 0.36f, h * 0.72f), style = Stroke(1.5f))
-                    drawLine(gold, Offset(w * 0.14f, h * 0.5f), Offset(w * 0.86f, h * 0.5f), 1.5f)
-                }
-                BountyEmblem.COMPASS -> {
-                    val c = Offset(w / 2, h / 2)
-                    drawCircle(gold, w * 0.38f, c, style = Stroke(2.5f))
-                    val r = w * 0.34f
-                    val k = r * 0.22f
-                    val star = Path().apply {
-                        moveTo(c.x, c.y - r); lineTo(c.x + k, c.y - k); lineTo(c.x + r, c.y); lineTo(c.x + k, c.y + k)
-                        lineTo(c.x, c.y + r); lineTo(c.x - k, c.y + k); lineTo(c.x - r, c.y); lineTo(c.x - k, c.y - k); close()
-                    }
-                    drawPath(star, gold)
-                    drawLine(red, c, Offset(c.x, c.y - r * 0.9f), 3f)
-                }
-                BountyEmblem.CALENDAR -> {
-                    drawRoundRect(ivory, Offset(w * 0.16f, h * 0.2f), Size(w * 0.68f, h * 0.62f), CornerRadius(4f))
-                    drawRect(red, Offset(w * 0.16f, h * 0.2f), Size(w * 0.68f, h * 0.15f))
-                    for (r in 0 until 3) for (c in 0 until 4) {
-                        drawCircle(if (r * 4 + c < 9) gold else Color(0xFF8E7A62), w * 0.035f, Offset(w * (0.27f + c * 0.15f), h * (0.47f + r * 0.11f)))
-                    }
-                }
-                BountyEmblem.CHEST -> drawChest(this, gold, lidOpen = false)
-            }
-        },
+    val res = when (emblem) {
+        BountyEmblem.BOOKS -> Res.drawable.bounty_books
+        BountyEmblem.LIBRARY -> Res.drawable.bounty_library
+        BountyEmblem.FILM -> Res.drawable.bounty_film
+        BountyEmblem.SHIP -> Res.drawable.bounty_ship
+        BountyEmblem.ANIME -> Res.drawable.bounty_anime
+        BountyEmblem.GLOBE -> Res.drawable.bounty_globe
+        BountyEmblem.COMPASS -> Res.drawable.bounty_compass
+        BountyEmblem.CALENDAR -> Res.drawable.bounty_calendar
+        BountyEmblem.CHEST -> Res.drawable.bounty_chest
+    }
+    Image(
+        painterResource(res),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        colorFilter = if (earned) null else LockedSepia,
+        modifier = modifier,
     )
-}
-
-private fun drawChest(scope: DrawScope, gold: Color, lidOpen: Boolean) = with(scope) {
-    val w = size.width
-    val h = size.height
-    drawRoundRect(Color(0xFF6B3E1C), Offset(w * 0.12f, h * 0.45f), Size(w * 0.76f, h * 0.38f), CornerRadius(3f))
-    drawRoundRect(Color(0xFF7E4A22), Offset(w * 0.12f, h * 0.24f), Size(w * 0.76f, h * 0.22f), CornerRadius(8f))
-    drawLine(gold, Offset(w * 0.12f, h * 0.46f), Offset(w * 0.88f, h * 0.46f), 2.5f)
-    drawLine(gold, Offset(w * 0.3f, h * 0.24f), Offset(w * 0.3f, h * 0.83f), 2f)
-    drawLine(gold, Offset(w * 0.7f, h * 0.24f), Offset(w * 0.7f, h * 0.83f), 2f)
-    drawRoundRect(gold, Offset(w * 0.44f, h * 0.42f), Size(w * 0.12f, h * 0.14f), CornerRadius(2f))
 }
 
 /* ───────────── treasure chest ───────────── */

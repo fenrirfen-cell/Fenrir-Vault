@@ -56,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.mugi_parchment
+import nuvio.composeapp.generated.resources.parchment_banner
+import nuvio.composeapp.generated.resources.red_sailcloth
 import org.jetbrains.compose.resources.painterResource
 
 /** MugiVerse Search (Watch in red and navy, Ani-Drama in violet). */
@@ -80,35 +82,38 @@ object MugiAniMode {
     val on = androidx.compose.runtime.mutableStateOf(false)
 }
 
-/** Navy (or violet) with a sail of red (or violet) cloth and a rope across the top right. */
+/** Violet version of the red sailcloth artwork for Ani-Drama (same picture, recoloured). */
+private val AniSailcloth = androidx.compose.ui.graphics.ColorFilter.colorMatrix(
+    androidx.compose.ui.graphics.ColorMatrix(
+        floatArrayOf(
+            0.55f, 0.20f, 0f, 0f, 0f,
+            0.15f, 0.50f, 0f, 0f, 0f,
+            0.85f, 0.10f, 0.35f, 0f, 0f,
+            0f, 0f, 0f, 1f, 0f,
+        ),
+    ),
+)
+
+/** Navy (or violet) with the red (or violet) sailcloth artwork draped across the top right. */
 @Composable
 fun MugiSearchBackground(ani: Boolean, modifier: Modifier = Modifier) {
     val c = MugiScreenColors
     val top = if (ani) c.AniBackground else Color(0xFF0B1E2C)
     val mid = if (ani) Color(0xFF150B1F) else c.WatchBackground
-    val cloth = if (ani) listOf(Color(0xCC7732B5), Color(0x663A1659)) else listOf(Color(0xCCAB2028), Color(0x66591219))
     Box(
         modifier
             .fillMaxSize()
-            .drawBehind {
-                drawRect(Brush.verticalGradient(listOf(top, mid, Color(0xFF03090E))))
-                val w = size.width
-                val h = 190.dp.toPx()
-                // a rope from the top edge down to the right
-                drawLine(Color(0x66A87832), Offset(w * 0.48f, 0f), Offset(w, h * 0.95f), 2.dp.toPx(), cap = StrokeCap.Round)
-                // the sailcloth, billowing from the rope
-                val sail = Path().apply {
-                    moveTo(w * 0.62f, h * 0.05f)
-                    quadraticTo(w * 0.86f, h * 0.02f, w, h * 0.10f)
-                    lineTo(w, h * 0.62f)
-                    quadraticTo(w * 0.90f, h * 0.48f, w * 0.80f, h * 0.56f)
-                    quadraticTo(w * 0.74f, h * 0.30f, w * 0.62f, h * 0.05f)
-                    close()
-                }
-                drawPath(sail, Brush.linearGradient(cloth, start = Offset(w * 0.62f, 0f), end = Offset(w, h * 0.6f)), alpha = 0.55f)
-                drawPath(sail, Color(0x33FFD478), style = Stroke(1f))
-            },
-    )
+            .drawBehind { drawRect(Brush.verticalGradient(listOf(top, mid, Color(0xFF03090E)))) },
+    ) {
+        Image(
+            painterResource(Res.drawable.red_sailcloth),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            colorFilter = if (ani) AniSailcloth else null,
+            alpha = 0.9f,
+            modifier = Modifier.align(Alignment.TopEnd).fillMaxWidth(0.46f),
+        )
+    }
 }
 
 /** "Search" in gold serif. */
@@ -117,9 +122,9 @@ fun MugiSearchTitle(title: String, modifier: Modifier = Modifier) {
     Text(
         title,
         color = Color(0xFFF2D592),
-        fontFamily = FontFamily.Serif,
+        fontFamily = MugiCinzel,
         fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
+        fontSize = 30.sp,
         maxLines = 1,
         modifier = modifier,
     )
@@ -151,7 +156,7 @@ fun MugiSearchField(
         Spacer(Modifier.width(12.dp))
         Box(Modifier.weight(1f)) {
             if (query.isEmpty()) {
-                Text(placeholder, color = c.Secondary, fontFamily = FontFamily.Serif, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(placeholder, color = c.Secondary, fontFamily = MugiPlayfair, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             BasicTextField(
                 value = query,
@@ -193,9 +198,9 @@ fun MugiDiscoverBanner(title: String, modifier: Modifier = Modifier) {
                     }
                 },
         )
-        Box(Modifier.widthIn(min = 190.dp).height(54.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.widthIn(min = 220.dp).height(54.dp), contentAlignment = Alignment.Center) {
             Image(
-                painterResource(Res.drawable.mugi_parchment),
+                painterResource(Res.drawable.parchment_banner),
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier.matchParentSize(),
@@ -203,7 +208,7 @@ fun MugiDiscoverBanner(title: String, modifier: Modifier = Modifier) {
             Text(
                 title,
                 color = Color(0xFF38200F),
-                fontFamily = FontFamily.Serif,
+                fontFamily = MugiPlayfair,
                 fontWeight = FontWeight.Bold,
                 fontSize = 26.sp,
                 maxLines = 1,
@@ -248,7 +253,7 @@ fun MugiSegmentedSelector(
                     .selectable(selected = selected, role = Role.Tab, onClick = { onSelected(i) }),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(label, color = MugiScreenColors.Ivory, fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1)
+                Text(label, color = MugiScreenColors.Ivory, fontFamily = MugiPlayfair, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1)
             }
         }
     }
@@ -261,7 +266,7 @@ fun MugiProviderLabel(text: String, modifier: Modifier = Modifier) {
         Text(
             text,
             color = MugiScreenColors.Gold,
-            fontFamily = FontFamily.Serif,
+            fontFamily = MugiPlayfair,
             fontStyle = FontStyle.Italic,
             fontWeight = FontWeight.SemiBold,
             fontSize = 17.sp,

@@ -53,7 +53,7 @@ fun MugiCatalogHeader(
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                         NauticalGlyph(glyph, Color(0xFF503013), Modifier.size(24.dp))
                         Spacer(Modifier.width(7.dp))
-                        Text(title, color = Color(0xFF2D1A0D), fontFamily = FontFamily.Serif,
+                        Text(title, color = Color(0xFF2D1A0D), fontFamily = MugiPlayfair,
                             fontWeight = FontWeight.Bold, fontSize = 19.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                 }
@@ -62,7 +62,7 @@ fun MugiCatalogHeader(
                     NauticalGlyph(glyph, gold, Modifier.size(25.dp))
                     Spacer(Modifier.width(9.dp))
                     Column {
-                        Text(title, color = ivory, fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold,
+                        Text(title, color = ivory, fontFamily = MugiPlayfair, fontWeight = FontWeight.SemiBold,
                             fontSize = 21.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         if (!subtitle.isNullOrBlank()) Text(subtitle, color = secondary,
                             fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -77,7 +77,7 @@ fun MugiCatalogHeader(
                 Row(Modifier.heightIn(min = 48.dp).clickable(role = Role.Button,
                     onClickLabel = "See all $title", onClick = onSeeAll).padding(start = 6.dp, end = 1.dp),
                     verticalAlignment = Alignment.CenterVertically) {
-                    Text("See All", color = gold, fontFamily = FontFamily.Serif, fontSize = 13.sp, maxLines = 1)
+                    Text("See All", color = gold, fontFamily = MugiPlayfair, fontSize = 13.sp, maxLines = 1)
                     Spacer(Modifier.width(3.dp))
                     Text("›", color = gold, fontSize = 20.sp)
                 }

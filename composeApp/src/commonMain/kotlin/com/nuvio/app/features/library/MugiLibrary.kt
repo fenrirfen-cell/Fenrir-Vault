@@ -99,7 +99,7 @@ internal object MugiList {
     val GoldGradient = Brush.verticalGradient(listOf(Color(0xFFE4BC77), Color(0xFF956029), Color(0xFF694018)))
     val SavedGradient = Brush.verticalGradient(listOf(Color(0xFF792D28), Color(0xFF421715)))
     val CloudGradient = Brush.verticalGradient(listOf(Color(0xFF1F4A5E), Color(0xFF0E2633)))
-    val Serif = FontFamily.Serif
+    val Serif: FontFamily @androidx.compose.runtime.Composable get() = com.nuvio.app.mugi.MugiPlayfair
 }
 
 internal enum class MugiKind(val label: String) { MOVIES("Movies"), SERIES("Series"), ANIME("Anime"), OTHER("More") }

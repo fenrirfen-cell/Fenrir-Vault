@@ -44,6 +44,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayCircleOutline
+import androidx.compose.material.icons.rounded.Vibration
+import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.ui.draw.drawBehind
 import nuvio.composeapp.generated.resources.parchment_chart
 import androidx.compose.ui.draw.clip
@@ -123,6 +133,7 @@ fun VoyageHost(actions: VoyageActions) {
                 VoyageScreen.OFFLINE -> OfflineVoyageScreen(actions, back, leave, bottom)
                 VoyageScreen.SURPRISE -> SurpriseScreen(actions, back, leave, bottom)
                 VoyageScreen.PRIVACY -> PrivacyScreen(back, bottom)
+                VoyageScreen.APPEARANCE -> AppearanceMotionScreen(back, bottom)
             }
             }
         }
@@ -711,7 +722,6 @@ private fun OfflineVoyageScreen(actions: VoyageActions, onBack: () -> Unit, leav
                         color = VoyageColors.Secondary,
                         fontSize = 12.sp,
                     )
-                    Text("Wi-Fi only follows your download settings.", color = VoyageColors.Secondary, fontSize = 12.sp)
                     VoyageButton("⤓ Prepare for the trip", VoyageColors.Burgundy, Modifier.fillMaxWidth()) {
                         val n = counts[countIndex.coerceIn(0, counts.lastIndex)]
                         val mangaId = picked.readMangaId
@@ -741,12 +751,45 @@ private fun OfflineVoyageScreen(actions: VoyageActions, onBack: () -> Unit, leav
             }
         }
         item(key = "storage") {
-            Text(
-                "Watch downloads use ${formatBytes(usedWatch)}" + (free?.let { " · ${formatBytes(it)} free on this phone" } ?: ""),
-                color = VoyageColors.Secondary,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp),
-            )
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
+                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Storage, contentDescription = null, tint = VoyageColors.Gold, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text("Storage", color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                    Text(
+                        "${formatBytes(usedWatch)} used" + (free?.let { " · ${formatBytes(it)} free" } ?: ""),
+                        color = VoyageColors.Secondary,
+                        fontSize = 12.5.sp,
+                    )
+                }
+                val wifiGet = VoyageBridge.wifiOnly
+                val wifiSet = VoyageBridge.setWifiOnly
+                if (wifiGet != null && wifiSet != null) {
+                    var wifiOnly by remember { mutableStateOf(wifiGet()) }
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(VoyageColors.Gold.copy(alpha = 0.25f)))
+                    Row(
+                        Modifier.fillMaxWidth().clickable { wifiOnly = !wifiOnly; wifiSet(wifiOnly) }.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Wifi, contentDescription = null, tint = VoyageColors.Gold, modifier = Modifier.size(22.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Download over Wi-Fi only", color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                            Text("Episodes and chapters wait for Wi-Fi instead of using mobile data", color = VoyageColors.Secondary, fontSize = 12.sp)
+                        }
+                        androidx.compose.material3.Switch(
+                            checked = wifiOnly,
+                            onCheckedChange = { wifiOnly = it; wifiSet(it) },
+                            colors = androidx.compose.material3.SwitchDefaults.colors(
+                                checkedThumbColor = MugiPrivacyColors.Ivory,
+                                checkedTrackColor = MugiPrivacyColors.Gold,
+                                uncheckedThumbColor = MugiPrivacyColors.Secondary,
+                                uncheckedTrackColor = Color(0xFF29343D),
+                            ),
+                        )
+                    }
+                }
+            }
         }
         // in progress (both sides)
         val active = downloads.items.filter { it.status != DownloadStatus.Completed }
@@ -765,11 +808,24 @@ private fun OfflineVoyageScreen(actions: VoyageActions, onBack: () -> Unit, leav
         items(readQueue, key = { "rq:${it.chapterId}" }) { d ->
             OfflineRow(
                 title = d.title,
-                line = "${d.chapterName} · ${d.state.label()}" + if (d.state == OfflineItemState.DOWNLOADING) " ${d.progress}%" else "",
+                line = d.chapterName,
+                status = when (d.state) {
+                    OfflineItemState.DOWNLOADING -> "Downloading… ${d.progress}%"
+                    OfflineItemState.FAILED -> "Download failed"
+                    else -> d.state.label()
+                },
+                statusColor = if (d.state == OfflineItemState.FAILED) Color(0xFFE5676C) else null,
                 artwork = null,
                 mode = VoyageMode.READ,
-                progress = d.progress / 100f,
+                progress = if (d.state == OfflineItemState.FAILED) null else d.progress / 100f,
                 actions = listOf("Cancel" to { VoyageBridge.cancelReadDownload?.invoke(d.chapterId); Unit }),
+                primary = when (d.state) {
+                    OfflineItemState.DOWNLOADING, OfflineItemState.QUEUED -> OfflinePrimary.PAUSE to { VoyageBridge.pauseReadDownloads?.invoke(); Unit }
+                    OfflineItemState.PAUSED -> OfflinePrimary.RESUME to { VoyageBridge.resumeReadDownloads?.invoke(); Unit }
+                    // the reading queue retries failed chapters when it starts again
+                    OfflineItemState.FAILED -> OfflinePrimary.RETRY to { VoyageBridge.resumeReadDownloads?.invoke(); Unit }
+                    OfflineItemState.COMPLETED -> null
+                },
             )
         }
         // ready
@@ -784,7 +840,8 @@ private fun OfflineVoyageScreen(actions: VoyageActions, onBack: () -> Unit, leav
             val eps = list.mapNotNull { e -> e.episodeNumber?.let { "E$it" } }
             OfflineRow(
                 title = first.title,
-                line = if (first.isEpisode) "${list.size} episodes ready" + (eps.takeIf { it.isNotEmpty() }?.let { " · ${it.first()}–${it.last()}" } ?: "") else "Ready to watch",
+                line = if (first.isEpisode) "${list.size} episodes ready" + (eps.takeIf { it.isNotEmpty() }?.let { " · ${it.first()}–${it.last()}" } ?: "") else "Movie",
+                status = "Downloaded · ${formatBytes(list.sumOf { it.totalBytes ?: it.downloadedBytes })}",
                 artwork = first.poster,
                 mode = voyageModeForWatch(first.parentMetaId, first.parentMetaType),
                 progress = null,
@@ -796,6 +853,7 @@ private fun OfflineVoyageScreen(actions: VoyageActions, onBack: () -> Unit, leav
             OfflineRow(
                 title = b.title,
                 line = "${b.downloadCount} ${if (b.downloadCount == 1L) "chapter" else "chapters"} ready",
+                status = "Downloaded",
                 artwork = b.coverUrl,
                 mode = VoyageMode.READ,
                 progress = null,
@@ -824,31 +882,35 @@ private fun OfflineItemState.label(): String = when (this) {
 
 @Composable
 private fun WatchDownloadRow(d: DownloadItem) {
-    val frac = d.totalBytes?.takeIf { it > 0 }?.let { (d.downloadedBytes.toFloat() / it).coerceIn(0f, 1f) }
-    val state = when (d.status) {
-        DownloadStatus.Downloading -> "Downloading" + (frac?.let { " ${(it * 100).toInt()}%" } ?: "")
-        DownloadStatus.Paused -> "Paused"
-        DownloadStatus.Failed -> "Failed"
-        DownloadStatus.Completed -> "Ready"
+    val total = d.totalBytes?.takeIf { it > 0 }
+    val frac = total?.let { (d.downloadedBytes.toFloat() / it).coerceIn(0f, 1f) }
+    val sizes = if (total != null) "${formatBytes(d.downloadedBytes)} / ${formatBytes(total)}" else formatBytes(d.downloadedBytes)
+    val status = when (d.status) {
+        DownloadStatus.Downloading -> "Downloading… " + (frac?.let { "${(it * 100).toInt()}% ($sizes)" } ?: sizes)
+        DownloadStatus.Paused -> d.errorMessage?.takeIf { it.isNotBlank() } ?: "Paused · $sizes"
+        DownloadStatus.Failed -> "Download failed" + (d.errorMessage?.takeIf { it.isNotBlank() }?.let { " · ${it.take(60)}" } ?: "")
+        DownloadStatus.Completed -> "Downloaded · ${formatBytes(total ?: d.downloadedBytes)}"
     }
-    val acts = buildList<Pair<String, () -> Unit>> {
-        when (d.status) {
-            DownloadStatus.Downloading -> add("Pause" to { DownloadsRepository.pauseDownload(d.id) })
-            DownloadStatus.Paused -> add("Resume" to { DownloadsRepository.resumeDownload(d.id) })
-            DownloadStatus.Failed -> add("Retry" to { DownloadsRepository.retryDownload(d.id) })
-            else -> Unit
-        }
-        add("Cancel" to { DownloadsRepository.cancelDownload(d.id) })
+    val primary = when (d.status) {
+        DownloadStatus.Downloading -> OfflinePrimary.PAUSE to { DownloadsRepository.pauseDownload(d.id) }
+        DownloadStatus.Paused -> OfflinePrimary.RESUME to { DownloadsRepository.resumeDownload(d.id) }
+        DownloadStatus.Failed -> OfflinePrimary.RETRY to { DownloadsRepository.retryDownload(d.id) }
+        DownloadStatus.Completed -> null
     }
     OfflineRow(
         title = d.title,
-        line = listOfNotNull(if (d.isEpisode) "S${d.seasonNumber} E${d.episodeNumber}" else null, state, d.totalBytes?.let { formatBytes(it) } ?: "Unknown size").joinToString(" · "),
+        line = if (d.isEpisode) "S${d.seasonNumber} • E${d.episodeNumber}" + (d.episodeTitle?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: "") else "Movie" + (total?.let { " • ${formatBytes(it)}" } ?: ""),
+        status = status,
+        statusColor = if (d.status == DownloadStatus.Failed) Color(0xFFE5676C) else null,
         artwork = d.poster,
         mode = voyageModeForWatch(d.parentMetaId, d.parentMetaType),
-        progress = frac,
-        actions = acts,
+        progress = if (d.status == DownloadStatus.Failed) null else frac,
+        actions = listOf("Cancel" to { DownloadsRepository.cancelDownload(d.id) }),
+        primary = primary,
     )
 }
+
+private enum class OfflinePrimary { PAUSE, RESUME, RETRY }
 
 @Composable
 private fun OfflineRow(
@@ -859,29 +921,38 @@ private fun OfflineRow(
     progress: Float?,
     actions: List<Pair<String, () -> Unit>>,
     ready: Boolean = false,
+    status: String? = null,
+    statusColor: Color? = null,
+    primary: Pair<OfflinePrimary, () -> Unit>? = null,
 ) {
     val accent = mode.accent()
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     Row(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(if (mode == VoyageMode.READ) Color(0xCC2A1A0E) else Color(0xCC0E1B26))
-            .border(1.dp, accent.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
+            .border(1.dp, VoyageColors.Gold.copy(alpha = 0.75f), RoundedCornerShape(12.dp))
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.width(48.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(6.dp)).border(1.dp, VoyageColors.Gold, RoundedCornerShape(6.dp)).background(Color(0xFF101D27))) {
+        Box(Modifier.width(56.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(6.dp)).border(1.dp, VoyageColors.Gold, RoundedCornerShape(6.dp)).background(Color(0xFF101D27))) {
             artwork?.let { AsyncImage(model = it, contentDescription = title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(line, color = VoyageColors.Secondary, fontSize = 12.sp, maxLines = 2)
-            progress?.let {
-                Box(Modifier.padding(top = 5.dp).fillMaxWidth().height(5.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.12f))) {
-                    Box(Modifier.fillMaxWidth(it).fillMaxHeight().background(accent))
-                }
+            Text(title, color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(line, color = VoyageColors.Secondary, fontSize = 12.5.sp, maxLines = 2)
+            progress?.let { VoyageProgressBar(it, mode, Modifier.padding(top = 2.dp).fillMaxWidth()) }
+            status?.let {
+                Text(
+                    it,
+                    color = statusColor ?: if (ready) Color(0xFF7FCB8A) else VoyageColors.Ivory.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
+                    maxLines = 2,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
             if (actions.isNotEmpty()) {
                 Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -891,13 +962,53 @@ private fun OfflineRow(
                             color = VoyageColors.Gold,
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clip(RoundedCornerShape(12.dp)).border(1.dp, VoyageColors.Gold.copy(alpha = 0.6f), RoundedCornerShape(12.dp)).clickable(onClick = act).padding(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .border(1.dp, VoyageColors.Gold.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                                .clickable { com.nuvio.app.mugi.MugiMotion.tap(haptic); act() }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                         )
                     }
                 }
             }
         }
-        if (ready) Text("✓", color = VoyageColors.Gold, fontSize = 18.sp)
+        Spacer(Modifier.width(8.dp))
+        val p = primary
+        when {
+            p != null && p.first == OfflinePrimary.RETRY -> Text(
+                "Retry",
+                color = Color(0xFFFFD9D6),
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF7A1A20))
+                    .border(1.dp, Color(0xFFE5676C), RoundedCornerShape(8.dp))
+                    .clickable(onClickLabel = "Retry download") { com.nuvio.app.mugi.MugiMotion.tap(haptic); p.second() }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            )
+            p != null -> Box(
+                Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .border(1.5.dp, VoyageColors.Gold, CircleShape)
+                    .clickable(onClickLabel = if (p.first == OfflinePrimary.PAUSE) "Pause download" else "Resume download") {
+                        com.nuvio.app.mugi.MugiMotion.tap(haptic)
+                        p.second()
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.material3.Icon(
+                    if (p.first == OfflinePrimary.PAUSE) androidx.compose.material.icons.Icons.Rounded.Pause else androidx.compose.material.icons.Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    tint = VoyageColors.Gold,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            ready -> Box(Modifier.size(40.dp).clip(CircleShape).border(1.5.dp, Color(0xFF7FCB8A), CircleShape), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Check, contentDescription = "Downloaded", tint = Color(0xFF7FCB8A), modifier = Modifier.size(22.dp))
+            }
+        }
     }
 }
 
@@ -1104,7 +1215,7 @@ private fun Modifier.faintChart(): Modifier {
     return this
         .background(Color(0xFF06141E))
         .drawBehind {
-            with(chart) { draw(size, alpha = 0.09f) }
+            if (com.nuvio.app.mugi.MugiMotion.showDecorations()) with(chart) { draw(size, alpha = 0.09f) }
         }
 }
 
@@ -1200,5 +1311,88 @@ private fun PrivacyScreen(onBack: () -> Unit, bottom: androidx.compose.ui.unit.D
                 }
             }
         }
+    }
+}
+
+
+/* ───────────── Appearance & Motion ───────────── */
+
+@Composable
+private fun AppearanceMotionScreen(onBack: () -> Unit, bottom: androidx.compose.ui.unit.Dp) {
+    val s by com.nuvio.app.mugi.MugiMotion.settings.collectAsState()
+    fun set(next: com.nuvio.app.mugi.MugiMotionSettings) = com.nuvio.app.mugi.MugiMotion.update(next)
+    val systemOff = remember { com.nuvio.app.mugi.MugiStyle.systemReduceMotion() }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
+        item(key = "head") {
+            VoyageHeader("Appearance & Motion", onBack, subtitle = "How MugiVerse looks, feels and moves on this phone")
+        }
+        item(key = "rows") {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).clip(RoundedCornerShape(14.dp))
+                    .background(MugiPrivacyColors.Surface).border(1.dp, MugiPrivacyColors.Gold, RoundedCornerShape(14.dp)),
+            ) {
+                MotionRow(androidx.compose.material.icons.Icons.Rounded.PlayCircleOutline, "Animations",
+                    if (systemOff) "Your phone's \"Remove animations\" is on, so MugiVerse stays still" else "Smooth transitions and motion (chest, doors, chips)",
+                    s.animations && !systemOff, enabled = !systemOff) { set(s.copy(animations = it)) }
+                MotionDivider()
+                MotionRow(androidx.compose.material.icons.Icons.Rounded.Vibration, "Haptic feedback", "A light vibration for taps and selections", s.haptics) { set(s.copy(haptics = it)) }
+                MotionDivider()
+                MotionRow(androidx.compose.material.icons.Icons.Rounded.VolumeUp, "Sound effects", "A short click for buttons and switches (off by default)", s.sounds) { set(s.copy(sounds = it)) }
+                MotionDivider()
+                MotionRow(androidx.compose.material.icons.Icons.Rounded.AutoAwesome, "Reduce decorations", "A cleaner look: no sails, maps or ship's wheel in the background", s.reduceDecorations) { set(s.copy(reduceDecorations = it)) }
+                MotionDivider()
+                MotionRow(androidx.compose.material.icons.Icons.Rounded.BatterySaver, "Low-power mode", "No animations or background details, to save battery", s.lowPower) { set(s.copy(lowPower = it)) }
+            }
+        }
+        item(key = "note") {
+            Text(
+                "These only change how things look and move. Nothing about your library, downloads or privacy changes.",
+                color = VoyageColors.Secondary,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MotionDivider() = Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp).height(1.dp).background(MugiPrivacyColors.Gold.copy(alpha = 0.25f)))
+
+@Composable
+private fun MotionRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onChange: (Boolean) -> Unit,
+) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled) { com.nuvio.app.mugi.MugiMotion.tap(haptic); onChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .alpha(if (enabled) 1f else 0.55f),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.Icon(icon, contentDescription = null, tint = VoyageColors.Gold, modifier = Modifier.size(26.dp))
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, color = MugiPrivacyColors.Ivory, fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(description, color = MugiPrivacyColors.Secondary, fontSize = 12.5.sp, lineHeight = 17.sp)
+        }
+        Spacer(Modifier.width(10.dp))
+        androidx.compose.material3.Switch(
+            checked = checked,
+            enabled = enabled,
+            onCheckedChange = { com.nuvio.app.mugi.MugiMotion.tap(haptic); onChange(it) },
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedThumbColor = MugiPrivacyColors.Ivory,
+                checkedTrackColor = MugiPrivacyColors.Gold,
+                uncheckedThumbColor = MugiPrivacyColors.Secondary,
+                uncheckedTrackColor = Color(0xFF29343D),
+            ),
+        )
     }
 }

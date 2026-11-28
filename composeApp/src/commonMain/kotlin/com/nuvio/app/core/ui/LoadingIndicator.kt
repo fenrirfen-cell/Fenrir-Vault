@@ -36,6 +36,11 @@ fun NuvioLoadingIndicator(
     size: Dp = NuvioTokens.Space.s40,
     active: Boolean = LocalScreenActive.current,
 ) {
+    // MugiVerse: the compass artwork instead of the generic spinner
+    if (com.nuvio.app.mugi.mugiOn()) {
+        com.nuvio.app.mugi.MugiCompassSpinner(modifier, size = size, active = active)
+        return
+    }
     val brush = if (color == Color.Unspecified) MaterialTheme.themePalette.accentBrush() else SolidColor(color)
     Box(
         modifier = modifier.size(size),

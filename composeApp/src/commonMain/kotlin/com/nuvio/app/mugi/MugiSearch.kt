@@ -105,7 +105,7 @@ fun MugiSearchBackground(ani: Boolean, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .drawBehind { drawRect(Brush.verticalGradient(listOf(top, mid, Color(0xFF03090E)))) },
     ) {
-        Image(
+        if (MugiMotion.showDecorations()) Image(
             painterResource(Res.drawable.red_sailcloth),
             contentDescription = null,
             contentScale = ContentScale.Fit,
@@ -240,7 +240,8 @@ fun MugiSegmentedSelector(
     ) {
         options.forEachIndexed { i, label ->
             val selected = i == selectedIndex
-            val a by animateFloatAsState(if (selected) 1f else 0f, tween(200), label = "mugiSeg")
+            val a by animateFloatAsState(if (selected) 1f else 0f, tween(if (MugiMotion.reduceMotion()) 0 else 200), label = "mugiSeg")
+            val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
             Box(
                 Modifier
                     .weight(1f)
@@ -250,7 +251,7 @@ fun MugiSegmentedSelector(
                             drawRect(Brush.verticalGradient(listOf(selectedColor, selectedColor.copy(alpha = 0.75f))), alpha = a)
                         }
                     }
-                    .selectable(selected = selected, role = Role.Tab, onClick = { onSelected(i) }),
+                    .selectable(selected = selected, role = Role.Tab, onClick = { MugiMotion.tap(haptic); onSelected(i) }),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(label, color = MugiScreenColors.Ivory, fontFamily = MugiPlayfair, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1)

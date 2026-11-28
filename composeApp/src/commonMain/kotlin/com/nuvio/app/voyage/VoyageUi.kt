@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -229,7 +230,7 @@ fun DrawScope.drawNineSlice(image: ImageBitmap, srcCorner: Int, dstCorner: Float
 @Composable
 fun VoyageHeader(title: String, onBack: () -> Unit, subtitle: String? = null, decoration: (@Composable () -> Unit)? = null) {
     Box(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        decoration?.let { Box(Modifier.align(Alignment.TopEnd).padding(end = 8.dp)) { it() } }
+        if (com.nuvio.app.mugi.MugiMotion.showDecorations()) decoration?.let { Box(Modifier.align(Alignment.TopEnd).padding(end = 8.dp)) { it() } }
         Column(Modifier.padding(horizontal = 8.dp)) {
             Box(
                 Modifier.size(48.dp).clip(CircleShape).clickable(onClickLabel = "Back", onClick = onBack),
@@ -282,7 +283,7 @@ fun Modifier.woodPanel(radius: Dp = 12.dp): Modifier {
         .clip(RoundedCornerShape(radius))
         .drawBehind {
             drawRect(Color(0xFF1C110A))
-            drawNineSlice(wood, srcCorner = 48, dstCorner = 14.dp.toPx(), repeatEdges = false, drawCenter = true)
+            drawNineSlice(wood, srcCorner = 25, dstCorner = 14.dp.toPx(), repeatEdges = false, drawCenter = true)
         }
 }
 
@@ -326,7 +327,8 @@ fun VoyageModeChips(selected: VoyageMode, onSelect: (VoyageMode) -> Unit, modifi
 @Composable
 fun VoyagePill(label: String, selected: Boolean, accent: Color = VoyageColors.Gold, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(18.dp)
-    val a by animateFloatAsState(if (selected) 1f else 0f, tween(180), label = "voyagePill")
+    val a by animateFloatAsState(if (selected) 1f else 0f, tween(if (com.nuvio.app.mugi.MugiMotion.reduceMotion()) 0 else 180), label = "voyagePill")
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     Box(
         modifier
             .heightIn(min = 36.dp)
@@ -335,7 +337,7 @@ fun VoyagePill(label: String, selected: Boolean, accent: Color = VoyageColors.Go
             .background(Color(0x66000000))
             .drawBehind { if (a > 0f) drawRect(Brush.verticalGradient(listOf(accent, accent.copy(alpha = 0.7f))), alpha = a) }
             .border(1.dp, accent.copy(alpha = if (selected) 1f else 0.85f), shape)
-            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .selectable(selected = selected, role = Role.Tab, onClick = { com.nuvio.app.mugi.MugiMotion.tap(haptic); onClick() })
             .padding(horizontal = 10.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -354,6 +356,7 @@ fun VoyagePill(label: String, selected: Boolean, accent: Color = VoyageColors.Go
 /** Gold-edged button (filled red, gold or violet). */
 @Composable
 fun VoyageButton(text: String, color: Color, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val shape = RoundedCornerShape(24.dp)
     Box(
         modifier
@@ -361,7 +364,7 @@ fun VoyageButton(text: String, color: Color, modifier: Modifier = Modifier, enab
             .clip(shape)
             .background(Brush.verticalGradient(listOf(color, color.copy(red = color.red * 0.62f, green = color.green * 0.62f, blue = color.blue * 0.62f))))
             .border(1.dp, VoyageColors.Gold, shape)
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled, onClick = { com.nuvio.app.mugi.MugiMotion.tap(haptic); onClick() })
             .padding(horizontal = 18.dp, vertical = 10.dp)
             .graphicsLayer { alpha = if (enabled) 1f else 0.5f },
         contentAlignment = Alignment.Center,
@@ -601,6 +604,40 @@ fun CaptainsLogCard(modifier: Modifier = Modifier) {
 }
 
 /** Settings → Privacy (reading privacy across Watch, Ani-Drama and Read). */
+/** Settings entry for Appearance & Motion (animations, haptics, sound, decorations, low power). */
+@Composable
+fun AppearanceSettingsEntry(modifier: Modifier = Modifier) {
+    if (!com.nuvio.app.mugi.mugiOn()) return
+    val s by com.nuvio.app.mugi.MugiMotion.settings.collectAsState()
+    Row(
+        modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MugiPrivacyColors.Surface)
+            .border(1.dp, MugiPrivacyColors.Gold, RoundedCornerShape(14.dp))
+            .clickable(onClickLabel = "Open Appearance and Motion") { VoyageNav.open(VoyageScreen.APPEARANCE) }
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.AutoAwesome, contentDescription = null, tint = VoyageColors.Gold, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text("Appearance & Motion", color = Color(0xFFF2D592), fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(
+                when {
+                    s.lowPower -> "Low-power mode is on"
+                    !s.animations -> "Animations are off"
+                    else -> "Animations, haptics, sound and decorations"
+                },
+                color = VoyageColors.Secondary,
+                fontSize = 12.5.sp,
+            )
+        }
+        Text("›", color = VoyageColors.Gold, fontSize = 24.sp)
+    }
+}
+
 @Composable
 fun PrivacySettingsEntry(modifier: Modifier = Modifier) {
     if (!com.nuvio.app.mugi.mugiOn()) return

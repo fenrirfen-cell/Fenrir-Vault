@@ -118,6 +118,10 @@ object VoyageBridge {
 
     /** The phone's own fingerprint / PIN / pattern prompt. Returns null on success, else a message. */
     var authenticate: (suspend (title: String) -> String?)? = null
+    /** "Download over Wi-Fi only" (shared by Watch and Read); null when unavailable. */
+    var wifiOnly: (() -> Boolean)? = null
+    var setWifiOnly: ((Boolean) -> Unit)? = null
+
     var load: (String) -> String? = { null }
     var save: (String, String) -> Unit = { _, _ -> }
 
@@ -150,7 +154,7 @@ enum class VoyageRange(val label: String, val phrase: String) {
 
 /* ───────────── which Voyage screen is open ───────────── */
 
-enum class VoyageScreen { CONTINUE, LOG, BOUNTIES, OFFLINE, SURPRISE, PRIVACY }
+enum class VoyageScreen { CONTINUE, LOG, BOUNTIES, OFFLINE, SURPRISE, PRIVACY, APPEARANCE }
 
 object VoyageNav {
     private val _screen = MutableStateFlow<VoyageScreen?>(null)

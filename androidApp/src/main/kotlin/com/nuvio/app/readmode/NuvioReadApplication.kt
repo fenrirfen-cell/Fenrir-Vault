@@ -168,10 +168,19 @@ class NuvioReadApplication : App() {
             aniDramaPrefs.edit().putBoolean("mugiverse_look", on).apply()
         }
         EmbeddedHost.mugi = { FenrirStyle.enabled.value && com.nuvio.app.mugi.MugiStyle.enabled.value }
-        com.nuvio.app.mugi.MugiStyle.reduceMotion = {
+        com.nuvio.app.mugi.MugiStyle.systemReduceMotion = {
             runCatching {
                 android.provider.Settings.Global.getFloat(contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
             }.getOrDefault(false)
+        }
+        // Appearance & Motion reaches the Read side too
+        EmbeddedHost.reduceMotion = { com.nuvio.app.mugi.MugiMotion.reduceMotion() }
+        EmbeddedHost.showDecorations = { com.nuvio.app.mugi.MugiMotion.showDecorations() }
+        com.nuvio.app.mugi.MugiMotion.playClick = {
+            runCatching {
+                (getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager)
+                    .playSoundEffect(android.media.AudioManager.FX_KEY_CLICK)
+            }
         }
         // The opening animation also plays when the app opens straight on Read (once per start).
         EmbeddedHost.splash = {

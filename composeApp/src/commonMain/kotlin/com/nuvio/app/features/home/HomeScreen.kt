@@ -1114,6 +1114,10 @@ fun HomeScreen(
                         label = "HomeHeroLoading",
                     ) { isLoading ->
                         when {
+                            isLoading && com.nuvio.app.mugi.mugiOn() -> com.nuvio.app.mugi.MugiCompassLoader(
+                                modifier = Modifier.padding(top = 24.dp),
+                            )
+
                             isLoading -> HomeSkeletonHero(
                                 modifier = Modifier,
                                 viewportHeight = homeMaxHeight,

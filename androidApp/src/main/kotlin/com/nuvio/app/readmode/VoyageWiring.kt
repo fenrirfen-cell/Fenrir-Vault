@@ -36,6 +36,7 @@ internal object VoyageWiring {
 
         VoyageBridge.load = { key -> prefs.getString(key, null) }
         VoyageBridge.save = { key, value -> prefs.edit().putString(key, value).apply() }
+        com.nuvio.app.mugi.MugiMotion.load()
         VoyageBridge.localDay = { ms -> Math.floorDiv(ms + TimeZone.getDefault().getOffset(ms), 86_400_000L) }
         VoyageBridge.rangeStartDay = { range ->
             val now = System.currentTimeMillis()
@@ -47,6 +48,19 @@ internal object VoyageWiring {
                 VoyageRange.YEAR -> today - (cal.get(Calendar.DAY_OF_YEAR) - 1)
                 VoyageRange.ALL -> null
             }
+        }
+        // Captain's Quarters: reading disappears from Watch the moment Read locks, and comes back on unlock
+        eu.kanade.tachiyomi.vault.Vault.onReadLockChanged = { locked ->
+            if (locked) com.nuvio.app.voyage.VoyageData.readSnapshot.value = null else com.nuvio.app.voyage.VoyageData.refreshRead()
+        }
+        // "Download over Wi-Fi only": one setting for both sides (Read's own preference)
+        VoyageBridge.wifiOnly = { VoyageRead.wifiOnly() }
+        VoyageBridge.setWifiOnly = { on -> VoyageRead.setWifiOnly(on) }
+        com.nuvio.app.features.downloads.DownloadsRepository.networkAllowsDownload = {
+            !VoyageRead.wifiOnly() || runCatching {
+                val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+                !cm.isActiveNetworkMetered
+            }.getOrDefault(true)
         }
         VoyageBridge.freeBytes = { runCatching { android.os.StatFs(app.filesDir.path).availableBytes }.getOrNull() }
 

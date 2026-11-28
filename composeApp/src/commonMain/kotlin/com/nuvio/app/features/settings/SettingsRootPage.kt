@@ -30,6 +30,7 @@ internal fun LazyListScope.settingsRootContent(
         item(key = "voyage-captains-log") {
             com.nuvio.app.voyage.CaptainsLogCard()
             com.nuvio.app.voyage.PrivacySettingsEntry()
+            com.nuvio.app.voyage.AppearanceSettingsEntry()
         }
     }
     // Fenrir: all sources in one place (Stremio add-ons here, manga and novel sources on the Read side).

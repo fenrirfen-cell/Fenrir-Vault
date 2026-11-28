@@ -319,7 +319,16 @@ object DownloadsRepository {
             .forEach(::startDownload)
     }
 
+    /** Set by the Android app: false while "Download over Wi-Fi only" is on and the network is metered. */
+    var networkAllowsDownload: () -> Boolean = { true }
+
     private fun startDownload(item: DownloadItem) {
+        if (!networkAllowsDownload()) {
+            // MugiVerse: wait for Wi-Fi instead of using mobile data (Resume starts it again)
+            mutateItem(item.id) { it.copy(status = DownloadStatus.Paused, errorMessage = "Waiting for Wi-Fi", updatedAtEpochMs = DownloadsClock.nowEpochMs()) }
+            persist()
+            return
+        }
         val request = DownloadPlatformRequest(item)
 
         val handle = DownloadsPlatformDownloader.start(

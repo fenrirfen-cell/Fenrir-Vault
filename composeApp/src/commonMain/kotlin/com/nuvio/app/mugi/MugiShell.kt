@@ -75,7 +75,10 @@ object MugiStyle {
         private set
 
     /** Set by the Android app: true when the phone's animations are turned off. */
-    var reduceMotion: () -> Boolean = { false }
+    var systemReduceMotion: () -> Boolean = { false }
+
+    /** True when motion should be skipped (the phone's setting or MugiVerse's Appearance & Motion). */
+    fun reduceMotion(): Boolean = MugiMotion.reduceMotion()
 
     fun install(enabled: Boolean, persist: (Boolean) -> Unit) {
         this.persist = persist
@@ -291,13 +294,14 @@ fun MugiBottomBar(
 
 @Composable
 private fun RowScope.MugiTab(item: MugiNavItem, mode: MugiMode, enabled: Boolean) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val tint = if (item.selected) mode.accent else MugiPalette.Ivory.copy(alpha = 0.85f)
     Column(
         Modifier
             .weight(1f)
             .height(56.dp)
             .clip(RoundedCornerShape(18.dp))
-            .clickable(enabled = enabled, role = Role.Tab, onClickLabel = item.label, onClick = item.onClick),
+            .clickable(enabled = enabled, role = Role.Tab, onClickLabel = item.label, onClick = { MugiMotion.tap(haptic); item.onClick() }),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

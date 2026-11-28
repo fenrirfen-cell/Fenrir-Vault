@@ -18,6 +18,11 @@ fun HomeEmptyStateCard(
     actionLabel: String? = null,
     onActionClick: (() -> Unit)? = null,
 ) {
+    // MugiVerse: the themed empty state (compass, gold serif title) in Watch and Ani-Drama
+    if (com.nuvio.app.mugi.mugiOn()) {
+        com.nuvio.app.mugi.MugiEmptyState(title, message, modifier, actionLabel, onActionClick)
+        return
+    }
     NuvioSurfaceCard(modifier = modifier) {
         Text(
             text = title,

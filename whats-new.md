@@ -2,6 +2,13 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- New Appearance & Motion settings: animations, haptic feedback, sound effects (off by default), fewer decorations and a low-power mode
+- The compass replaces loading spinners, with "Loading your voyage…" on Home and Read
+- Themed empty screens in Watch, Ani-Drama and Read ("Your library awaits" with an Add a book button)
+- Offline Voyage: the ship progress bar, sizes as it downloads, round pause and resume buttons, a red Retry, and a Wi-Fi only switch
+- Downloads wait for Wi-Fi when "Download over Wi-Fi only" is on
+- Folding, unfolding or rotating no longer reloads Read, so lists keep their place
+- Lighter artwork files for less memory use
 - Captain's Quarters: lock all of Read behind the arched cabin door; it opens only after your fingerprint or screen lock
 - Captain's Vault is now a separate lock: unlocking Read doesn't open the Private Library
 - Locked Read also hides reading from Watch, closes the reader and keeps titles out of notifications

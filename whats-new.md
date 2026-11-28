@@ -2,6 +2,9 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- MugiVerse History: reading-log look with this week's stats, dates and gold-framed covers (list or grid)
+- MugiVerse Updates: parchment dates, NEW badges and gold download buttons
+- MugiVerse Search: red search bar, Discover banner, Movies / TV Shows switch and gold-framed posters (violet in Ani-Drama)
 - MugiVerse Read: More moved to the top (next to the bell); bigger Continue Reading text and shelf name
 - MugiVerse My List: new nautical look with Saved / Cloud, All / Movies / Series / Anime, seven sort options, search in the header and gold-framed posters
 - MugiVerse Browse: gold tabs, Novel / Manga pills and two-column source cards with a Latest button

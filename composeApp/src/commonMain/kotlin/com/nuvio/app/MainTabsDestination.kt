@@ -115,6 +115,9 @@ internal fun MainTabsDestination(
                 else -> Unit
             }
         }
+        androidx.compose.runtime.SideEffect {
+            com.nuvio.app.mugi.MugiAniMode.on.value = mugi && mugiMode == com.nuvio.app.mugi.MugiMode.ANI_DRAMA
+        }
         var mugiMenuOpen by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
         val fenrirNavItems = listOfNotNull(
             com.nuvio.app.readmode.FenrirNavItem(

@@ -230,9 +230,13 @@ fun SearchScreen(
         }
     }
 
+    // MugiVerse: navy and red (violet in Ani-Drama), gold title, red search field, parchment Discover
+    val mugi = com.nuvio.app.mugi.mugiOn()
+    val ani = mugi && com.nuvio.app.mugi.MugiAniMode.on.value
     BoxWithConstraints(
         modifier = modifier.fillMaxSize(),
     ) {
+        if (mugi) com.nuvio.app.mugi.MugiSearchBackground(ani)
         val discoverColumns = remember(maxWidth) {
             posterGridColumnCountForWidth(maxWidth)
         }
@@ -249,15 +253,35 @@ fun SearchScreen(
             horizontalPadding = 0.dp,
             listState = listState,
             modifier = Modifier.fillMaxSize(),
+            background = if (mugi) androidx.compose.ui.graphics.Color.Transparent else null,
         ) {
         stickyHeader {
             Box(modifier = Modifier.fillMaxWidth()) {
+                if (mugi) {
+                    com.nuvio.app.mugi.MugiSearchBackground(ani, Modifier.matchParentSize().nuvioConsumePointerEvents())
+                } else {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
                         .background(MaterialTheme.colorScheme.background)
                         .nuvioConsumePointerEvents(),
                 )
+                }
+                if (mugi) {
+                    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        com.nuvio.app.mugi.MugiSearchTitle(stringResource(Res.string.compose_nav_search), Modifier.padding(top = 6.dp, bottom = 10.dp))
+                        com.nuvio.app.mugi.MugiSearchField(
+                            query = query,
+                            onQueryChange = { query = it },
+                            placeholder = if (ani) "Search anime, dramas..." else "Search movies, shows...",
+                            ani = ani,
+                            fieldModifier = Modifier
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { isSearchFocused = it.isFocused },
+                        )
+                        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+                    }
+                } else
                 androidx.compose.foundation.layout.Column(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -329,6 +353,8 @@ fun SearchScreen(
                     fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
                     onPosterClick = onPosterClick,
                     onPosterLongClick = onPosterLongClick,
+                    mugi = mugi,
+                    ani = ani,
                 )
             } else {
                 val normalizedQuery = query.trim()

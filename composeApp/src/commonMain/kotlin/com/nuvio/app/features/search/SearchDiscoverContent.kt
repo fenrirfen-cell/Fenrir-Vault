@@ -42,11 +42,29 @@ internal fun LazyListScope.discoverContent(
     fullyWatchedSeriesKeys: Set<String> = emptySet(),
     onPosterClick: ((MetaPreview) -> Unit)? = null,
     onPosterLongClick: ((MetaPreview) -> Unit)? = null,
+    mugi: Boolean = false,
+    ani: Boolean = false,
 ) {
-    item {
+    if (mugi) {
+        item(key = "mugi-discover-banner") {
+            com.nuvio.app.mugi.MugiDiscoverBanner(stringResource(Res.string.compose_search_discover_title))
+        }
+        item(key = "mugi-discover-filters") {
+            MugiDiscoverFilters(state, ani, onTypeSelected, onCatalogSelected, onGenreSelected, Modifier.padding(horizontal = 16.dp))
+        }
+        state.selectedCatalog?.let { selectedCatalog ->
+            item(key = "mugi-discover-provider") {
+                com.nuvio.app.mugi.MugiProviderLabel(
+                    "${selectedCatalog.addonName} • ${selectedCatalog.type.displayTypeLabel()}",
+                    Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+        }
+    }
+    if (!mugi) item {
         DiscoverSectionHeader(modifier = Modifier.padding(horizontal = 16.dp))
     }
-    item {
+    if (!mugi) item {
         DiscoverFilterRow(
             state = state,
             modifier = Modifier.padding(horizontal = 16.dp),
@@ -55,7 +73,7 @@ internal fun LazyListScope.discoverContent(
             onGenreSelected = onGenreSelected,
         )
     }
-    state.selectedCatalog?.let { selectedCatalog ->
+    if (!mugi) state.selectedCatalog?.let { selectedCatalog ->
         item {
             Text(
                 text = stringResource(
@@ -114,6 +132,86 @@ internal fun LazyListScope.discoverContent(
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * MugiVerse: the types as one capsule (Movies | TV Shows on Watch; every type in Ani-Drama), with the
+ * catalog and genre drop-downs underneath. Same selection calls as the chips.
+ */
+@Composable
+private fun MugiDiscoverFilters(
+    state: DiscoverUiState,
+    ani: Boolean,
+    onTypeSelected: (String) -> Unit,
+    onCatalogSelected: (String) -> Unit,
+    onGenreSelected: (String?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val watchTypes = listOf("movie", "series")
+    val types = if (ani) {
+        state.typeOptions
+    } else {
+        watchTypes.mapNotNull { t -> state.typeOptions.firstOrNull { it.equals(t, ignoreCase = true) } }.ifEmpty { state.typeOptions }
+    }
+    androidx.compose.foundation.layout.Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (types.isNotEmpty()) {
+            val labels = types.map { t ->
+                when (t.lowercase()) {
+                    "movie" -> "Movies"
+                    "series" -> if (ani) "Series" else "TV Shows"
+                    else -> t.displayTypeLabel()
+                }
+            }
+            com.nuvio.app.mugi.MugiSegmentedSelector(
+                options = labels,
+                selectedIndex = types.indexOfFirst { it.equals(state.selectedType, ignoreCase = true) },
+                selectedColor = if (ani) com.nuvio.app.mugi.MugiScreenColors.Purple else com.nuvio.app.mugi.MugiScreenColors.Red,
+                surface = if (ani) com.nuvio.app.mugi.MugiScreenColors.AniSurface else com.nuvio.app.mugi.MugiScreenColors.WatchSurface,
+                onSelected = { i -> onTypeSelected(types[i]) },
+            )
+        }
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            NuvioDropdownChip(
+                title = stringResource(Res.string.discover_select_catalog),
+                label = state.selectedCatalog?.catalogName ?: stringResource(Res.string.discover_catalog),
+                selectedKey = state.selectedCatalogKey,
+                options = state.catalogOptions.map { option -> NuvioDropdownOption(key = option.key, label = option.catalogName) },
+                enabled = state.catalogOptions.isNotEmpty(),
+                onSelected = { onCatalogSelected(it.key) },
+            )
+            val selectedCatalog = state.selectedCatalog
+            val genreOptions = buildList {
+                if (selectedCatalog?.genreRequired != true) {
+                    add(NuvioDropdownOption(key = "", label = stringResource(Res.string.discover_all_genres)))
+                }
+                addAll(state.genreOptions.map { genre -> NuvioDropdownOption(key = genre, label = genre) })
+            }
+            NuvioDropdownChip(
+                title = stringResource(Res.string.discover_select_genre),
+                label = state.selectedGenre ?: stringResource(Res.string.discover_all_genres),
+                selectedKey = state.selectedGenre ?: "",
+                options = genreOptions,
+                enabled = genreOptions.size > 1 || selectedCatalog?.genreRequired == true,
+                onSelected = { option -> onGenreSelected(option.key.ifBlank { null }) },
+            )
+            // types that aren't in the capsule (e.g. channels) stay reachable
+            val extra = state.typeOptions.filter { t -> types.none { it.equals(t, ignoreCase = true) } }
+            if (extra.isNotEmpty()) {
+                NuvioDropdownChip(
+                    title = stringResource(Res.string.discover_select_type),
+                    label = state.selectedType?.takeIf { s -> extra.any { it.equals(s, ignoreCase = true) } }?.displayTypeLabel()
+                        ?: stringResource(Res.string.discover_type),
+                    selectedKey = state.selectedType,
+                    options = extra.map { NuvioDropdownOption(key = it, label = it.displayTypeLabel()) },
+                    enabled = true,
+                    onSelected = { onTypeSelected(it.key) },
+                )
             }
         }
     }

@@ -161,7 +161,7 @@ fun NuvioPosterCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(shape.aspectRatio)
-                .then(if (mugiPoster) Modifier.border(1.dp, androidx.compose.ui.graphics.Color(0xFF8A6A3A), cardShape) else Modifier)
+                .then(if (mugiPoster) Modifier.border(1.dp, if (com.nuvio.app.mugi.MugiAniMode.on.value) com.nuvio.app.mugi.MugiScreenColors.Purple else com.nuvio.app.mugi.MugiScreenColors.Gold, cardShape) else Modifier)
                 .clip(cardShape)
                 .background(tokens.colors.surface)
                 .nuvioCardDepth(

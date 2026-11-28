@@ -1,5 +1,7 @@
 package com.nuvio.app.features.home.components
 
+import androidx.compose.foundation.border
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -115,25 +117,39 @@ private fun PosterGridTile(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
+    // MugiVerse: thin antique-gold frame (violet in Ani-Drama), ivory serif title, muted year
+    val mugi = com.nuvio.app.mugi.mugiOn()
+    val radius = if (mugi) 10 else cornerRadiusDp
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(if (mugi) 5.dp else 8.dp),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(item.posterShape.posterGridAspectRatio())
-                .clip(RoundedCornerShape(cornerRadiusDp.dp))
+                .clip(RoundedCornerShape(radius.dp))
+                .then(
+                    if (mugi) {
+                        Modifier.border(
+                            1.dp,
+                            if (com.nuvio.app.mugi.MugiAniMode.on.value) com.nuvio.app.mugi.MugiScreenColors.Purple else com.nuvio.app.mugi.MugiScreenColors.Gold,
+                            RoundedCornerShape(radius.dp),
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
                 .background(MaterialTheme.colorScheme.surface)
                 .nuvioCardDepth(
-                    shape = RoundedCornerShape(cornerRadiusDp.dp),
+                    shape = RoundedCornerShape(radius.dp),
                     surface = NuvioCardDepthSurface.Posters,
                 )
                 .posterCardClickable(
                     onClick = onClick,
                     onLongClick = onLongClick,
                     zoomImageUrl = item.poster,
-                    zoomCornerRadius = cornerRadiusDp.dp,
+                    zoomCornerRadius = radius.dp,
                 ),
         ) {
             if (item.poster != null) {
@@ -163,8 +179,12 @@ private fun PosterGridTile(
         if (!hideLabels) {
             Text(
                 text = item.name,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onBackground,
+                style = if (mugi) {
+                    MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, fontFamily = androidx.compose.ui.text.font.FontFamily.Serif, fontSize = 15.sp)
+                } else {
+                    MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                },
+                color = if (mugi) com.nuvio.app.mugi.MugiScreenColors.Ivory else MaterialTheme.colorScheme.onBackground,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -173,7 +193,7 @@ private fun PosterGridTile(
                 Text(
                     text = detail,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (mugi) com.nuvio.app.mugi.MugiScreenColors.Secondary else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

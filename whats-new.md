@@ -2,6 +2,7 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Fixed: Search posters now have their thin gold frame (violet in Ani-Drama)
 - MugiVerse History: reading-log look with this week's stats, dates and gold-framed covers (list or grid)
 - MugiVerse Updates: parchment dates, NEW badges and gold download buttons
 - MugiVerse Search: red search bar, Discover banner, Movies / TV Shows switch and gold-framed posters (violet in Ani-Drama)

@@ -2,6 +2,11 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Captain's Quarters is a complete doorway: plank wall, lanterns, the arch, the door, a brass plaque and a wooden step
+- Bounties are cartoon wanted posters on parchment, two across on phones, with laurels beside EARNED
+- Surprise Me is more compact, over a faint nautical map, with View details and Try again under the pick
+- The Search sail is now a small corner accent
+- Read: unread chapter counts are small parchment tags, and rope rigging decorates the header
 - New Appearance & Motion settings: animations, haptic feedback, sound effects (off by default), fewer decorations and a low-power mode
 - The compass replaces loading spinners, with "Loading your voyage…" on Home and Read
 - Themed empty screens in Watch, Ani-Drama and Read ("Your library awaits" with an Add a book button)

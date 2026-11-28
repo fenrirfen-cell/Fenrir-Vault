@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -56,6 +57,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.ui.draw.drawBehind
 import nuvio.composeapp.generated.resources.parchment_chart
+import nuvio.composeapp.generated.resources.surprise_nautical_map
 import androidx.compose.ui.draw.clip
 import com.nuvio.app.features.anidrama.toMetaPreview
 import androidx.compose.ui.graphics.Brush
@@ -575,13 +577,14 @@ private fun BountiesScreen(onBack: () -> Unit, bottom: androidx.compose.ui.unit.
     var open by remember { mutableStateOf<BountyProgress?>(null) }
     val total = board.filter { it.unlocked }.sumOf { it.definition.reward }
     BoxWithConstraints(Modifier.fillMaxSize()) {
+        // two posters across on phones, more on tablets and unfolded foldables
         val cols = when {
-            maxWidth >= 840.dp -> 5
-            maxWidth >= 600.dp -> 4
-            else -> 3
+            maxWidth >= 840.dp -> 4
+            maxWidth >= 600.dp -> 3
+            else -> 2
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
-            item(key = "head") { VoyageHeader("Bounties", onBack, subtitle = "Milestones you've earned across Watch and Read", decoration = { VoyageWheel(Modifier.size(84.dp)) }) }
+            item(key = "head") { VoyageHeader("Bounties", onBack, subtitle = "Complete challenges, earn rewards, and grow your pirate reputation!", decoration = { VoyageWheel(Modifier.size(84.dp)) }) }
             item(key = "total") {
                 Column(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).ropeFrame(22.dp).padding(vertical = 14.dp),
@@ -594,7 +597,7 @@ private fun BountiesScreen(onBack: () -> Unit, bottom: androidx.compose.ui.unit.
                 }
             }
             items(board.chunked(cols), key = { row -> row.first().definition.id }) { row ->
-                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     row.forEach { p -> WantedPoster(p, Modifier.weight(1f)) { open = p } }
                     repeat(cols - row.size) { Spacer(Modifier.weight(1f)) }
                 }
@@ -608,7 +611,7 @@ private fun BountiesScreen(onBack: () -> Unit, bottom: androidx.compose.ui.unit.
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                WantedPoster(p, Modifier.width(150.dp)) { }
+                WantedPoster(p, Modifier.width(180.dp)) { }
                 Text(p.definition.name, color = VoyageColors.BrightGold, fontFamily = VoyageDisplay, fontWeight = FontWeight.Bold, fontSize = 22.sp)
                 Text(p.definition.description, color = VoyageColors.Ivory, fontSize = 14.sp, textAlign = TextAlign.Center)
                 Text("Progress: ${p.current.coerceAtMost(p.definition.target)} / ${p.definition.target}", color = VoyageColors.Secondary, fontSize = 13.sp)
@@ -1105,15 +1108,23 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
             chestKey++
         }
     }
+    Box(Modifier.fillMaxSize().background(Color(0xFF06141E))) {
+    // the faint nautical map behind everything (left out with fewer decorations)
+    if (com.nuvio.app.mugi.MugiMotion.showDecorations()) {
+        Image(
+            org.jetbrains.compose.resources.painterResource(nuvio.composeapp.generated.resources.Res.drawable.surprise_nautical_map),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.matchParentSize(),
+        )
+    }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = bottom + 24.dp)) {
-        item(key = "head") { VoyageHeader("Surprise Me", onBack, decoration = { CompassRose(Modifier.size(90.dp)) }) }
+        item(key = "head") { VoyageHeader("Surprise Me", onBack, decoration = { CompassRose(Modifier.size(80.dp)) }) }
         item(key = "mode") {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                VoyageSectionTitle("Choose a mode")
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
                 VoyageModeChips(mode, { mode = it; closeChest() }, modes = if (showReading) VoyageMode.entries else VoyageMode.entries.filter { it != VoyageMode.READ })
-                VoyageSectionTitle("Source")
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    VoyagePill("✓ My List".takeIf { source == SurpriseSource.MY_LIST } ?: "My List", source == SurpriseSource.MY_LIST, VoyageColors.Gold, Modifier.weight(1f)) { source = SurpriseSource.MY_LIST; closeChest() }
+                    VoyagePill("My List", source == SurpriseSource.MY_LIST, VoyageColors.Gold, Modifier.weight(1f)) { source = SurpriseSource.MY_LIST; closeChest() }
                     VoyagePill("Discover", source == SurpriseSource.DISCOVER, VoyageColors.Gold, Modifier.weight(1f)) { source = SurpriseSource.DISCOVER; closeChest() }
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1124,22 +1135,26 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
             }
         }
         item(key = "chest") {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).faintChart()) {
-                MugiTreasureChest(
-                    opening = chest != ChestAnimationState.CLOSED,
-                    animationKey = chestKey,
-                    reduceMotion = reduceMotion,
-                    modifier = Modifier.height(240.dp),
-                    onClick = if (chest == ChestAnimationState.CLOSED) openChest else null,
-                    onOpened = {
-                        chest = ChestAnimationState.OPEN
-                        reveal = true
-                    },
-                )
-                if (chest == ChestAnimationState.CLOSED) {
-                    VoyageButton("Open the chest", VoyageColors.Gold, Modifier.padding(horizontal = 40.dp).fillMaxWidth(), onClick = openChest)
+            BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                // compact: about 190 dp on phones, 240 dp on tablets
+                val chestSize = if (maxWidth >= 600.dp) 240.dp else (maxWidth * 0.5f).coerceIn(170.dp, 200.dp)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    MugiTreasureChest(
+                        opening = chest != ChestAnimationState.CLOSED,
+                        animationKey = chestKey,
+                        reduceMotion = reduceMotion,
+                        modifier = Modifier.size(chestSize),
+                        onClick = if (chest == ChestAnimationState.CLOSED) openChest else null,
+                        onOpened = {
+                            chest = ChestAnimationState.OPEN
+                            reveal = true
+                        },
+                    )
+                    if (chest == ChestAnimationState.CLOSED) {
+                        VoyageButton("Open the chest", VoyageColors.Gold, Modifier.padding(horizontal = 48.dp).fillMaxWidth(), onClick = openChest)
+                        Text("Find your next adventure", color = VoyageColors.Secondary, fontFamily = VoyageSerif, fontStyle = FontStyle.Italic, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+                    }
                 }
-                Text("Find your next adventure", color = VoyageColors.Secondary, fontFamily = VoyageSerif, fontStyle = FontStyle.Italic, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
             }
         }
         if (noMatch) {
@@ -1160,45 +1175,47 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
                     slideInVertically(tween(if (reduceMotion) 0 else 300)) { it / 4 },
             ) {
                 val p = pick ?: return@AnimatedVisibility
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp).ropeFrame().padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(Modifier.width(96.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)).border(1.dp, if (p.mode == VoyageMode.ANI_DRAMA) VoyageColors.Purple else VoyageColors.Gold, RoundedCornerShape(8.dp)).background(Color(0xFF101D27))) {
-                        p.artwork?.let { AsyncImage(model = it, contentDescription = p.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().ropeFrame().padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(Modifier.width(78.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)).border(1.dp, if (p.mode == VoyageMode.ANI_DRAMA) VoyageColors.Purple else VoyageColors.Gold, RoundedCornerShape(8.dp)).background(Color(0xFF101D27))) {
+                            p.artwork?.let { AsyncImage(model = it, contentDescription = p.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(p.title, color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontStyle = FontStyle.Italic, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            p.caption?.takeIf { it.isNotBlank() }?.let { Text(it, color = VoyageColors.Secondary, fontSize = 12.5.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                            p.durationMinutes?.let { Text(formatMinutes(it.toLong()), color = VoyageColors.Secondary, fontSize = 12.5.sp) }
+                            Text(
+                                p.mode.label.uppercase(),
+                                color = VoyageColors.Ivory,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(p.mode.accent()).padding(horizontal = 8.dp, vertical = 2.dp),
+                            )
+                        }
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(p.title, color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        p.caption?.takeIf { it.isNotBlank() }?.let { Text(it, color = VoyageColors.Secondary, fontSize = 12.5.sp, maxLines = 2) }
-                        p.durationMinutes?.let { Text("$it min", color = VoyageColors.Secondary, fontSize = 12.5.sp) }
-                        Text(
-                            p.mode.label.uppercase(),
-                            color = VoyageColors.Ivory,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(p.mode.accent()).padding(horizontal = 8.dp, vertical = 2.dp),
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            VoyagePill("View details", false, VoyageColors.Gold) {
-                                val meta = p.meta
-                                val book = p.readMangaId
-                                if (meta != null) {
-                                    leave()
-                                    actions.onPosterClick?.invoke(meta)
-                                } else if (book != null) {
-                                    VoyageNav.close()
-                                    VoyageBridge.openReadBook?.invoke(book)
-                                }
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        VoyageButton("View details", VoyageColors.Burgundy, Modifier.weight(1f)) {
+                            val meta = p.meta
+                            val book = p.readMangaId
+                            if (meta != null) {
+                                leave()
+                                actions.onPosterClick?.invoke(meta)
+                            } else if (book != null) {
+                                VoyageNav.close()
+                                VoyageBridge.openReadBook?.invoke(book)
                             }
-                            VoyagePill("↻ Try again", false, VoyageColors.Gold) {
-                                if (chest == ChestAnimationState.OPENING) return@VoyagePill
-                                // clear the last pick, show the closed chest, then open it on a new one
-                                closeChest()
-                                scope.launch {
-                                    kotlinx.coroutines.delay(if (reduceMotion) 0 else 180)
-                                    openChest()
-                                }
+                        }
+                        VoyageButton("↻ Try again", VoyageColors.Navy, Modifier.weight(1f)) {
+                            if (chest == ChestAnimationState.OPENING) return@VoyageButton
+                            // clear the last pick, show the closed chest, then open it on a new one
+                            closeChest()
+                            scope.launch {
+                                kotlinx.coroutines.delay(if (reduceMotion) 0 else 180)
+                                openChest()
                             }
                         }
                     }
@@ -1206,17 +1223,7 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
             }
         }
     }
-}
-
-/** A very faint antique chart behind the chest (the parchment chart artwork at ~9 %). */
-@Composable
-private fun Modifier.faintChart(): Modifier {
-    val chart = org.jetbrains.compose.resources.painterResource(nuvio.composeapp.generated.resources.Res.drawable.parchment_chart)
-    return this
-        .background(Color(0xFF06141E))
-        .drawBehind {
-            if (com.nuvio.app.mugi.MugiMotion.showDecorations()) with(chart) { draw(size, alpha = 0.09f) }
-        }
+    }
 }
 
 @Composable

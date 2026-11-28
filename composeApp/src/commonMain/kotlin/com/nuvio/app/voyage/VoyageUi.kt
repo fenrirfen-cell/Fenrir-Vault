@@ -98,6 +98,8 @@ import nuvio.composeapp.generated.resources.rope_frame
 import nuvio.composeapp.generated.resources.wood_panel
 import nuvio.composeapp.generated.resources.parchment_chart
 import nuvio.composeapp.generated.resources.bounty_books
+import nuvio.composeapp.generated.resources.bounty_parchment
+import nuvio.composeapp.generated.resources.bounty_laurel
 import nuvio.composeapp.generated.resources.bounty_library
 import nuvio.composeapp.generated.resources.bounty_film
 import nuvio.composeapp.generated.resources.bounty_ship
@@ -405,61 +407,85 @@ fun VoyageEmpty(title: String, message: String, modifier: Modifier = Modifier) {
 @Composable
 fun WantedPoster(progress: BountyProgress, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val earned = progress.unlocked
-    val paper = if (earned) listOf(Color(0xFFF0DCAE), Color(0xFFCDAA6C)) else listOf(Color(0xFFD6C7A6), Color(0xFFB09C7C))
-    Column(
+    val ink = Color(0xFF38200F)
+    val target = progress.definition.target
+    val current = progress.current.coerceAtMost(target)
+    Box(
         modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(Brush.verticalGradient(paper))
-            .border(if (earned) 2.dp else 1.dp, if (earned) VoyageColors.Gold else Color(0xFF5E4A30), RoundedCornerShape(4.dp))
-            .clickable(onClickLabel = progress.definition.name, onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .heightIn(min = 210.dp)
+            .clickable(onClickLabel = progress.definition.name, onClick = onClick),
     ) {
-        Text("WANTED", color = Color(0xFF5A1A14), fontFamily = VoyageDisplay, fontWeight = FontWeight.Black, fontSize = 15.sp, letterSpacing = 1.5.sp)
-        Box(
-            Modifier
-                .padding(vertical = 5.dp)
-                .fillMaxWidth()
-                .height(70.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(if (earned) Color(0xFF2A1C10) else Color(0xFF5E513E))
-                .border(1.dp, Color(0xFF4A3420), RoundedCornerShape(2.dp)),
-            contentAlignment = Alignment.Center,
+        // the weathered parchment (only the picture is muted while locked, never the whole poster)
+        Image(painterResource(Res.drawable.bounty_parchment), contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            BountyEmblemArt(progress.definition.emblem, earned, Modifier.size(66.dp))
-            if (!earned) {
-                Box(
-                    Modifier.align(Alignment.TopEnd).padding(3.dp).size(20.dp).clip(CircleShape).background(Color(0xE62A1C10)).border(1.dp, VoyageColors.Gold, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    androidx.compose.material3.Icon(
-                        androidx.compose.material.icons.Icons.Rounded.Lock,
-                        contentDescription = "Locked",
-                        tint = VoyageColors.Gold,
-                        modifier = Modifier.size(12.dp),
+            Text("WANTED", color = ink, fontFamily = VoyageDisplay, fontWeight = FontWeight.Bold, fontSize = 21.sp, letterSpacing = 1.sp, maxLines = 1)
+            Spacer(Modifier.height(4.dp))
+            BountyEmblemArt(progress.definition.emblem, earned, Modifier.size(84.dp))
+            Text(
+                progress.definition.name,
+                color = ink,
+                fontFamily = VoyageSerif,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                lineHeight = 17.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            if (earned) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(painterResource(Res.drawable.bounty_laurel), contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.size(width = 18.dp, height = 32.dp))
+                    Spacer(Modifier.width(2.dp))
+                    EarnedBountyRibbon()
+                    Spacer(Modifier.width(2.dp))
+                    // the same laurel, mirrored
+                    Image(painterResource(Res.drawable.bounty_laurel), contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.size(width = 18.dp, height = 32.dp).graphicsLayer { scaleX = -1f })
+                }
+            } else {
+                Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(Color(0xFF80633C))) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(progress.progress.coerceIn(0f, 1f))
+                            .fillMaxHeight()
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFF0CD74), Color(0xFFD4A348)))),
                     )
                 }
+                Text("$current / $target", color = ink, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(top = 3.dp))
             }
         }
-        Text(progress.definition.name, color = Color(0xFF2E180A), fontFamily = VoyageDisplay, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, lineHeight = 13.sp, maxLines = 2, textAlign = TextAlign.Center)
-        Text(progress.definition.description, color = Color(0xFF4A2E16), fontSize = 9.5.sp, lineHeight = 11.sp, maxLines = 2, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(5.dp))
-        if (earned) {
-            Text(
-                "EARNED",
-                color = Color(0xFFFFE7B0),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp,
-                modifier = Modifier.clip(RoundedCornerShape(2.dp)).background(Color(0xFF8E1C22)).padding(horizontal = 10.dp, vertical = 2.dp),
+        if (!earned) {
+            androidx.compose.material3.Icon(
+                androidx.compose.material.icons.Icons.Rounded.Lock,
+                contentDescription = "Locked",
+                tint = Color(0xFF573C23),
+                modifier = Modifier.align(Alignment.TopEnd).padding(12.dp).size(18.dp),
             )
-        } else {
-            Text("${progress.current.coerceAtMost(progress.definition.target)} / ${progress.definition.target}", color = Color(0xFF2E180A), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Box(Modifier.padding(top = 3.dp).fillMaxWidth().height(5.dp).clip(CircleShape).background(Color(0x553A2210))) {
-                Box(Modifier.fillMaxWidth(progress.progress).fillMaxHeight().background(Color(0xFF8A5A1E)))
-            }
         }
     }
+}
+
+/** The red EARNED ribbon with a thin gold edge. */
+@Composable
+fun EarnedBountyRibbon() {
+    val shape = RoundedCornerShape(5.dp)
+    Text(
+        "EARNED",
+        color = Color(0xFFFFE9B4),
+        fontFamily = VoyageSerif,
+        fontWeight = FontWeight.Bold,
+        fontSize = 13.sp,
+        letterSpacing = 1.sp,
+        maxLines = 1,
+        modifier = Modifier
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(Color(0xFFB9252C), Color(0xFF76151C))))
+            .border(1.dp, VoyageColors.Gold, shape)
+            .padding(horizontal = 12.dp, vertical = 5.dp),
+    )
 }
 
 /** Sepia, slightly dimmed: how a bounty looks until it is earned. */

@@ -136,3 +136,17 @@ fun MugiEmptyState(
     }
 }
 
+
+/** MugiVerse's shared palette (mode colours: Watch red, Ani-Drama purple, Read gold). */
+object MugiFinalColors {
+    val Gold = Color(0xFFD4AF65)
+    val BrightGold = Color(0xFFFFD478)
+    val Ivory = Color(0xFFF5E8D0)
+    val Navy = Color(0xFF06141E)
+    val Walnut = Color(0xFF21140C)
+    val PurpleBlack = Color(0xFF110C19)
+    val WatchRed = Color(0xFFC92D35)
+    val AnimePurple = Color(0xFF913BDF)
+    val ReadGold = Color(0xFFEAB84D)
+    val Burgundy = Color(0xFF721B22)
+}

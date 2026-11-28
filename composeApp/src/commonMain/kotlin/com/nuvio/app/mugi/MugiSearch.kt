@@ -110,8 +110,9 @@ fun MugiSearchBackground(ani: Boolean, modifier: Modifier = Modifier) {
             contentDescription = null,
             contentScale = ContentScale.Fit,
             colorFilter = if (ani) AniSailcloth else null,
-            alpha = 0.9f,
-            modifier = Modifier.align(Alignment.TopEnd).fillMaxWidth(0.46f),
+            alpha = 0.75f,
+            // a small corner accent behind the header (never over the title or the search field)
+            modifier = Modifier.align(Alignment.TopEnd).width(135.dp).height(100.dp),
         )
     }
 }

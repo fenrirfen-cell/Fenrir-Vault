@@ -170,6 +170,40 @@ fun LibraryScreen(
     val libraryWatchedFilter = remember(libraryWatchedFilterName) {
         runCatching { LibraryWatchedFilter.valueOf(libraryWatchedFilterName) }.getOrDefault(LibraryWatchedFilter.ALL)
     }
+    // MugiVerse: the nautical My List (inline search, kind chips, seven sorts, poster grid / list)
+    val mugi = com.nuvio.app.mugi.mugiOn()
+    var mugiSearchOpen by rememberSaveable { mutableStateOf(false) }
+    var mugiQuery by rememberSaveable { mutableStateOf("") }
+    var mugiKindIndex by rememberSaveable { mutableStateOf(0) }
+    var mugiListKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val mugiExtraSort by MugiListState.extraSort.collectAsStateWithLifecycle()
+    val mugiSort = mugiExtraSort ?: MugiSort.from(displaySettings.sortOption)
+    val mugiKinds = listOf<MugiKind?>(null, MugiKind.MOVIES, MugiKind.SERIES, MugiKind.ANIME)
+    val mugiProgress by com.nuvio.app.features.watchprogress.WatchProgressRepository.uiState.collectAsStateWithLifecycle()
+    val mugiLastWatched = remember(mugi, mugiSort, mugiProgress.entries, watchedUiState.items) {
+        if (!mugi || mugiSort != MugiSort.RECENTLY_WATCHED) {
+            emptyMap()
+        } else {
+            val m = HashMap<String, Long>()
+            mugiProgress.entries.forEach { e -> if (e.lastUpdatedEpochMs > (m[e.parentMetaId] ?: 0L)) m[e.parentMetaId] = e.lastUpdatedEpochMs }
+            watchedUiState.items.forEach { w -> if (w.markedAtEpochMs > (m[w.id] ?: 0L)) m[w.id] = w.markedAtEpochMs }
+            m
+        }
+    }
+    val mugiGroups = remember(mugi, uiState.sections, mugiListKey, mugiKindIndex, mugiQuery, mugiSort, mugiLastWatched) {
+        if (!mugi) {
+            emptyList()
+        } else {
+            buildMugiListGroups(
+                sections = uiState.sections,
+                listKey = mugiListKey?.takeIf { key -> uiState.sections.any { it.type == key } },
+                kind = mugiKinds.getOrNull(mugiKindIndex),
+                query = mugiQuery,
+                sort = mugiSort,
+                lastWatched = mugiLastWatched,
+            )
+        }
+    }
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
     ScreenActivityEffect(listState) { screenActive ->
@@ -313,11 +347,13 @@ fun LibraryScreen(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val gridColumns = remember(maxWidth) { posterGridColumnCountForWidth(maxWidth) }
+        if (mugi) MugiListBackground()
 
         NuvioScreen(
             modifier = Modifier.fillMaxSize(),
             horizontalPadding = 0.dp,
             listState = listState,
+            background = if (mugi) androidx.compose.ui.graphics.Color.Transparent else null,
         ) {
             stickyHeader {
                 Box(
@@ -328,7 +364,7 @@ fun LibraryScreen(
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .background(MaterialTheme.colorScheme.background)
+                            .background(if (mugi) MugiList.Background else MaterialTheme.colorScheme.background)
                             .nuvioConsumePointerEvents(),
                     )
                     androidx.compose.foundation.layout.Column(
@@ -337,6 +373,43 @@ fun LibraryScreen(
                             .padding(LocalVerticalBarPadding.current),
                     ) {
                         val fenrirLibrary by com.nuvio.app.readmode.FenrirStyle.enabled.collectAsStateWithLifecycle()
+                        if (mugi) {
+                            androidx.compose.material3.MaterialTheme(
+                                colorScheme = MaterialTheme.colorScheme.copy(onSurfaceVariant = MugiList.Gold),
+                            ) {
+                                MugiListHeader(
+                                    title = "My List",
+                                    searchOpen = mugiSearchOpen,
+                                    query = if (sourceMode == LibraryViewMode.Cloud) cloudSearchQuery else mugiQuery,
+                                    onQueryChange = { q ->
+                                        if (sourceMode == LibraryViewMode.Cloud) {
+                                            cloudSearchQuery = q
+                                            selectedCloudItemKey = null
+                                        } else {
+                                            mugiQuery = q
+                                        }
+                                    },
+                                    onSearchOpenChange = { mugiSearchOpen = it },
+                                    modifier = Modifier.padding(start = 16.dp, end = 8.dp),
+                                ) {
+                                    if (sourceMode == LibraryViewMode.Saved) {
+                                        LibraryListManagementButton()
+                                        val grid = displaySettings.layoutMode == LibraryLayoutMode.HORIZONTAL
+                                        MugiGoldIconButton(
+                                            icon = if (grid) Icons.Rounded.ViewAgenda else Icons.Rounded.GridView,
+                                            description = if (grid) "Show as list" else "Show as grid",
+                                        ) {
+                                            LibraryDisplaySettingsRepository.setLayoutMode(
+                                                if (grid) LibraryLayoutMode.VERTICAL else LibraryLayoutMode.HORIZONTAL,
+                                            )
+                                        }
+                                    }
+                                    if (onDownloadsClick != null) {
+                                        LibraryDownloadsButton(onClick = onDownloadsClick)
+                                    }
+                                }
+                            }
+                        } else
                         NuvioScreenHeader(
                             title = if (fenrirLibrary && uiState.sourceMode == LibrarySourceMode.LOCAL) {
                                 "My list"
@@ -390,6 +463,21 @@ fun LibraryScreen(
                                 }
                             },
                         )
+                        if (mugi) {
+                            val modes = listOfNotNull(LibraryViewMode.Saved, LibraryViewMode.Cloud, LibraryViewMode.Servers.takeIf { hasServers })
+                            MugiSourceSwitch(
+                                labels = modes.map { mode ->
+                                    when (mode) {
+                                        LibraryViewMode.Saved -> stringResource(Res.string.library_source_saved)
+                                        LibraryViewMode.Cloud -> stringResource(Res.string.library_source_cloud)
+                                        LibraryViewMode.Servers -> stringResource(Res.string.library_source_servers)
+                                    }
+                                },
+                                selected = modes.indexOf(sourceMode).coerceAtLeast(0),
+                                onSelect = { i -> sourceModeName = modes[i].name },
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                        } else
                         LibrarySourceSwitch(
                             selectedMode = sourceMode,
                             showServers = hasServers,
@@ -502,6 +590,54 @@ fun LibraryScreen(
                                 },
                             )
                         }
+                    }
+
+                    mugi -> {
+                        item(key = "mugi-list-controls") {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                if (uiState.sections.size > 1) {
+                                    val lists = uiState.sections
+                                    MugiChipRow(
+                                        labels = listOf("All lists") + lists.map { it.displayTitle },
+                                        selected = lists.indexOfFirst { it.type == mugiListKey } + 1,
+                                        onSelect = { i -> mugiListKey = if (i == 0) null else lists[i - 1].type },
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                    )
+                                }
+                                MugiChipRow(
+                                    labels = listOf("All", "Movies", "Series", "Anime"),
+                                    selected = mugiKindIndex,
+                                    onSelect = { mugiKindIndex = it },
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                )
+                                MugiSortDropdown(
+                                    selected = mugiSort,
+                                    onSelect = { option ->
+                                        if (option.legacy != null) {
+                                            MugiListState.extraSort.value = null
+                                            LibraryDisplaySettingsRepository.setSortOption(option.legacy)
+                                        } else {
+                                            MugiListState.extraSort.value = option
+                                        }
+                                    },
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                )
+                            }
+                        }
+                        mugiLibraryContent(
+                            groups = mugiGroups,
+                            query = mugiQuery,
+                            grid = displaySettings.layoutMode == LibraryLayoutMode.HORIZONTAL,
+                            columns = gridColumns,
+                            watchedKeys = watchedUiState.watchedKeys,
+                            fullyWatchedSeriesKeys = fullyWatchedSeriesKeys,
+                            posterPattern = effectivePosterPattern,
+                            onPosterClick = onPosterClick,
+                            onPosterLongClick = onPosterLongClick,
+                        )
                     }
 
                     else -> {

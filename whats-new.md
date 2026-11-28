@@ -2,6 +2,12 @@
 
 Short notes for the next build, shown in the app after updating. Edit these before each build.
 
+- Surprise Me: a new treasure chest with a lantern inside; your pick rises out of it on a parchment card with rating, genres and a short description
+- View details and Try again are now red and blue brass plates
+- Search keeps Movies and TV Shows separate, and opens on the one you used last
+- New corner pennant on Search, and the EARNED ribbon with laurels on bounties
+- Captain's Quarters now has wooden stairs and new lanterns
+- Read: carved header shelf, a parchment Continue Reading panel and the category name on a scroll
 - Captain's Quarters is a complete doorway: plank wall, lanterns, the arch, the door, a brass plaque and a wooden step
 - Bounties are cartoon wanted posters on parchment, two across on phones, with laurels beside EARNED
 - Surprise Me is more compact, over a faint nautical map, with View details and Try again under the pick

@@ -413,6 +413,21 @@ fun SearchScreen(
             } else {
                 val normalizedQuery = query.trim()
                 val isWaitingForSearch = normalizedQuery.isNotBlank() && lastRequestedQuery != normalizedQuery
+                // MugiVerse Watch: Movies and TV Shows are searched separately; the choice is the same
+                // one Discover remembers, so Search opens on the category you used last
+                val watchType = if (discoverUiState.selectedType.equals("series", true)) "series" else "movie"
+                if (mugi) {
+                    item(key = "mugi_search_type") {
+                        com.nuvio.app.mugi.MugiSegmentedSelector(
+                            options = listOf("Movies", "TV Shows"),
+                            selectedIndex = if (watchType == "series") 1 else 0,
+                            selectedColor = com.nuvio.app.mugi.MugiScreenColors.Red,
+                            surface = com.nuvio.app.mugi.MugiScreenColors.WatchSurface,
+                            onSelected = { i -> SearchRepository.selectDiscoverType(if (i == 1) "series" else "movie") },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    }
+                }
                 when {
                     isWaitingForSearch -> {
                         items(2) {
@@ -458,9 +473,17 @@ fun SearchScreen(
                     else -> {
                         // MugiVerse Watch: movies and regular TV shows (anime lives in Ani-Drama)
                         val watchSections = if (mugi) {
-                            uiState.sections.filter { it.target.contentType.lowercase() in setOf("movie", "series") }.ifEmpty { uiState.sections }
+                            uiState.sections.filter { it.target.contentType.equals(watchType, ignoreCase = true) }
                         } else {
                             uiState.sections
+                        }
+                        if (mugi && watchSections.isEmpty()) {
+                            item(key = "mugi_search_type_empty") {
+                                com.nuvio.app.mugi.MugiEmptyState(
+                                    if (watchType == "series") "No TV shows found" else "No movies found",
+                                    if (watchType == "series") "Try Movies, or another title." else "Try TV Shows, or another title.",
+                                )
+                            }
                         }
                         items(
                             items = watchSections.withDuplicateSafeLazyKeys { section -> section.key },

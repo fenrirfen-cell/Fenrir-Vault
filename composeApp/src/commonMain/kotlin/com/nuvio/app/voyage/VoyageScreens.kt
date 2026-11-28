@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,6 +61,12 @@ import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.ui.draw.drawBehind
 import nuvio.composeapp.generated.resources.parchment_chart
 import nuvio.composeapp.generated.resources.surprise_nautical_map
+import nuvio.composeapp.generated.resources.mugi_chest_open_front
+import nuvio.composeapp.generated.resources.surprise_card_parchment
+import nuvio.composeapp.generated.resources.surprise_button_red
+import nuvio.composeapp.generated.resources.surprise_button_blue
+import nuvio.composeapp.generated.resources.Res
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.draw.clip
 import com.nuvio.app.features.anidrama.toMetaPreview
 import androidx.compose.ui.graphics.Brush
@@ -1129,22 +1138,24 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf<Int?>(null, 15, 30, 60).forEach { m ->
-                        VoyagePill(m?.let { "$it min" } ?: "Any", maxMinutes == m, VoyageColors.Gold, Modifier.weight(1f)) { maxMinutes = m; closeChest() }
+                        VoyagePill(m?.let { "$it min" } ?: "Any", maxMinutes == m, VoyageColors.Burgundy, Modifier.weight(1f)) { maxMinutes = m; closeChest() }
                     }
                 }
             }
         }
         item(key = "chest") {
             BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                // compact: about 190 dp on phones, 240 dp on tablets
-                val chestSize = if (maxWidth >= 600.dp) 240.dp else (maxWidth * 0.5f).coerceIn(170.dp, 200.dp)
+                // the chest as large as the screen allows (the pick rises out of it)
+                val chestSize = minOf(maxWidth - 32.dp, 400.dp)
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    MugiTreasureChest(
-                        opening = chest != ChestAnimationState.CLOSED,
-                        animationKey = chestKey,
+                    SurpriseChestStage(
+                        chest = chest,
+                        chestKey = chestKey,
                         reduceMotion = reduceMotion,
-                        modifier = Modifier.size(chestSize),
-                        onClick = if (chest == ChestAnimationState.CLOSED) openChest else null,
+                        pick = pick,
+                        reveal = reveal,
+                        size = chestSize,
+                        onOpen = openChest,
                         onOpened = {
                             chest = ChestAnimationState.OPEN
                             reveal = true
@@ -1153,6 +1164,31 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
                     if (chest == ChestAnimationState.CLOSED) {
                         VoyageButton("Open the chest", VoyageColors.Gold, Modifier.padding(horizontal = 48.dp).fillMaxWidth(), onClick = openChest)
                         Text("Find your next adventure", color = VoyageColors.Secondary, fontFamily = VoyageSerif, fontStyle = FontStyle.Italic, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+                    }
+                    val p = pick
+                    if (reveal && p != null) {
+                        Row(Modifier.widthIn(max = 420.dp).fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            SurprisePlateButton("View details", red = true, Modifier.weight(1f)) {
+                                val meta = p.meta
+                                val book = p.readMangaId
+                                if (meta != null) {
+                                    leave()
+                                    actions.onPosterClick?.invoke(meta)
+                                } else if (book != null) {
+                                    VoyageNav.close()
+                                    VoyageBridge.openReadBook?.invoke(book)
+                                }
+                            }
+                            SurprisePlateButton("↻  Try again", red = false, Modifier.weight(1f)) {
+                                if (chest == ChestAnimationState.OPENING) return@SurprisePlateButton
+                                // clear the last pick, show the closed chest, then open it on a new one
+                                closeChest()
+                                scope.launch {
+                                    kotlinx.coroutines.delay(if (reduceMotion) 0 else 180)
+                                    openChest()
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1168,61 +1204,131 @@ private fun SurpriseScreen(actions: VoyageActions, onBack: () -> Unit, leave: ()
                 }
             }
         }
-        item(key = "result") {
-            AnimatedVisibility(
-                visible = reveal && pick != null,
-                enter = fadeIn(tween(if (reduceMotion) 0 else 250)) +
-                    slideInVertically(tween(if (reduceMotion) 0 else 300)) { it / 4 },
+    }
+    }
+}
+
+/**
+ * The Surprise Me chest with the pick rising out of it. Every chest frame shares one 724 × 724
+ * canvas (never stretched). Once the lid is open the parchment card slides up from inside the
+ * box (hidden behind the front until it clears the rim), then settles over the front panel.
+ */
+@Composable
+private fun SurpriseChestStage(
+    chest: ChestAnimationState,
+    chestKey: Long,
+    reduceMotion: Boolean,
+    pick: SurpriseCandidate?,
+    reveal: Boolean,
+    size: androidx.compose.ui.unit.Dp,
+    onOpen: () -> Unit,
+    onOpened: () -> Unit,
+) {
+    val unit = size / 724f
+    fun u(v: Float) = unit * v
+    val rise = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(reveal, chestKey) {
+        if (!reveal) {
+            rise.snapTo(0f)
+        } else if (reduceMotion) {
+            rise.snapTo(1f)
+        } else {
+            rise.snapTo(0f)
+            rise.animateTo(1f, tween(500, easing = androidx.compose.animation.core.LinearEasing))
+        }
+    }
+    val t = rise.value
+    // card: 550 × 478 canvas units, centred; it rises from below the rim (top 436) to top 150 and
+    // stays tucked inside the box, so the chest front and keyhole remain in front of it
+    val cardW = 550f
+    val cardH = 478f
+    val cardX = (724f - cardW) / 2f
+    val cardTop = 436f + (150f - 436f) * androidx.compose.animation.core.FastOutSlowInEasing.transform(t.coerceIn(0f, 1f))
+    Box(Modifier.size(size)) {
+        MugiTreasureChest(
+            opening = chest != ChestAnimationState.CLOSED,
+            animationKey = chestKey,
+            reduceMotion = reduceMotion,
+            modifier = Modifier.matchParentSize(),
+            onClick = if (chest == ChestAnimationState.CLOSED) onOpen else null,
+            onOpened = onOpened,
+        )
+        val p = pick
+        if (reveal && p != null) {
+            // inside the box: clipped at the rim, under the chest front
+            Box(Modifier.size(size, u(440f)).clipToBounds()) {
+                SurpriseCard(p, visibleFraction = (440f - 150f) / cardH, modifier = Modifier.offset(u(cardX), u(cardTop)).size(u(cardW), u(cardH)))
+            }
+        }
+        if (chest == ChestAnimationState.OPEN) {
+            Image(
+                painterResource(Res.drawable.mugi_chest_open_front),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+    }
+}
+
+/** The pick on the parchment card: poster, title, type and year, genres, length, rating, description. */
+@Composable
+private fun SurpriseCard(p: SurpriseCandidate, visibleFraction: Float, modifier: Modifier) {
+    val ink = Color(0xFF38200F)
+    val meta = p.meta
+    Box(modifier) {
+        Image(painterResource(Res.drawable.surprise_card_parchment), contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize())
+        // the details sit in the part of the card that shows above the rim
+        Row(Modifier.fillMaxWidth().fillMaxHeight(visibleFraction).padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 6.dp)) {
+            Box(
+                Modifier.fillMaxHeight().aspectRatio(2f / 3f).clip(RoundedCornerShape(6.dp))
+                    .border(1.dp, if (p.mode == VoyageMode.ANI_DRAMA) VoyageColors.Purple else VoyageColors.Gold, RoundedCornerShape(6.dp))
+                    .background(Color(0xFF101D27)),
             ) {
-                val p = pick ?: return@AnimatedVisibility
-                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth().ropeFrame().padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(Modifier.width(78.dp).aspectRatio(2f / 3f).clip(RoundedCornerShape(8.dp)).border(1.dp, if (p.mode == VoyageMode.ANI_DRAMA) VoyageColors.Purple else VoyageColors.Gold, RoundedCornerShape(8.dp)).background(Color(0xFF101D27))) {
-                            p.artwork?.let { AsyncImage(model = it, contentDescription = p.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text(p.title, color = VoyageColors.Ivory, fontFamily = VoyageSerif, fontStyle = FontStyle.Italic, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            p.caption?.takeIf { it.isNotBlank() }?.let { Text(it, color = VoyageColors.Secondary, fontSize = 12.5.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
-                            p.durationMinutes?.let { Text(formatMinutes(it.toLong()), color = VoyageColors.Secondary, fontSize = 12.5.sp) }
-                            Text(
-                                p.mode.label.uppercase(),
-                                color = VoyageColors.Ivory,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(p.mode.accent()).padding(horizontal = 8.dp, vertical = 2.dp),
-                            )
-                        }
-                    }
-                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        VoyageButton("View details", VoyageColors.Burgundy, Modifier.weight(1f)) {
-                            val meta = p.meta
-                            val book = p.readMangaId
-                            if (meta != null) {
-                                leave()
-                                actions.onPosterClick?.invoke(meta)
-                            } else if (book != null) {
-                                VoyageNav.close()
-                                VoyageBridge.openReadBook?.invoke(book)
-                            }
-                        }
-                        VoyageButton("↻ Try again", VoyageColors.Navy, Modifier.weight(1f)) {
-                            if (chest == ChestAnimationState.OPENING) return@VoyageButton
-                            // clear the last pick, show the closed chest, then open it on a new one
-                            closeChest()
-                            scope.launch {
-                                kotlinx.coroutines.delay(if (reduceMotion) 0 else 180)
-                                openChest()
-                            }
-                        }
-                    }
+                p.artwork?.let { AsyncImage(model = it, contentDescription = p.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(p.title, color = ink, fontFamily = VoyageSerif, fontStyle = FontStyle.Italic, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                val kind = when {
+                    p.mode == VoyageMode.READ -> "Book"
+                    meta?.type.equals("movie", true) -> "Movie"
+                    p.mode == VoyageMode.ANI_DRAMA -> "Series"
+                    else -> "Series"
                 }
+                Text(listOfNotNull(kind, meta?.releaseInfo?.takeIf { it.isNotBlank() }).joinToString(" • "), color = ink, fontSize = 11.5.sp, maxLines = 1)
+                val genres = (meta?.genres?.take(2)?.joinToString(", ") ?: p.genre)?.takeIf { it.isNotBlank() }
+                genres?.let { Text(it, color = ink, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                val lengthAndRating = listOfNotNull(
+                    p.durationMinutes?.let { "⏱ ${formatMinutes(it.toLong())}" },
+                    meta?.imdbRating?.takeIf { it.isNotBlank() }?.let { "★ $it / 10" },
+                ).joinToString("   ")
+                if (lengthAndRating.isNotBlank()) Text(lengthAndRating, color = ink, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                val about = meta?.description?.takeIf { it.isNotBlank() } ?: p.caption
+                about?.let { Text(it, color = ink.copy(alpha = 0.9f), fontSize = 11.sp, lineHeight = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
             }
         }
     }
+}
+
+/** View details (red plate) and Try again (blue plate with a gold edge), from the supplied artwork. */
+@Composable
+private fun SurprisePlateButton(text: String, red: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    Box(
+        modifier
+            .aspectRatio(498f / 139f)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClickLabel = text) { com.nuvio.app.mugi.MugiMotion.tap(haptic); onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            painterResource(if (red) Res.drawable.surprise_button_red else Res.drawable.surprise_button_blue),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.matchParentSize(),
+        )
+        Text(text, color = Color(0xFFF5E8D0), fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)
     }
 }
 

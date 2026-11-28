@@ -99,7 +99,7 @@ import nuvio.composeapp.generated.resources.wood_panel
 import nuvio.composeapp.generated.resources.parchment_chart
 import nuvio.composeapp.generated.resources.bounty_books
 import nuvio.composeapp.generated.resources.bounty_parchment
-import nuvio.composeapp.generated.resources.bounty_laurel
+import nuvio.composeapp.generated.resources.bounty_earned_ribbon
 import nuvio.composeapp.generated.resources.bounty_library
 import nuvio.composeapp.generated.resources.bounty_film
 import nuvio.composeapp.generated.resources.bounty_ship
@@ -437,14 +437,7 @@ fun WantedPoster(progress: BountyProgress, modifier: Modifier = Modifier, onClic
             )
             Spacer(Modifier.height(8.dp))
             if (earned) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(painterResource(Res.drawable.bounty_laurel), contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.size(width = 18.dp, height = 32.dp))
-                    Spacer(Modifier.width(2.dp))
-                    EarnedBountyRibbon()
-                    Spacer(Modifier.width(2.dp))
-                    // the same laurel, mirrored
-                    Image(painterResource(Res.drawable.bounty_laurel), contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.size(width = 18.dp, height = 32.dp).graphicsLayer { scaleX = -1f })
-                }
+                EarnedBountyRibbon()
             } else {
                 Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(Color(0xFF80633C))) {
                     Box(
@@ -468,24 +461,16 @@ fun WantedPoster(progress: BountyProgress, modifier: Modifier = Modifier, onClic
     }
 }
 
-/** The red EARNED ribbon with a thin gold edge. */
+/** EARNED on the supplied red ribbon with gold laurels (the word is real text over the ribbon). */
 @Composable
-fun EarnedBountyRibbon() {
-    val shape = RoundedCornerShape(5.dp)
-    Text(
-        "EARNED",
-        color = Color(0xFFFFE9B4),
-        fontFamily = VoyageSerif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 13.sp,
-        letterSpacing = 1.sp,
-        maxLines = 1,
-        modifier = Modifier
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(Color(0xFFB9252C), Color(0xFF76151C))))
-            .border(1.dp, VoyageColors.Gold, shape)
-            .padding(horizontal = 12.dp, vertical = 5.dp),
-    )
+fun EarnedBountyRibbon(modifier: Modifier = Modifier) {
+    BoxWithConstraints(modifier.width(132.dp).aspectRatio(475f / 320f)) {
+        Image(painterResource(Res.drawable.bounty_earned_ribbon), contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.matchParentSize())
+        // the wide part of the ribbon runs from 61 % to 73 % of the height
+        Box(Modifier.fillMaxWidth().offset(y = maxHeight * 0.585f).height(maxHeight * 0.16f), contentAlignment = Alignment.Center) {
+            Text("EARNED", color = Color(0xFFFFE9B4), fontFamily = VoyageSerif, fontWeight = FontWeight.Bold, fontSize = 13.sp, letterSpacing = 1.sp, maxLines = 1)
+        }
+    }
 }
 
 /** Sepia, slightly dimmed: how a bounty looks until it is earned. */
